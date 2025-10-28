@@ -1,0 +1,235 @@
+body {
+  font-family: 'San Francisco', 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #1a1a2e 0%, #23234b 100%);
+  transition: background 0.6s cubic-bezier(0.4,0,0.2,1);
+  animation: bgMove 10s ease-in-out infinite alternate;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+@keyframes bgMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+/* Fullscreen chat container */
+.chat-container {
+  width: 100vw;
+  height: 100vh;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1;
+}
+
+.chat-box {
+  flex: 1;
+  padding: 24px 0 120px 0;
+  overflow-y: auto;
+  color: #e0e0f0;
+  font-size: 1.08rem;
+  background: transparent;
+  width: 100vw;
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+
+textarea {
+  width: 100vw;
+  box-sizing: border-box;
+  padding: 18px 16px;
+  resize: none;
+  border: none;
+  border-top: 1.5px solid #3d2c5a;
+  outline: none;
+  background: #23234b;
+  color: #e0e0f0;
+  font-size: 1.05rem;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: 10;
+  min-height: 60px;
+  max-height: 160px;
+  box-shadow: 0 2px 8px 0 #6c2ebf22 inset;
+}
+
+textarea:focus {
+  background: #2d1b4c;
+  color: #fff;
+  border-top: 1.5px solid #a259ff;
+}
+
+button#send {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 11;
+  padding: 12px 28px;
+  background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.05rem;
+  box-shadow: 0 2px 8px 0 #6c2ebf44;
+  transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+  letter-spacing: 0.03em;
+  outline: none;
+}
+
+button#send:hover, button#send:focus {
+  background: linear-gradient(90deg, #a259ff 0%, #6c2ebf 100%);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 4px 16px 0 #a259ff55;
+}
+
+/* Chat messages */
+.message {
+  display: flex;
+  margin-bottom: 16px;
+  align-items: flex-end;
+  animation: fadeIn 0.5s;
+  padding: 0 24px;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.message.ai {
+  justify-content: flex-start;
+}
+
+.bubble {
+  max-width: 70vw;
+  padding: 14px 18px;
+  border-radius: 18px 18px 6px 18px;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px 0 #0002;
+  word-break: break-word;
+  transition: background 0.3s;
+}
+
+.message.user .bubble {
+  background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+  border-bottom-left-radius: 18px;
+  align-self: flex-end;
+}
+
+.message.ai .bubble {
+  background: linear-gradient(90deg, #23234b 60%, #2d1b4c 100%);
+  color: #e0e0f0;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 18px;
+  align-self: flex-start;
+  border: 1.5px solid #6c2ebf44;
+}
+
+/* Code bubbles */
+.bubble.code-bubble {
+  padding: 12px;
+  background: #181828;
+  color: #a259ff;
+  border-radius: 12px;
+  border: 1.5px solid #6c2ebf44;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px 0 #6c2ebf22;
+}
+
+.bubble.code-bubble pre, .bubble.code-bubble code {
+  background: transparent;
+  color: #a259ff;
+  font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+  font-size: 1.01rem;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0;
+  padding: 0;
+}
+
+/* Copy button inside bubble */
+.copy-btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: none;
+  background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  display: inline-block;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.copy-btn:hover, .copy-btn:focus {
+  background: linear-gradient(90deg, #a259ff 0%, #6c2ebf 100%);
+  box-shadow: 0 2px 10px #a259ff55;
+}
+
+/* Copied notification */
+.copied-notification {
+  position: fixed;
+  left: 50%;
+  bottom: 90px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
+  color: #fff;
+  padding: 14px 36px;
+  border-radius: 12px;
+  font-size: 1.08rem;
+  font-weight: 600;
+  box-shadow: 0 4px 24px #6c2ebf44;
+  z-index: 9999;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 0.4s, bottom 0.4s;
+}
+
+.copied-notification.hide {
+  opacity: 0;
+  bottom: 60px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #23234b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(120deg, #6c2ebf 0%, #a259ff 100%);
+  border-radius: 8px;
+}
+
+@media (max-width: 700px) {
+  .bubble { max-width: 90vw; font-size: 0.98rem; padding: 10px 12px; }
+  .message { padding: 0 6vw; }
+  textarea { padding: 12px 6vw; }
+}
+
+@media (max-width: 500px) {
+  .bubble { max-width: 98vw; }
+  .message { padding: 0 2vw; }
+  textarea { padding: 10px 2vw; }
+  button#send { right: 8px; bottom: 8px; padding: 10px 18px; }
+}
