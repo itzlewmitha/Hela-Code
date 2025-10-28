@@ -3,44 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hela Code AI</title>
+  <title>Hela Code Ai</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="chat-container">
-
-    <!-- Center greeting and example prompts -->
-    <div class="center-content" id="greetingSection">
-      <div class="greeting-message">Hey, I'm <span style="color:#a259ff;">Hela Code AI</span> 👋</div>
-      <div class="example-prompts">
-        <div class="prompt" onclick="input.value='Write a Python function to reverse a string.'; send.click();">
-          <span class="prompt-icon">💡</span>
-          <span class="prompt-text">Write a Python function to reverse a string.</span>
-        </div>
-        <div class="prompt" onclick="input.value='Generate HTML code for a responsive navbar.'; send.click();">
-          <span class="prompt-icon">💡</span>
-          <span class="prompt-text">Generate HTML code for a responsive navbar.</span>
-        </div>
-        <div class="prompt" onclick="input.value='Create a CSS style for a modern button.'; send.click();">
-          <span class="prompt-icon">💡</span>
-          <span class="prompt-text">Create a CSS style for a modern button.</span>
-        </div>
-    </div>
-
-    <!-- Chat box (hidden initially) -->
-    <div class="chat-box" id="chatBox"></div>
-
-    <!-- Chat input bar -->
-    <div class="chat-input-bar">
-      <div class="chat-input-inner">
-        <textarea id="input" placeholder="Ask me to write code..." rows="1"></textarea>
-        <button id="send" class="send-btn">➤</button>
-      </div>
-    </div>
-
+    <div id="chat" class="chat-box"></div>
+    <textarea id="input" placeholder="Ask me to write code..." rows="2"></textarea>
+    <button id="send">Send</button>
   </div>
-
-  <script src="script.js"></script> <!-- handles AI logic, message processing, etc. -->
-</body>
+  <script src="script.js"></script>
 </body>
 </html>
