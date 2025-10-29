@@ -5,7 +5,7 @@ const greetingSection = document.getElementById('greetingSection');
 
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
-const MODEL = 'APILAGEAI-FREE';
+const MODEL = 'APILAGEAI-PRO';
 
 sendBtn.addEventListener('click', handleSend);
 input.addEventListener('keydown', e => {
@@ -46,13 +46,13 @@ async function handleSend() {
       const code = match[3];
       const after = match[4].trim();
       if (before) liveTypeAI(before);
-      appendCodeMessage('ai', `\`\`\`${lang}\n${code}\`\`\``);
+      appendCodeMessage('ai', code, lang);
       if (after) liveTypeAI(after);
     } else appendCodeMessage('ai', reply);
   } else liveTypeAI(reply);
 }
 
-// helpers
+// --- Helpers ---
 function addMessage(sender, text) {
   const msg = document.createElement('div');
   msg.classList.add('message', sender);
@@ -60,15 +60,11 @@ function addMessage(sender, text) {
   bubble.classList.add('bubble');
   bubble.innerHTML = escapeHTML(text);
   msg.appendChild(bubble);
-  chatBox.appendChild(message);
-  scrollToBottomIfNeeded();
+  chatBox.appendChild(msg);
+  scrollToBottom();
 }
 
-function appendCodeMessage(sender, text) {
-  const match = text.match(/```(\w+)?\n?([\s\S]*?)```/);
-  const lang = match?.[1] || '';
-  const code = match?.[2] || text;
-
+function appendCodeMessage(sender, code, lang = '') {
   const msg = document.createElement('div');
   msg.className = `message ${sender}`;
   msg.innerHTML = `
@@ -79,30 +75,33 @@ function appendCodeMessage(sender, text) {
   chatBox.appendChild(msg);
 
   const codeElem = msg.querySelector('code');
-  const lines = code.split('\n');
-  let i = 0;
-  (function typeLine() {
-    if (i < lines.length) {
-      codeElem.innerHTML += (i ? '\n' : '') + escapeHTML(lines[i]);
-      scrollToBottomIfNeeded();
-      i++;
-      setTimeout(typeLine, 40 + Math.random() * 50);
-    }
-  })();
+  codeElem.textContent = code;
 
   msg.querySelector('.copy-btn').onclick = () => {
     navigator.clipboard.writeText(code);
     showCopiedNotification();
   };
+
+  scrollToBottom();
 }
 
-function showCopiedNotification() {
-  const notif = document.createElement('div');
-  notif.className = 'copied-notification';
-  notif.textContent = 'Copied!';
-  document.body.appendChild(notif);
-  setTimeout(() => notif.classList.add('hide'), 1000);
-  setTimeout(() => notif.remove(), 1600);
+function liveTypeAI(text) {
+  const msg = document.createElement('div');
+  msg.classList.add('message', 'ai');
+  const bubble = document.createElement('div');
+  bubble.classList.add('bubble');
+  msg.appendChild(bubble);
+  chatBox.appendChild(msg);
+
+  let i = 0;
+  (function type() {
+    if (i <= text.length) {
+      bubble.innerHTML = escapeHTML(text.slice(0, i));
+      scrollToBottom();
+      i++;
+      setTimeout(type, 20);
+    }
+  })();
 }
 
 function showTyping() {
@@ -112,38 +111,25 @@ function showTyping() {
   t.id = 'typing-indicator';
   t.innerHTML = `<div class="bubble">...</div>`;
   chatBox.appendChild(t);
-  scrollToBottomIfNeeded();
+  scrollToBottom();
 }
+
 function removeTyping() {
   const t = document.getElementById('typing-indicator');
   if (t) t.remove();
 }
 
-function liveTypeAI(text) {
-  removeTyping();
-  const msg = document.createElement('div');
-  msg.classList.add('message', 'ai');
-  const bubble = document.createElement('div');
-  bubble.classList.add('bubble');
-  msg.appendChild(bubble);
-  chatBox.appendChild(msg);
-  let i = 0;
-  (function type() {
-    if (i <= text.length) {
-      bubble.innerHTML = escapeHTML(text.slice(0, i));
-      scrollToBottomIfNeeded();
-      i++;
-      setTimeout(type, 15 + Math.random() * 25);
-    }
-  })();
+function scrollToBottom() {
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function isCodeRelated(t) {
+function isCodeRelated(text) {
   const words = ['code','function','python','javascript','java','html','css','bug','debug','error','loop','if','else','return','const','let','sql','fix','print','output'];
-  if (/```[\s\S]*?```/.test(t)) return true;
-  return words.some(w => t.toLowerCase().includes(w));
+  return /```[\s\S]*?```/.test(text) || words.some(w => text.toLowerCase().includes(w));
 }
-function isCodeBlock(t) { return /```[\s\S]*?```/.test(t); }
+
+function isCodeBlock(text) { return /```[\s\S]*?```/.test(text); }
+
 function escapeHTML(s) {
   return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
@@ -161,4 +147,13 @@ async function askAI(msg) {
     console.error(err);
     return 'Error connecting to AI';
   }
+}
+
+function showCopiedNotification() {
+  const notif = document.createElement('div');
+  notif.className = 'copied-notification';
+  notif.textContent = 'Copied!';
+  document.body.appendChild(notif);
+  setTimeout(() => notif.classList.add('hide'), 1000);
+  setTimeout(() => notif.remove(), 1600);
 }
