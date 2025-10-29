@@ -84,7 +84,7 @@ function appendCodeMessage(sender, text) {
   (function typeLine() {
     if (i < lines.length) {
       codeElem.innerHTML += (i ? '\n' : '') + escapeHTML(lines[i]);
-      chatBox.scrollTop = chatBox.scrollHeight;
+      scrollToBottomIfNeeded();
       i++;
       setTimeout(typeLine, 40 + Math.random() * 50);
     }
@@ -112,7 +112,7 @@ function showTyping() {
   t.id = 'typing-indicator';
   t.innerHTML = `<div class="bubble">...</div>`;
   chatBox.appendChild(t);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  scrollToBottomIfNeeded();
 }
 function removeTyping() {
   const t = document.getElementById('typing-indicator');
@@ -131,7 +131,7 @@ function liveTypeAI(text) {
   (function type() {
     if (i <= text.length) {
       bubble.innerHTML = escapeHTML(text.slice(0, i));
-      chatBox.scrollTop = chatBox.scrollHeight;
+      scrollToBottomIfNeeded();
       i++;
       setTimeout(type, 15 + Math.random() * 25);
     }
