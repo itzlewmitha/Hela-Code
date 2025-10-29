@@ -441,7 +441,7 @@
         await firebase.auth().signInWithEmailAndPassword(email, password);
         errorDiv.style.display = 'none';
         // Redirect to chat page or show success
-        window.location.href = "ai/index.html";
+        window.location.href = "/chat.html";
       } catch (err) {
         errorDiv.textContent = err.message.replace("Firebase:", "");
         errorDiv.style.display = 'block';
@@ -460,7 +460,7 @@
       try {
         await firebase.auth().createUserWithEmailAndPassword(email, password);
         errorDiv.style.display = 'none';
-        window.location.href = "ai/index.html";
+        window.location.href = "/chat.html";
       } catch (err) {
         errorDiv.textContent = err.message.replace("Firebase:", "");
         errorDiv.style.display = 'block';
@@ -473,7 +473,7 @@
       const provider = new firebase.auth.GoogleAuthProvider();
       try {
         await firebase.auth().signInWithPopup(provider);
-        window.location.href = "ai/index.html";
+        window.location.href = "/chat.html";
       } catch (err) {
         const errorDiv = document.getElementById('loginError');
         errorDiv.textContent = err.message.replace("Firebase:", "");
@@ -483,3 +483,4 @@
   </script>
 </body>
 </html>
+
