@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hela Code AI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="chat-container">
+    <!-- greeting / home screen -->
+    <div id="greetingSection" class="center-content">
+      <div class="greeting-message">Welcome to <span style="color:#a259ff">Hela Code</span></div>
+      <div class="example-prompts">
+        <div class="example-prompt">💡 Debug my Python code</div>
+        <div class="example-prompt">🧠 Explain this JavaScript function</div>
+        <div class="example-prompt">⚙️ Generate a simple HTML layout</div>
+      </div>
+    </div>
+
+    <!-- chat area -->
+    <div id="chat" class="chat-box"></div>
+
+    <!-- input area -->
+    <div class="chat-input-bar">
+      <div class="chat-input-inner">
+        <textarea id="input" placeholder="Ask me to write or fix code..." rows="1"></textarea>
+        <button id="send" class="send-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // show personalized welcome message if user logged in
+    const user = localStorage.getItem('helaUser');
+    if (user) {
+      setTimeout(() => {
+        if (typeof liveTypeAI === 'function') {
+          liveTypeAI(`Welcome back, ${user} 👋 Let's code together.`);
+        }
+      }, 800);
+    }
+  </script>
+</body>
+</html>
