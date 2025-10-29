@@ -61,7 +61,7 @@ function addMessage(sender, text) {
   bubble.innerHTML = escapeHTML(text);
   msg.appendChild(bubble);
   chatBox.appendChild(msg);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  scrollToBottomIfNeeded();
 }
 
 function appendCodeMessage(sender, text) {
