@@ -60,7 +60,7 @@ function addMessage(sender, text) {
   bubble.classList.add('bubble');
   bubble.innerHTML = escapeHTML(text);
   msg.appendChild(bubble);
-  chatBox.appendChild(msg);
+  chatBox.appendChild(message);
   scrollToBottomIfNeeded();
 }
 
