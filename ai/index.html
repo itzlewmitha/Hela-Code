@@ -31,5 +31,16 @@
   </div>
 
   <script src="script.js"></script>
+  <script>
+    // show personalized welcome message if user logged in
+    const user = localStorage.getItem('helaUser');
+    if (user) {
+      setTimeout(() => {
+        if (typeof liveTypeAI === 'function') {
+          liveTypeAI(`Welcome back, ${user} 👋 Let's code together.`);
+        }
+      }, 800);
+    }
+  </script>
 </body>
 </html>
