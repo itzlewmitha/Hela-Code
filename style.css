@@ -212,15 +212,15 @@ body {
 /* Chat input bar at bottom - ChatGPT style */
 .chat-input-bar {
   position: fixed;
-  left: 0;
   bottom: 0;
-  width: 100vw;
+  left: 0;
+  width: 100%;
   background: linear-gradient(120deg, #23234b 0%, #1a1a2e 100%);
   box-shadow: 0 -2px 24px #23234b44;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 28px 0 28px 0;
+  padding: 20px 0;
   z-index: 10;
   border-top: 1.5px solid #3d2c5a;
 }
