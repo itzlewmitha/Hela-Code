@@ -5,15 +5,18 @@ const greetingSection = document.getElementById('greetingSection');
 
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
-const MODEL = 'APILAGEAI-PRO';
+const MODEL = 'APILAGEAI-FREE';
 
-sendBtn.addEventListener('click', handleSend);
-input.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    handleSend();
-  }
-});
+// Check if elements exist before adding event listeners
+if (sendBtn && input) {
+  sendBtn.addEventListener('click', handleSend);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  });
+}
 
 async function handleSend() {
   const text = input.value.trim();
