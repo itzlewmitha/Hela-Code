@@ -88,6 +88,27 @@
       box-shadow: 0 6px 20px rgba(162, 89, 255, 0.6);
     }
 
+    /* Delete chat button */
+    .delete-chat {
+      background: none;
+      border: none;
+      color: #ff6b6b;
+      cursor: pointer;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+      padding: 4px;
+      border-radius: 4px;
+    }
+
+    .chat-item:hover .delete-chat {
+      opacity: 1;
+    }
+
+    .delete-chat:hover {
+      background: rgba(255, 107, 107, 0.1);
+    }
+
     /* Chat container improvements */
     .chat-container.with-sidebar {
       margin-left: 260px;
@@ -196,15 +217,17 @@
       document.getElementById('userName').textContent = user.name || user.email;
       document.getElementById('userAvatar').textContent = (user.name || user.email).charAt(0).toUpperCase();
       
+      // Initialize chat history
+      if (typeof initChatHistory === 'function') {
+        initChatHistory();
+      }
+      
       // Show personalized welcome message
       setTimeout(() => {
         if (typeof liveTypeAI === 'function') {
           liveTypeAI(`Welcome back, ${user.name || user.email} 👋 Let's code together.`);
         }
       }, 800);
-      
-      // Load chat history
-      loadChatHistory();
       
       // Initialize scroll to top functionality
       initScrollToTop();
@@ -231,112 +254,22 @@
     
     // New chat button
     document.getElementById('newChatBtn').addEventListener('click', function() {
-      // Clear current chat
-      document.getElementById('chat').innerHTML = '';
-      document.getElementById('greetingSection').style.display = 'flex';
-      
-      // Scroll to top
-      document.getElementById('chat').scrollTop = 0;
-      
-      // Show welcome message
-      if (typeof liveTypeAI === 'function') {
-        liveTypeAI(`Hi ${user.name || user.email}! What would you like to code today?`);
-      }
-      
-      // Update active chat in history
-      updateActiveChat(null);
-    });
-    
-    // Load chat history from localStorage
-    function loadChatHistory() {
-      const chatHistory = JSON.parse(localStorage.getItem('helaChatHistory')) || [];
-      const chatHistoryContainer = document.getElementById('chatHistory');
-      
-      chatHistoryContainer.innerHTML = '';
-      
-      if (chatHistory.length === 0) {
-        // Add default "New Chat" item
-        const defaultItem = document.createElement('div');
-        defaultItem.className = 'chat-item active';
-        defaultItem.innerHTML = `
-          <span class="chat-item-icon">💬</span>
-          <span class="chat-item-title">New Chat</span>
-        `;
-        chatHistoryContainer.appendChild(defaultItem);
-      } else {
-        chatHistory.forEach((chat, index) => {
-          const chatItem = document.createElement('div');
-          chatItem.className = `chat-item ${index === 0 ? 'active' : ''}`;
-          chatItem.innerHTML = `
-            <span class="chat-item-icon">💬</span>
-            <span class="chat-item-title">${chat.title || 'Chat'}</span>
-          `;
-          
-          chatItem.addEventListener('click', function() {
-            // Load this chat
-            loadChat(chat);
-            
-            // Update active state
-            document.querySelectorAll('.chat-item').forEach(item => {
-              item.classList.remove('active');
-            });
-            this.classList.add('active');
-            
-            // Close sidebar on mobile
-            if (window.innerWidth <= 768) {
-              document.getElementById('sidebar').classList.remove('open');
-              document.getElementById('overlay').classList.remove('open');
-            }
-          });
-          
-          chatHistoryContainer.appendChild(chatItem);
-        });
-      }
-    }
-    
-    // Load a specific chat
-    function loadChat(chat) {
-      // Clear current chat
-      document.getElementById('chat').innerHTML = '';
-      document.getElementById('greetingSection').style.display = 'none';
-      
-      // Load chat messages
-      chat.messages.forEach(msg => {
-        if (msg.type === 'user') {
-          addMessage('user', msg.content);
-        } else {
-          if (isCodeBlock(msg.content)) {
-            const match = msg.content.match(/([\s\S]*?)```(\w+)?\n?([\s\S]*?)```([\s\S]*)/);
-            if (match) {
-              const before = match[1].trim();
-              const lang = match[2] || '';
-              const code = match[3];
-              const after = match[4].trim();
-              if (before) addMessage('ai', before);
-              appendCodeMessage('ai', code, lang);
-              if (after) addMessage('ai', after);
-            } else {
-              appendCodeMessage('ai', msg.content);
-            }
-          } else {
-            addMessage('ai', msg.content);
-          }
+      if (typeof createNewChat === 'function') {
+        createNewChat();
+        
+        // Show welcome message
+        if (typeof liveTypeAI === 'function') {
+          liveTypeAI(`Hi ${user.name || user.email}! What would you like to code today?`);
         }
-      });
-      
-      scrollToBottom();
-    }
-    
-    // Update active chat in history
-    function updateActiveChat(message) {
-      // Implementation would save the current chat to localStorage
-      // This is a simplified version
-    }
+      }
+    });
     
     // Initialize scroll to top functionality
     function initScrollToTop() {
       const scrollToTopBtn = document.getElementById('scrollToTop');
       const chatBox = document.getElementById('chat');
+      
+      if (!scrollToTopBtn || !chatBox) return;
       
       // Show/hide scroll to top button based on scroll position
       chatBox.addEventListener('scroll', function() {
@@ -365,61 +298,6 @@
           });
         });
       }
-    }
-    
-    // Helper functions from script.js
-    function addMessage(sender, text) {
-      const msg = document.createElement('div');
-      msg.classList.add('message', sender);
-      const bubble = document.createElement('div');
-      bubble.classList.add('bubble');
-      bubble.innerHTML = escapeHTML(text);
-      msg.appendChild(bubble);
-      document.getElementById('chat').appendChild(msg);
-      scrollToBottom();
-    }
-    
-    function appendCodeMessage(sender, code, lang = '') {
-      const msg = document.createElement('div');
-      msg.className = `message ${sender}`;
-      msg.innerHTML = `
-        <div class="bubble code-bubble">
-          <pre><code class="${lang}"></code></pre>
-          <button class="copy-btn">Copy</button>
-        </div>`;
-      document.getElementById('chat').appendChild(msg);
-    
-      const codeElem = msg.querySelector('code');
-      codeElem.textContent = code;
-    
-      msg.querySelector('.copy-btn').onclick = () => {
-        navigator.clipboard.writeText(code);
-        showCopiedNotification();
-      };
-    
-      scrollToBottom();
-    }
-    
-    function scrollToBottom() {
-      const chatBox = document.getElementById('chat');
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-    
-    function escapeHTML(s) {
-      return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
-    
-    function isCodeBlock(text) { 
-      return /```[\s\S]*?```/.test(text); 
-    }
-    
-    function showCopiedNotification() {
-      const notif = document.createElement('div');
-      notif.className = 'copied-notification';
-      notif.textContent = 'Copied!';
-      document.body.appendChild(notif);
-      setTimeout(() => notif.classList.add('hide'), 1000);
-      setTimeout(() => notif.remove(), 1600);
     }
   </script>
 </body>
