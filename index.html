@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <title>Hela Code - Where your ideas talk back.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Google Fonts for modern look -->
   <link href="https://fonts.googleapis.com/css?family=Segoe+UI:400,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
- body, html {
+    /* ...existing code... */
+    body, html {
       height: 100%;
       margin: 0;
       padding: 0;
@@ -200,7 +202,8 @@
       gap: 18px;
     }
     .nf-login-form input[type="email"],
-    .nf-login-form input[type="password"] {
+    .nf-login-form input[type="password"],
+    .nf-login-form input[type="text"] {
       width: 100%;
       padding: 14px 16px;
       border-radius: 10px;
@@ -214,7 +217,8 @@
       box-shadow: 0 2px 8px #6c2ebf22 inset;
     }
     .nf-login-form input[type="email"]:focus,
-    .nf-login-form input[type="password"]:focus {
+    .nf-login-form input[type="password"]:focus,
+    .nf-login-form input[type="text"]:focus {
       border: 1.5px solid #a259ff;
       background: #2d1b4c;
     }
@@ -296,6 +300,22 @@
       background-color: #fff;
       margin-right: 4px;
     }
+    .nf-login-links {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .nf-login-links a {
+      color: #a259ff;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+    .nf-login-links a:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
     @media (max-width: 900px) {
       .nf-features { flex-direction: column; gap: 18px; }
       .nf-feature-card { margin: 0 auto; }
@@ -304,20 +324,17 @@
       .nf-hero-title { font-size: 2.1rem; }
       .nf-hero-tagline { font-size: 1.01rem; }
       .nf-login-box { min-width: 0; width: 98vw; padding: 28px 6vw; }
-    }
-    /* Add name field to create account form */
-    #createAccountForm {
-      display: none;
+      .nf-login-links { flex-direction: column; gap: 8px; align-items: center; }
     }
   </style>
 </head>
 <body>
   <!-- Homepage -->
   <div id="homepage" style="display:block;">
- <section class="nf-hero">
+    <section class="nf-hero">
       <div class="nf-hero-title">Hela Code</div>
       <div class="nf-hero-tagline">Where your ideas talk back.</div>
-      <button class="nf-start-btn" onclick="showLogin()">Start Chat</button>
+      <button class="nf-start-btn" id="startBtn">Start Chat</button>
       <div class="nf-features">
         <div class="nf-feature-card">
           <div class="nf-feature-icon">🤖</div>
@@ -345,14 +362,12 @@
       </footer>
     </section>
   </div>
-  
   <!-- Login Page -->
   <div id="loginpage" style="display:none;">
     <div class="nf-login-bg">
-      <form class="nf-login-box" id="loginForm" autocomplete="on" onsubmit="return false;">
-        <form class="nf-login-box" id="loginForm" autocomplete="on" onsubmit="return false;">
-        <div class="nf-login-title">Sign in to NeuraFlow</div>
-        <div class="nf-login-error" id="loginError"></div>
+      <form class="nf-login-box" id="loginForm" autocomplete="on">
+        <div class="nf-login-title">Sign in to Hela Code</div>
+        <div class="nf-login-error" id="loginError" style="color: #ff6b6b; margin-bottom: 10px; display: none;"></div>
         <div class="nf-login-form">
           <label for="email">Email</label>
           <input type="email" id="email" required autocomplete="email" spellcheck="false">
@@ -366,12 +381,16 @@
           <button type="button" id="googleLoginBtn" class="nf-google-btn">
             <span class="nf-google-icon"></span> Sign in with Google
           </button>
+        </div>
+        <div class="nf-login-links">
+          <a href="#" id="createAccountLink">Create account</a>
+          <a href="#" id="forgotPasswordLink">Forgot password?</a>
+        </div>
       </form>
-      
-      <!-- Updated Create Account Modal with name field -->
+      <!-- Create Account Modal -->
       <form class="nf-login-box" id="createAccountForm" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:20;">
         <div class="nf-login-title">Create Account</div>
-        <div class="nf-login-error" id="createError"></div>
+        <div class="nf-login-error" id="createError" style="color: #ff6b6b; margin-bottom: 10px; display: none;"></div>
         <div class="nf-login-form">
           <label for="displayName">Full Name</label>
           <input type="text" id="displayName" required autocomplete="name" spellcheck="false">
@@ -382,18 +401,54 @@
           <button class="nf-login-btn" id="createBtn" type="submit">Create Account</button>
         </div>
         <div class="nf-login-links" style="justify-content:center;">
-          <a href="#" onclick="hideCreateAccount();return false;">Back to Login</a>
+          <a href="#" id="backToLoginLink">Back to Login</a>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase App (the core Firebase SDK) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script>
-    // ... existing showLogin, showCreateAccount, hideCreateAccount functions ...
+    // Toggle between homepage and login page
+    document.getElementById('startBtn').addEventListener('click', showLogin);
+    document.getElementById('createAccountLink').addEventListener('click', showCreateAccount);
+    document.getElementById('backToLoginLink').addEventListener('click', hideCreateAccount);
+    document.getElementById('forgotPasswordLink').addEventListener('click', showForgotPassword);
     
+    function showLogin() {
+      document.getElementById('homepage').style.display = 'none';
+      document.getElementById('loginpage').style.display = 'block';
+      document.getElementById('loginForm').style.display = '';
+      document.getElementById('createAccountForm').style.display = 'none';
+    }
+    
+    function showCreateAccount(e) {
+      e.preventDefault();
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('createAccountForm').style.display = '';
+      document.getElementById('createError').style.display = 'none';
+    }
+    
+    function hideCreateAccount(e) {
+      e.preventDefault();
+      document.getElementById('loginForm').style.display = '';
+      document.getElementById('createAccountForm').style.display = 'none';
+    }
+    
+    function showForgotPassword(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      if (!email) {
+        alert('Please enter your email in the login form first.');
+        return;
+      }
+      firebase.auth().sendPasswordResetEmail(email)
+        .then(() => alert('Password reset email sent!'))
+        .catch(err => alert(err.message.replace("Firebase:", "")));
+    }
+
     // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
@@ -412,10 +467,10 @@
       };
       
       localStorage.setItem('helaUser', JSON.stringify(userData));
-      window.location.href = "/chat.html";
+      window.location.href = "chat.html";
     }
 
-    // Updated login logic
+    // Login logic
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const email = document.getElementById('email').value.trim();
@@ -438,7 +493,7 @@
       }
     });
 
-    // Updated create account logic
+    // Create account logic
     document.getElementById('createAccountForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('displayName').value.trim();
@@ -464,7 +519,7 @@
       }
     });
 
-    // Updated Google login logic
+    // Google login logic
     document.getElementById('googleLoginBtn').addEventListener('click', async function() {
       const provider = new firebase.auth.GoogleAuthProvider();
       try {
@@ -479,5 +534,3 @@
   </script>
 </body>
 </html>
-
-
