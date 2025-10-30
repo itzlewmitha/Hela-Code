@@ -18,14 +18,58 @@
 <body>
   <!-- Homepage -->
   <div id="homepage" style="display:block;">
-    <!-- ... existing homepage content ... -->
+ <section class="nf-hero">
+      <div class="nf-hero-title">Hela Code</div>
+      <div class="nf-hero-tagline">Where your ideas talk back.</div>
+      <button class="nf-start-btn" onclick="showLogin()">Start Chat</button>
+      <div class="nf-features">
+        <div class="nf-feature-card">
+          <div class="nf-feature-icon">🤖</div>
+          <div class="nf-feature-title">Smart AI</div>
+          <div class="nf-feature-desc">Get instant, context-aware answers and code from a powerful AI trained for developers.</div>
+        </div>
+        <div class="nf-feature-card">
+          <div class="nf-feature-icon">🔒</div>
+          <div class="nf-feature-title">Privacy First</div>
+          <div class="nf-feature-desc">Your conversations are private and encrypted. We never share your data.</div>
+        </div>
+        <div class="nf-feature-card">
+          <div class="nf-feature-icon">⚡</div>
+          <div class="nf-feature-title">Real-time Chat</div>
+          <div class="nf-feature-desc">Enjoy a seamless, live chat experience with smooth animations and instant feedback.</div>
+        </div>
+      </div>
+      <footer class="nf-footer">
+        <div class="nf-socials">
+          <a href="https://twitter.com/" target="_blank" aria-label="Twitter"><span>🐦</span></a>
+          <a href="https://github.com/" target="_blank" aria-label="GitHub"><span>💻</span></a>
+          <a href="mailto:info@pixstudios.com" aria-label="Email"><span>✉️</span></a>
+        </div>
+        © 2025 PIX Studios
+      </footer>
+    </section>
   </div>
   
   <!-- Login Page -->
   <div id="loginpage" style="display:none;">
     <div class="nf-login-bg">
       <form class="nf-login-box" id="loginForm" autocomplete="on" onsubmit="return false;">
-        <!-- ... existing login form ... -->
+        <form class="nf-login-box" id="loginForm" autocomplete="on" onsubmit="return false;">
+        <div class="nf-login-title">Sign in to NeuraFlow</div>
+        <div class="nf-login-error" id="loginError"></div>
+        <div class="nf-login-form">
+          <label for="email">Email</label>
+          <input type="email" id="email" required autocomplete="email" spellcheck="false">
+          <label for="password">Password</label>
+          <input type="password" id="password" required autocomplete="current-password">
+          <div class="nf-remember">
+            <input type="checkbox" id="rememberMe">
+            <label for="rememberMe" style="margin:0;">Remember me</label>
+          </div>
+          <button class="nf-login-btn" id="loginBtn" type="submit">Login</button>
+          <button type="button" id="googleLoginBtn" class="nf-google-btn">
+            <span class="nf-google-icon"></span> Sign in with Google
+          </button>
       </form>
       
       <!-- Updated Create Account Modal with name field -->
@@ -139,3 +183,4 @@
   </script>
 </body>
 </html>
+
