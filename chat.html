@@ -53,6 +53,61 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(162, 89, 255, 0.4);
     }
+
+    /* Scroll to top button */
+    .scroll-to-top {
+      position: fixed;
+      bottom: 100px;
+      right: 30px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(162, 89, 255, 0.4);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      opacity: 0;
+      visibility: hidden;
+    }
+    
+    .scroll-to-top.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .scroll-to-top:hover {
+      background: linear-gradient(90deg, #a259ff 0%, #6c2ebf 100%);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(162, 89, 255, 0.6);
+    }
+
+    /* Chat container improvements */
+    .chat-container.with-sidebar {
+      margin-left: 260px;
+      width: calc(100% - 260px);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 0 160px 0;
+      height: calc(100vh - 160px);
+    }
+
+    /* Ensure messages are properly aligned */
+    .message {
+      max-width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -90,6 +145,9 @@
     
     <!-- Overlay for mobile -->
     <div class="overlay" id="overlay"></div>
+
+    <!-- Scroll to top button -->
+    <button class="scroll-to-top" id="scrollToTop" title="Scroll to top">↑</button>
 
     <div class="chat-container with-sidebar" id="chatContainer">
       <!-- greeting / home screen -->
@@ -147,6 +205,9 @@
       
       // Load chat history
       loadChatHistory();
+      
+      // Initialize scroll to top functionality
+      initScrollToTop();
     }
     
     // Mobile menu toggle
@@ -173,6 +234,9 @@
       // Clear current chat
       document.getElementById('chat').innerHTML = '';
       document.getElementById('greetingSection').style.display = 'flex';
+      
+      // Scroll to top
+      document.getElementById('chat').scrollTop = 0;
       
       // Show welcome message
       if (typeof liveTypeAI === 'function') {
@@ -267,6 +331,40 @@
     function updateActiveChat(message) {
       // Implementation would save the current chat to localStorage
       // This is a simplified version
+    }
+    
+    // Initialize scroll to top functionality
+    function initScrollToTop() {
+      const scrollToTopBtn = document.getElementById('scrollToTop');
+      const chatBox = document.getElementById('chat');
+      
+      // Show/hide scroll to top button based on scroll position
+      chatBox.addEventListener('scroll', function() {
+        if (chatBox.scrollTop > 300) {
+          scrollToTopBtn.classList.add('visible');
+        } else {
+          scrollToTopBtn.classList.remove('visible');
+        }
+      });
+      
+      // Scroll to top when button is clicked
+      scrollToTopBtn.addEventListener('click', function() {
+        chatBox.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      });
+      
+      // Also allow clicking on greeting section to scroll to top
+      const greetingSection = document.getElementById('greetingSection');
+      if (greetingSection) {
+        greetingSection.addEventListener('click', function() {
+          chatBox.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        });
+      }
     }
     
     // Helper functions from script.js
