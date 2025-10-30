@@ -11,6 +11,35 @@ const MODEL = 'APILAGEAI-PRO';
 let currentChatId = null;
 let chats = [];
 
+// System prompt for technology-focused AI
+const SYSTEM_PROMPT = `You are Hela Code, an AI assistant specialized in technology, programming, and development. Your expertise includes:
+
+TECHNOLOGY DOMAINS:
+- Programming languages (Python, JavaScript, Java, C++, C#, Go, Rust, etc.)
+- Web development (HTML, CSS, React, Vue, Angular, Node.js)
+- Mobile development (Android, iOS, React Native, Flutter)
+- Databases (SQL, MongoDB, PostgreSQL, Redis)
+- DevOps & Cloud (Docker, Kubernetes, AWS, Azure, GCP)
+- AI/ML (TensorFlow, PyTorch, scikit-learn)
+- Embedded systems & Arduino
+- Game development
+- Cybersecurity
+- Data science
+- Software architecture
+
+RESPONSE GUIDELINES:
+1. Provide detailed, helpful responses about technology topics
+2. Write and explain code in any programming language
+3. Help with debugging, optimization, and best practices
+4. Discuss technology concepts, frameworks, and tools
+5. Offer career advice in tech fields
+6. Explain technical concepts clearly
+7. For non-technology questions, politely redirect to tech topics
+
+MEMORY: Remember the conversation context within this chat session to provide coherent responses.
+
+Always be enthusiastic about technology and programming!`;
+
 // Initialize chat history
 function initChatHistory() {
     const savedChats = localStorage.getItem('helaChatHistory');
@@ -84,6 +113,11 @@ function addMessageToChat(sender, text) {
             timestamp: new Date().toISOString()
         });
         
+        // Keep only last 50 messages to manage context length
+        if (chat.messages.length > 50) {
+            chat.messages = chat.messages.slice(-50);
+        }
+        
         chat.updatedAt = new Date().toISOString();
         saveChats();
         
@@ -92,6 +126,25 @@ function addMessageToChat(sender, text) {
             updateChatTitle(currentChatId, text);
         }
     }
+}
+
+// Get conversation context for AI (last 10 messages)
+function getConversationContext() {
+    if (!currentChatId) return '';
+    
+    const chat = chats.find(c => c.id === currentChatId);
+    if (!chat || chat.messages.length === 0) return '';
+    
+    // Get last 10 messages for context
+    const recentMessages = chat.messages.slice(-10);
+    let context = 'Previous conversation context:\n';
+    
+    recentMessages.forEach(msg => {
+        const role = msg.type === 'user' ? 'User' : 'Assistant';
+        context += `${role}: ${msg.content}\n`;
+    });
+    
+    return context;
 }
 
 // Load a specific chat
@@ -214,17 +267,6 @@ async function handleSend() {
     addMessageToChat('user', text);
     input.value = '';
 
-    const lowerMsg = text.toLowerCase();
-
-    if (/^(hi|hello|hey|hy|hiya)\b/i.test(lowerMsg))
-        return liveTypeAI("Hey there 👋 Ready to write, debug, and explore some programming today?");
-    if (/thank\s*you|thanks|thx/i.test(lowerMsg))
-        return liveTypeAI("You're welcome! 🙌 Always happy to help with code.");
-    if (/who\s*are\s*you|what\s*are\s*you|your\s*name|who\s*made\s*you/i.test(lowerMsg))
-        return liveTypeAI("Hela Code — created by Lewmitha Kithuldeniya using the Apilage AI API.");
-    if (!isCodeRelated(text))
-        return liveTypeAI("I only respond to coding or debugging questions.");
-
     showTyping();
     const reply = await askAI(text);
     removeTyping();
@@ -253,6 +295,36 @@ async function handleSend() {
     } else {
         liveTypeAI(reply);
         addMessageToChat('ai', reply);
+    }
+}
+
+// Enhanced AI function with memory and technology focus
+async function askAI(userMessage) {
+    try {
+        // Get conversation context for memory
+        const context = getConversationContext();
+        
+        // Build the prompt with system instructions and context
+        const fullPrompt = `${SYSTEM_PROMPT}\n\n${context}\n\nCurrent user question: ${userMessage}\n\nAssistant:`;
+        
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({ 
+                message: fullPrompt, 
+                model: MODEL 
+            })
+        });
+        
+        const data = await res.json();
+        return data.response || 'I apologize, but I encountered an issue. Please try again.';
+        
+    } catch (err) {
+        console.error('AI Error:', err);
+        return 'I apologize, but I\'m having trouble connecting right now. Please try again in a moment.';
     }
 }
 
@@ -321,7 +393,7 @@ function showTyping() {
     const t = document.createElement('div');
     t.className = 'message ai';
     t.id = 'typing-indicator';
-    t.innerHTML = `<div class="bubble">...</div>`;
+    t.innerHTML = `<div class="bubble">Hela Code is thinking... 💭</div>`;
     chatBox.appendChild(t);
     scrollToBottom();
 }
@@ -338,29 +410,16 @@ function scrollToBottom() {
 }
 
 function isCodeRelated(text) {
-    const words = ['code','function','python','javascript','java','html','css','bug','debug','error','loop','if','else','return','const','let','sql','fix','print','output'];
-    return /```[\s\S]*?```/.test(text) || words.some(w => text.toLowerCase().includes(w));
+    // Always return true now since AI handles all technology topics
+    return true;
 }
 
-function isCodeBlock(text) { return /```[\s\S]*?```/.test(text); }
+function isCodeBlock(text) { 
+    return /```[\s\S]*?```/.test(text); 
+}
 
 function escapeHTML(s) {
     return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-
-async function askAI(msg) {
-    try {
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            headers: {'Content-Type':'application/json','Authorization':`Bearer ${API_KEY}`},
-            body: JSON.stringify({ message: msg, model: MODEL })
-        });
-        const data = await res.json();
-        return data.response || 'No response';
-    } catch (err) {
-        console.error(err);
-        return 'Error connecting to AI';
-    }
 }
 
 function showCopiedNotification() {
