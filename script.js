@@ -5,7 +5,7 @@ const greetingSection = document.getElementById('greetingSection');
 
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
-const MODEL = 'APILAGEAI-FREE';
+const MODEL = 'APILAGEAI-PRO';
 
 // Chat history management
 let currentChatId = null;
