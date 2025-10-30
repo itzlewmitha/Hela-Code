@@ -633,3 +633,318 @@ body {
   text-overflow: ellipsis;
   margin-right: 8px;
 }
+
+/* Add these styles to your existing style.css */
+
+/* Enhanced AI response styling */
+.ai-bubble {
+    background: linear-gradient(90deg, #23234b 60%, #2d1b4c 100%) !important;
+    color: #e0e0f0;
+    border: 1.5px solid #6c2ebf44;
+    border-radius: 18px;
+    padding: 20px;
+    max-width: 85%;
+    line-height: 1.6;
+}
+
+/* Headers in AI responses */
+.response-header {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #a259ff;
+    margin: 1.5rem 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #a259ff33;
+}
+
+.response-header:first-child {
+    margin-top: 0;
+}
+
+.response-subheader {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #b38cff;
+    margin: 1.2rem 0 0.8rem 0;
+}
+
+/* Paragraphs and text */
+.response-paragraph {
+    margin: 0.8rem 0;
+    color: #e0e0f0;
+    line-height: 1.6;
+}
+
+.paragraph-spacing {
+    height: 0.8rem;
+}
+
+/* Lists */
+.bullet-point {
+    margin: 0.4rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    color: #e0e0f0;
+}
+
+.bullet-point:before {
+    content: "•";
+    color: #a259ff;
+    position: absolute;
+    left: 0.5rem;
+    font-weight: bold;
+}
+
+.numbered-point {
+    margin: 0.4rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    color: #e0e0f0;
+}
+
+/* Code blocks */
+.code-block {
+    background: #1a1a2e;
+    border: 1.5px solid #6c2ebf;
+    border-radius: 12px;
+    margin: 1rem 0;
+    overflow: hidden;
+}
+
+.code-header {
+    background: #23234b;
+    padding: 0.8rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #6c2ebf44;
+}
+
+.code-language {
+    color: #a259ff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.code-block pre {
+    margin: 0;
+    padding: 1rem;
+    overflow-x: auto;
+    background: #181828;
+}
+
+.code-block code {
+    font-family: 'Fira Code', 'Consolas', 'Menlo', monospace;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: #e0e0f0;
+}
+
+.code-block .copy-btn {
+    background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.code-block .copy-btn:hover {
+    background: linear-gradient(90deg, #a259ff 0%, #6c2ebf 100%);
+    transform: translateY(-1px);
+}
+
+/* Notes and blockquotes */
+.ai-note {
+    background: rgba(162, 89, 255, 0.1);
+    border-left: 4px solid #a259ff;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: #cfcfe6;
+}
+
+/* Bold text in responses */
+.ai-bubble strong {
+    color: #fff;
+    font-weight: 700;
+}
+
+/* Tables */
+.ai-bubble table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    background: #23234b;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ai-bubble th {
+    background: #6c2ebf;
+    color: white;
+    padding: 0.8rem;
+    text-align: left;
+    font-weight: 600;
+}
+
+.ai-bubble td {
+    padding: 0.8rem;
+    border-bottom: 1px solid #6c2ebf33;
+    color: #e0e0f0;
+}
+
+.ai-bubble tr:last-child td {
+    border-bottom: none;
+}
+
+/* User message styling */
+.message.user .bubble {
+    background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
+    color: #fff;
+    border-radius: 18px 18px 4px 18px;
+    padding: 14px 18px;
+    max-width: 85%;
+    align-self: flex-end;
+}
+
+/* Typing indicator */
+#typing-indicator .bubble {
+    background: linear-gradient(90deg, #23234b 60%, #2d1b4c 100%);
+    color: #a259ff;
+    font-style: italic;
+    border: 1.5px solid #6c2ebf44;
+}
+
+/* Delete chat button */
+.delete-chat {
+    background: none;
+    border: none;
+    color: #ff6b6b;
+    cursor: pointer;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.chat-item:hover .delete-chat {
+    opacity: 1;
+}
+
+.delete-chat:hover {
+    background: rgba(255, 107, 107, 0.1);
+}
+
+/* Chat item improvements */
+.chat-item {
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    color: #e0e0f0;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+}
+
+.chat-item-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 8px;
+}
+
+/* Enhanced example prompts */
+.example-prompts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.example-prompt {
+    background: rgba(36, 34, 60, 0.98);
+    border-radius: 16px;
+    padding: 20px;
+    color: #e0e0f0;
+    font-size: 1rem;
+    box-shadow: 0 4px 20px #6c2ebf22;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1.5px solid transparent;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.example-prompt:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px #a259ff44;
+    border-color: #a259ff;
+    background: rgba(42, 39, 70, 0.98);
+}
+
+.prompt-icon {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+}
+
+.prompt-title {
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.prompt-desc {
+    font-size: 0.9rem;
+    color: #cfcfe6;
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+/* Mobile responsiveness for formatted responses */
+@media (max-width: 768px) {
+    .ai-bubble {
+        max-width: 95%;
+        padding: 16px;
+    }
+    
+    .response-header {
+        font-size: 1.2rem;
+    }
+    
+    .response-subheader {
+        font-size: 1rem;
+    }
+    
+    .code-block pre {
+        padding: 0.8rem;
+    }
+    
+    .code-block code {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 500px) {
+    .ai-bubble {
+        max-width: 98%;
+        padding: 12px;
+    }
+    
+    .response-header {
+        font-size: 1.1rem;
+    }
+}
