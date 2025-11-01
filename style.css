@@ -1219,3 +1219,89 @@ body {
     background: var(--error-color);
     color: white;
 }
+  /* File Upload Styles */
+.file-btn {
+  background: var(--secondary-bg);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
+
+.file-btn:hover {
+  background: var(--accent-color);
+  color: white;
+}
+
+.file-preview {
+  background: var(--secondary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  max-width: 100%;
+}
+
+.file-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.file-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.file-size {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.file-content {
+  background: var(--primary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'Fira Code', 'Consolas', 'Menlo', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.remove-file {
+  background: var(--error-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.remove-file:hover {
+  background: #ff5252;
+}
+
+.file-error {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid var(--error-color);
+  border-radius: 4px;
+  padding: 8px;
+  margin: 8px 0;
+  color: var(--error-color);
+  font-size: 12px;
+}
