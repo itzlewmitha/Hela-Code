@@ -10,8 +10,7 @@
     body{
       height:100vh;
       background:radial-gradient(circle at 20% 30%,#111425 0%,#0b0c1b 70%);
-      font-family:'Inter',sans-serif;
-      color:#fff;
+      font-family:'Inter',sans-serif;color:#fff;
       display:flex;align-items:center;justify-content:center;
       overflow:hidden;
     }
@@ -92,26 +91,28 @@
 <body>
   <div class="neon-grid"></div>
 
-  <div class="container" id="authBox">
+  <div class="container">
     <h1>Hela Code</h1>
     <p id="formTitle">Sign In to Your Account</p>
 
-    <!-- Name only shown on Sign Up -->
+    <!-- Full name visible only during sign up -->
     <input type="text" id="nameField" placeholder="Full Name" style="display:none;">
-
     <input type="email" id="email" placeholder="Email Address">
     <input type="password" id="password" placeholder="Password">
-    <button id="authBtn">Sign In</button>
 
+    <button id="authBtn">Sign In</button>
     <button class="google-btn" id="googleBtn">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
-      Sign in with Google
+      Continue with Google
     </button>
 
     <div class="toggle-link" id="switchForm">Don’t have an account? Create one</div>
   </div>
 
   <footer>Made with ⚡ by Lewmitha — Pix Studios Sri Lanka</footer>
+
+  <!-- External Firebase & Logic -->
+  <script src="script.js"></script>
 
   <script>
     const switchForm = document.getElementById('switchForm');
@@ -126,24 +127,6 @@
       authBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
       switchForm.textContent = isSignUp ? 'Already have an account? Sign In' : 'Don’t have an account? Create one';
       nameField.style.display = isSignUp ? 'block' : 'none';
-    });
-
-    authBtn.addEventListener('click', () => {
-      const name = document.getElementById('nameField').value;
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      if (isSignUp) {
-        console.log('Register:', name, email, password);
-        // TODO: Firebase createUserWithEmailAndPassword
-      } else {
-        console.log('Login:', email, password);
-        // TODO: Firebase signInWithEmailAndPassword
-      }
-    });
-
-    document.getElementById('googleBtn').addEventListener('click', () => {
-      console.log('Google sign-in clicked');
-      // TODO: Firebase GoogleAuthProvider login
     });
   </script>
 </body>
