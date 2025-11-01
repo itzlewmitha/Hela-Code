@@ -30,6 +30,8 @@ const chatHistory = document.getElementById('chatHistory');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
 const chatTitle = document.getElementById('chatTitle');
+const fileBtn = document.getElementById('fileBtn');
+const fileInput = document.getElementById('fileInput');
 
 // API Configuration
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
@@ -40,6 +42,7 @@ const MODEL = 'APILAGEAI-PRO';
 let currentChatId = null;
 let chats = [];
 let currentUser = null;
+let uploadedFiles = [];
 
 // Initialize the application
 async function initApp() {
@@ -124,7 +127,6 @@ async function loadChats() {
                 ...doc.data()
             }));
             
-            // Convert Firestore timestamps to ISO strings
             chats.forEach(chat => {
                 if (chat.createdAt && chat.createdAt.toDate) {
                     chat.createdAt = chat.createdAt.toDate().toISOString();
@@ -148,7 +150,6 @@ async function loadChats() {
         updateChatHistorySidebar();
     } catch (error) {
         console.error('Error loading chats from Firestore:', error);
-        // Fallback to local storage
         await loadChatsFromLocalStorage();
     }
 }
@@ -186,7 +187,6 @@ async function createNewChat() {
     chats.unshift(newChat);
     currentChatId = newChat.id;
     
-    // Save to Firestore
     try {
         await saveChatToFirestore(newChat);
     } catch (error) {
@@ -217,7 +217,6 @@ async function updateChatTitle(chatId, firstMessage) {
         chat.title = title;
         chat.updatedAt = new Date().toISOString();
         
-        // Update in Firestore
         try {
             await saveChatToFirestore(chat);
         } catch (error) {
@@ -251,7 +250,6 @@ async function addMessageToChat(sender, text) {
         
         chat.updatedAt = new Date().toISOString();
         
-        // Save to Firestore
         try {
             await saveChatToFirestore(chat);
         } catch (error) {
@@ -301,7 +299,6 @@ async function deleteChat(chatId, event) {
     if (confirm('Are you sure you want to delete this chat?')) {
         chats = chats.filter(chat => chat.id !== chatId);
         
-        // Delete from Firestore
         try {
             await deleteChatFromFirestore(chatId);
         } catch (error) {
@@ -329,7 +326,6 @@ function shareChat(chatId, event) {
     const chat = chats.find(c => c.id === chatId);
     if (!chat) return;
     
-    // Create shareable link
     const shareData = {
         chatId: chatId,
         title: chat.title,
@@ -339,11 +335,9 @@ function shareChat(chatId, event) {
     const encodedData = btoa(JSON.stringify(shareData));
     const shareUrl = `${window.location.origin}${window.location.pathname}?shared=${encodedData}`;
     
-    // Copy to clipboard
     navigator.clipboard.writeText(shareUrl).then(() => {
         showNotification('Chat link copied to clipboard!');
     }).catch(() => {
-        // Fallback: show URL in prompt
         prompt('Share this chat link:', shareUrl);
     });
 }
@@ -358,7 +352,6 @@ async function handleSharedChat() {
             const decodedData = JSON.parse(atob(sharedData));
             const { chatId } = decodedData;
             
-            // Load shared chat
             const chatDoc = await db.collection('users')
                 .doc(currentUser.uid)
                 .collection('chats')
@@ -367,7 +360,7 @@ async function handleSharedChat() {
                 
             if (chatDoc.exists) {
                 const sharedChat = {
-                    id: generateChatId(), // New ID for the copy
+                    id: generateChatId(),
                     title: `Shared: ${chatDoc.data().title}`,
                     messages: chatDoc.data().messages || [],
                     createdAt: new Date().toISOString(),
@@ -380,7 +373,6 @@ async function handleSharedChat() {
                 await saveChatToFirestore(sharedChat);
                 await loadChat(sharedChat.id);
                 
-                // Clean URL
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         } catch (error) {
@@ -390,47 +382,144 @@ async function handleSharedChat() {
     }
 }
 
-// Update chat history sidebar with share button
-function updateChatHistorySidebar() {
-    if (!chatHistory) return;
-    
-    chatHistory.innerHTML = '';
-    
-    if (chats.length === 0) {
-        chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
-        return;
-    }
-    
-    chats.forEach(chat => {
-        const chatItem = document.createElement('div');
-        chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
-        chatItem.innerHTML = `
-            <span class="chat-item-icon">💬</span>
-            <span class="chat-item-title">${chat.title}</span>
-            <div class="chat-item-actions">
-                <button class="share-chat" onclick="shareChat('${chat.id}', event)" title="Share chat">🔗</button>
-                <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
-            </div>
-        `;
-        
-        chatItem.addEventListener('click', function(e) {
-            if (!e.target.classList.contains('delete-chat') && !e.target.classList.contains('share-chat')) {
-                loadChat(chat.id);
-                
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('open');
-                }
-            }
+// FILE UPLOAD FUNCTIONS
+function initFileUpload() {
+    if (fileBtn && fileInput) {
+        fileBtn.addEventListener('click', () => {
+            fileInput.click();
         });
-        
-        chatHistory.appendChild(chatItem);
-    });
+
+        fileInput.addEventListener('change', handleFileSelect);
+    }
 }
 
-// Handle send message
+function handleFileSelect(event) {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    files.forEach(file => {
+        readFileContent(file);
+    });
+
+    fileInput.value = '';
+}
+
+function readFileContent(file) {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            const content = e.target.result;
+            
+            if (content.length > 1024 * 1024) {
+                showFileError(file, 'File too large for text extraction (max 1MB)');
+                return;
+            }
+
+            const fileData = {
+                name: file.name,
+                size: formatFileSize(file.size),
+                type: file.type,
+                content: content,
+                timestamp: new Date().toISOString()
+            };
+
+            uploadedFiles.push(fileData);
+            displayFilePreview(fileData);
+            showNotification(`File "${file.name}" uploaded successfully`);
+
+        } catch (error) {
+            console.error('Error reading file:', error);
+            showFileError(file, 'Unable to read file content');
+        }
+    };
+
+    reader.onerror = function() {
+        showFileError(file, 'Error reading file');
+    };
+
+    reader.readAsText(file);
+}
+
+function displayFilePreview(fileData) {
+    if (!chatMessages) return;
+
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'file-preview';
+    previewDiv.innerHTML = `
+        <div class="file-preview-header">
+            <div>
+                <div class="file-name">${escapeHTML(fileData.name)}</div>
+                <div class="file-size">${fileData.size}</div>
+            </div>
+            <button class="remove-file" onclick="removeFile('${fileData.name}')">×</button>
+        </div>
+        <div class="file-content">${escapeHTML(fileData.content.substring(0, 1000))}${fileData.content.length > 1000 ? '...' : ''}</div>
+    `;
+
+    chatMessages.appendChild(previewDiv);
+    scrollToBottom();
+}
+
+function removeFile(fileName) {
+    uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
+    
+    const previews = document.querySelectorAll('.file-preview');
+    previews.forEach(preview => {
+        if (preview.querySelector('.file-name').textContent === fileName) {
+            preview.remove();
+        }
+    });
+    
+    showNotification(`File "${fileName}" removed`);
+}
+
+function showFileError(file, message) {
+    if (!chatMessages) return;
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'file-error';
+    errorDiv.textContent = `${file.name}: ${message}`;
+
+    chatMessages.appendChild(errorDiv);
+    scrollToBottom();
+    
+    setTimeout(() => errorDiv.remove(), 5000);
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function getFileLanguage(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const languageMap = {
+        'js': 'javascript', 'jsx': 'jsx', 'ts': 'typescript', 'tsx': 'tsx',
+        'py': 'python', 'html': 'html', 'css': 'css', 'java': 'java',
+        'cpp': 'cpp', 'c': 'c', 'php': 'php', 'rb': 'ruby', 'go': 'go',
+        'rs': 'rust', 'json': 'json', 'xml': 'xml', 'csv': 'csv',
+        'md': 'markdown', 'sql': 'sql', 'yaml': 'yaml', 'yml': 'yaml',
+        'sh': 'bash', 'bat': 'batch', 'ps1': 'powershell', 'lua': 'lua'
+    };
+    return languageMap[ext] || 'text';
+}
+
+function clearUploadedFiles() {
+    const previews = document.querySelectorAll('.file-preview');
+    previews.forEach(preview => preview.remove());
+    uploadedFiles = [];
+}
+
+// Enhanced handleSend to include file content
 async function handleSend() {
     const text = chatInput.value.trim();
-    if (!text) return;
+    const hasFiles = uploadedFiles.length > 0;
+    
+    if (!text && !hasFiles) return;
     
     chatInput.value = '';
     
@@ -442,13 +531,24 @@ async function handleSend() {
         welcomeScreen.style.display = 'none';
     }
 
+    let messageContent = text;
+    
+    if (hasFiles) {
+        messageContent += '\n\n--- Uploaded Files ---\n';
+        uploadedFiles.forEach(file => {
+            messageContent += `\n📁 ${file.name} (${file.size}):\n\`\`\`${getFileLanguage(file.name)}\n${file.content}\n\`\`\`\n`;
+        });
+    }
+
     addMessage('user', text);
-    await addMessageToChat('user', text);
+    await addMessageToChat('user', messageContent);
+
+    clearUploadedFiles();
 
     showTyping();
     
     try {
-        const reply = await callAI(text);
+        const reply = await callAI(messageContent);
         removeTyping();
         
         displayAIResponse(reply);
@@ -550,6 +650,43 @@ function getConversationContext() {
     return context;
 }
 
+// Update chat history sidebar
+function updateChatHistorySidebar() {
+    if (!chatHistory) return;
+    
+    chatHistory.innerHTML = '';
+    
+    if (chats.length === 0) {
+        chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
+        return;
+    }
+    
+    chats.forEach(chat => {
+        const chatItem = document.createElement('div');
+        chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
+        chatItem.innerHTML = `
+            <span class="chat-item-icon">💬</span>
+            <span class="chat-item-title">${chat.title}</span>
+            <div class="chat-item-actions">
+                <button class="share-chat" onclick="shareChat('${chat.id}', event)" title="Share chat">🔗</button>
+                <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
+            </div>
+        `;
+        
+        chatItem.addEventListener('click', function(e) {
+            if (!e.target.classList.contains('delete-chat') && !e.target.classList.contains('share-chat')) {
+                loadChat(chat.id);
+                
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        });
+        
+        chatHistory.appendChild(chatItem);
+    });
+}
+
 // Add message to chat display
 function addMessage(sender, text) {
     if (!chatMessages) return;
@@ -609,7 +746,6 @@ function displayAIResponse(content) {
     messageDiv.appendChild(messageContent);
     chatMessages.appendChild(messageDiv);
     
-    // Add copy functionality to code blocks
     setTimeout(() => {
         messageBubble.querySelectorAll('.code-block').forEach(block => {
             const copyBtn = block.querySelector('.copy-btn');
@@ -802,6 +938,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             chatInput.addEventListener('input', autoResizeTextarea);
         }
 
+        initFileUpload();
+
         if (newChatBtn) {
             newChatBtn.addEventListener('click', createNewChat);
         }
@@ -839,6 +977,7 @@ window.handleSend = handleSend;
 window.handleExamplePrompt = handleExamplePrompt;
 window.deleteChat = deleteChat;
 window.shareChat = shareChat;
+window.removeFile = removeFile;
 
 // Simple feature placeholders
 window.learningChallenges = {
