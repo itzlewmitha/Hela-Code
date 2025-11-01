@@ -6,131 +6,86 @@
   <title>Hela Code — Access Portal</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    /* ========== RESET & BASE ========== */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      height:100vh;
+      background:radial-gradient(circle at 20% 30%,#111425 0%,#0b0c1b 70%);
+      font-family:'Inter',sans-serif;
+      color:#fff;
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
     }
-    body {
-      height: 100vh;
-      background: radial-gradient(circle at 20% 30%, #111425 0%, #0b0c1b 70%);
-      font-family: 'Inter', sans-serif;
-      color: #fff;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .neon-grid{
+      position:absolute;inset:0;
+      background:
+        linear-gradient(90deg,rgba(255,255,255,0.05)1px,transparent 1px),
+        linear-gradient(rgba(255,255,255,0.05)1px,transparent 1px);
+      background-size:40px 40px;
+      animation:moveGrid 20s linear infinite;
+      z-index:0;
     }
-
-    /* ========== BACKGROUND FX ========== */
-    .neon-grid {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: 
-        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
-        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
-      background-size: 40px 40px;
-      animation: moveGrid 20s linear infinite;
-      z-index: 0;
+    @keyframes moveGrid{
+      0%{background-position:0 0,0 0;}
+      100%{background-position:40px 40px,40px 40px;}
     }
-    @keyframes moveGrid {
-      0% { background-position: 0 0, 0 0; }
-      100% { background-position: 40px 40px, 40px 40px; }
+    .container{
+      position:relative;z-index:2;width:370px;
+      background:rgba(15,15,35,.9);
+      border:1px solid rgba(162,89,255,.2);
+      box-shadow:0 0 25px rgba(162,89,255,.3);
+      border-radius:16px;padding:40px;
+      text-align:center;backdrop-filter:blur(12px);
+      animation:fadeIn 1.2s ease-in-out;
     }
-
-    /* ========== CONTAINER ========== */
-    .container {
-      position: relative;
-      z-index: 2;
-      width: 370px;
-      background: rgba(15, 15, 35, 0.9);
-      border: 1px solid rgba(162, 89, 255, 0.2);
-      box-shadow: 0 0 25px rgba(162, 89, 255, 0.3);
-      border-radius: 16px;
-      padding: 40px;
-      backdrop-filter: blur(12px);
-      text-align: center;
-      animation: fadeIn 1.2s ease-in-out;
+    @keyframes fadeIn{
+      from{opacity:0;transform:translateY(30px);}
+      to{opacity:1;transform:translateY(0);}
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
+    h1{
+      font-size:2rem;font-weight:700;
+      background:linear-gradient(90deg,#a259ff,#00e6ff);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      margin-bottom:10px;letter-spacing:1px;
     }
-
-    /* ========== LOGO / TITLE ========== */
-    h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      background: linear-gradient(90deg, #a259ff, #00e6ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 10px;
-      letter-spacing: 1px;
+    p{font-size:.9rem;color:#ccc;margin-bottom:25px}
+    input{
+      width:100%;background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.15);
+      border-radius:8px;padding:12px;margin-bottom:15px;
+      color:#fff;font-size:.95rem;transition:.25s;
     }
-    p {
-      font-size: 0.9rem;
-      color: #ccc;
-      margin-bottom: 25px;
+    input:focus{
+      border-color:#a259ff;outline:none;
+      box-shadow:0 0 10px rgba(162,89,255,.4);
     }
-
-    /* ========== INPUTS ========== */
-    input {
-      width: 100%;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 15px;
-      color: #fff;
-      font-size: 0.95rem;
-      transition: all 0.25s;
+    button{
+      width:100%;
+      background:linear-gradient(90deg,#a259ff,#00e6ff);
+      color:#fff;font-weight:600;padding:12px;
+      border:none;border-radius:8px;cursor:pointer;
+      transition:.3s ease;
     }
-    input:focus {
-      border-color: #a259ff;
-      outline: none;
-      box-shadow: 0 0 10px rgba(162, 89, 255, 0.4);
+    button:hover{transform:translateY(-2px);
+      box-shadow:0 0 15px rgba(162,89,255,.6);}
+    .google-btn{
+      background:#fff;color:#000;
+      display:flex;align-items:center;justify-content:center;
+      gap:8px;font-weight:600;margin-top:10px;
+      transition:.3s;
     }
-
-    /* ========== BUTTON ========== */
-    button {
-      width: 100%;
-      background: linear-gradient(90deg, #a259ff, #00e6ff);
-      color: #fff;
-      font-weight: 600;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s ease;
+    .google-btn:hover{
+      background:#f5f5f5;transform:translateY(-2px);
+      box-shadow:0 0 10px rgba(255,255,255,.2);
     }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 15px rgba(162, 89, 255, 0.6);
+    .google-btn img{width:20px;height:20px}
+    .toggle-link{
+      margin-top:20px;font-size:.9rem;
+      color:#a259ff;cursor:pointer;transition:.3s;
     }
-
-    /* ========== SWITCH LINKS ========== */
-    .toggle-link {
-      margin-top: 20px;
-      font-size: 0.9rem;
-      color: #a259ff;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    .toggle-link:hover {
-      text-decoration: underline;
-      color: #00e6ff;
-    }
-
-    /* ========== FOOTER ========== */
-    footer {
-      position: absolute;
-      bottom: 20px;
-      font-size: 0.8rem;
-      color: #555;
-      text-align: center;
-      width: 100%;
+    .toggle-link:hover{text-decoration:underline;color:#00e6ff}
+    footer{
+      position:absolute;bottom:20px;font-size:.8rem;
+      color:#555;text-align:center;width:100%;
     }
   </style>
 </head>
@@ -141,19 +96,28 @@
     <h1>Hela Code</h1>
     <p id="formTitle">Sign In to Your Account</p>
 
+    <!-- Name only shown on Sign Up -->
+    <input type="text" id="nameField" placeholder="Full Name" style="display:none;">
+
     <input type="email" id="email" placeholder="Email Address">
     <input type="password" id="password" placeholder="Password">
     <button id="authBtn">Sign In</button>
+
+    <button class="google-btn" id="googleBtn">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
+      Sign in with Google
+    </button>
 
     <div class="toggle-link" id="switchForm">Don’t have an account? Create one</div>
   </div>
 
   <footer>Made with ⚡ by Lewmitha — Pix Studios Sri Lanka</footer>
+
   <script>
-    // toggle between sign in / sign up
     const switchForm = document.getElementById('switchForm');
     const formTitle = document.getElementById('formTitle');
     const authBtn = document.getElementById('authBtn');
+    const nameField = document.getElementById('nameField');
     let isSignUp = false;
 
     switchForm.addEventListener('click', () => {
@@ -161,14 +125,25 @@
       formTitle.textContent = isSignUp ? 'Create Your Account' : 'Sign In to Your Account';
       authBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
       switchForm.textContent = isSignUp ? 'Already have an account? Sign In' : 'Don’t have an account? Create one';
+      nameField.style.display = isSignUp ? 'block' : 'none';
     });
 
-    // firebase logic placeholder
     authBtn.addEventListener('click', () => {
+      const name = document.getElementById('nameField').value;
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      console.log(isSignUp ? 'Register:' : 'Login:', email, password);
-      // TODO: Connect Firebase Auth Here
+      if (isSignUp) {
+        console.log('Register:', name, email, password);
+        // TODO: Firebase createUserWithEmailAndPassword
+      } else {
+        console.log('Login:', email, password);
+        // TODO: Firebase signInWithEmailAndPassword
+      }
+    });
+
+    document.getElementById('googleBtn').addEventListener('click', () => {
+      console.log('Google sign-in clicked');
+      // TODO: Firebase GoogleAuthProvider login
     });
   </script>
 </body>
