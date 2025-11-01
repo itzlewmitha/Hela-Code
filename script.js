@@ -39,7 +39,7 @@ const elements = {
 const API_CONFIG = {
     URL: 'https://endpoint.apilageai.lk/api/chat',
     KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
-    MODEL: 'APILAGEAI-PRO'
+    MODEL: 'APILAGEAI-FREE'
 };
 
 // Global State
