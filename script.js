@@ -13,158 +13,121 @@ if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// Firebase services
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Enable offline persistence
-db.enablePersistence().catch((err) => {
-    console.log('Persistence failed: ', err);
-});
-
 // DOM Elements
-const chatMessages = document.getElementById('chatMessages');
-const chatInput = document.getElementById('chatInput');
-const sendBtn = document.getElementById('sendBtn');
-const welcomeScreen = document.getElementById('welcomeScreen');
-const newChatBtn = document.getElementById('newChatBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const mobileMenu = document.getElementById('mobileMenu');
-const sidebar = document.getElementById('sidebar');
-const chatHistory = document.getElementById('chatHistory');
-const userAvatar = document.getElementById('userAvatar');
-const userName = document.getElementById('userName');
-const chatTitle = document.getElementById('chatTitle');
-const fileBtn = document.getElementById('fileBtn');
-const fileInput = document.getElementById('fileInput');
-const shareChatBtn = document.getElementById('shareChatBtn');
+const elements = {
+    chatMessages: document.getElementById('chatMessages'),
+    chatInput: document.getElementById('chatInput'),
+    sendBtn: document.getElementById('sendBtn'),
+    welcomeScreen: document.getElementById('welcomeScreen'),
+    newChatBtn: document.getElementById('newChatBtn'),
+    logoutBtn: document.getElementById('logoutBtn'),
+    mobileMenu: document.getElementById('mobileMenu'),
+    sidebar: document.getElementById('sidebar'),
+    chatHistory: document.getElementById('chatHistory'),
+    userAvatar: document.getElementById('userAvatar'),
+    userName: document.getElementById('userName'),
+    chatTitle: document.getElementById('chatTitle'),
+    fileBtn: document.getElementById('fileBtn'),
+    fileInput: document.getElementById('fileInput'),
+    shareChatBtn: document.getElementById('shareChatBtn')
+};
 
 // API Configuration
-const API_URL = 'https://endpoint.apilageai.lk/api/chat';
-const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
-const MODEL = 'APILAGEAI-PRO';
+const API_CONFIG = {
+    URL: 'https://endpoint.apilageai.lk/api/chat',
+    KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
+    MODEL: 'APILAGEAI-PRO'
+};
 
-// Chat management
-let currentChatId = null;
-let chats = [];
-let currentUser = null;
-let uploadedFiles = [];
+// Global State
+let state = {
+    currentChatId: null,
+    chats: [],
+    currentUser: null,
+    uploadedFiles: [],
+    isOnline: true
+};
 
-// Utility Functions
-function showNotification(message) {
+// ==================== UTILITY FUNCTIONS ====================
+function showNotification(message, type = 'success') {
     const notif = document.createElement('div');
-    notif.className = 'notification copied-notification';
+    notif.className = `notification ${type === 'error' ? 'error-message' : 'copied-notification'}`;
     notif.textContent = message;
     document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 2000);
+    setTimeout(() => notif.remove(), 3000);
 }
 
 function escapeHTML(text) {
-    if (!text) return '';
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function scrollToBottom() {
-    if (chatMessages) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (elements.chatMessages) {
+        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
     }
 }
 
 function autoResizeTextarea() {
-    if (chatInput) {
-        chatInput.style.height = 'auto';
-        chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    if (elements.chatInput) {
+        elements.chatInput.style.height = 'auto';
+        elements.chatInput.style.height = Math.min(elements.chatInput.scrollHeight, 120) + 'px';
     }
 }
 
-// URL Routing Functions
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function generateChatId() {
+    return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// ==================== URL ROUTING ====================
 function getChatIdFromURL() {
     const path = window.location.pathname;
     const parts = path.split('/');
-    return parts[parts.length - 1] || null;
+    const chatId = parts[parts.length - 1];
+    return chatId && chatId !== 'chat.html' ? chatId : null;
 }
 
 function updateURL(chatId) {
-    const newUrl = `${window.location.origin}${window.location.pathname.split('/').slice(0, -1).join('/')}/${chatId}`;
+    if (!chatId) return;
+    
+    const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '';
+    const newUrl = `${window.location.origin}${basePath}/${chatId}`;
     window.history.pushState({ chatId }, '', newUrl);
-    updateShareButton(chatId);
-}
-
-function updateShareButton(chatId) {
-    if (shareChatBtn && chatId && chatId !== 'chat.html') {
-        shareChatBtn.style.display = 'flex';
-        shareChatBtn.onclick = () => shareChat(chatId);
-    } else {
-        shareChatBtn.style.display = 'none';
+    
+    // Show share button
+    if (elements.shareChatBtn) {
+        elements.shareChatBtn.style.display = 'flex';
+        elements.shareChatBtn.onclick = () => shareChat(chatId);
     }
 }
 
 function shareChat(chatId) {
-    const shareUrl = `${window.location.origin}${window.location.pathname.split('/').slice(0, -1).join('/')}/${chatId}`;
+    const shareUrl = window.location.href;
     navigator.clipboard.writeText(shareUrl).then(() => {
         showNotification('Chat link copied to clipboard!');
     }).catch(() => {
-        prompt('Share this chat link:', shareUrl);
+        // Fallback
+        prompt('Copy this chat link:', shareUrl);
     });
 }
 
-// Initialize the application
-async function initApp() {
-    return new Promise((resolve, reject) => {
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                currentUser = user;
-                updateUserInfo(user);
-                await loadChats();
-                resolve(user);
-            } else {
-                window.location.href = 'index.html';
-            }
-        }, reject);
-    });
-}
-
-// Update user information in sidebar
-function updateUserInfo(user) {
-    if (userName) {
-        userName.textContent = user.displayName || user.email || 'User';
-    }
-    
-    if (userAvatar) {
-        userAvatar.textContent = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-        if (user.photoURL) {
-            userAvatar.style.backgroundImage = `url(${user.photoURL})`;
-            userAvatar.style.backgroundSize = 'cover';
-            userAvatar.textContent = '';
-        }
-    }
-}
-
-// Generate unique chat ID
-function generateChatId() {
-    return Date.now().toString();
-}
-
-// Save chats to local storage
-function saveChatsToLocalStorage() {
-    if (!currentUser) return;
-    try {
-        localStorage.setItem(`helaChats_${currentUser.uid}`, JSON.stringify(chats));
-    } catch (error) {
-        console.error('Error saving to local storage:', error);
-    }
-}
-
-// Save chat to Firestore
+// ==================== FIREBASE OPERATIONS ====================
 async function saveChatToFirestore(chat) {
     try {
         await db.collection('users')
-            .doc(currentUser.uid)
+            .doc(state.currentUser.uid)
             .collection('chats')
             .doc(chat.id)
             .set({
@@ -172,131 +135,183 @@ async function saveChatToFirestore(chat) {
                 messages: chat.messages,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+            });
+        return true;
     } catch (error) {
-        console.error('Error saving chat to Firestore:', error);
+        console.error('Firestore save error:', error);
         saveChatsToLocalStorage();
-        throw error;
+        return false;
     }
 }
 
-// Delete chat from Firestore
 async function deleteChatFromFirestore(chatId) {
     try {
         await db.collection('users')
-            .doc(currentUser.uid)
+            .doc(state.currentUser.uid)
             .collection('chats')
             .doc(chatId)
             .delete();
+        return true;
     } catch (error) {
-        console.error('Error deleting chat from Firestore:', error);
+        console.error('Firestore delete error:', error);
+        return false;
     }
 }
 
-// Load chats from Firestore
-async function loadChats() {
+async function loadChatsFromFirestore() {
     try {
-        const urlChatId = getChatIdFromURL();
-        console.log('URL Chat ID:', urlChatId);
-        
         const snapshot = await db.collection('users')
-            .doc(currentUser.uid)
+            .doc(state.currentUser.uid)
             .collection('chats')
             .orderBy('updatedAt', 'desc')
             .get();
-        
-        if (!snapshot.empty) {
-            chats = snapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    id: doc.id,
-                    title: data.title || 'New Chat',
-                    messages: data.messages || [],
-                    createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-                    updatedAt: data.updatedAt ? data.updatedAt.toDate().toISOString() : new Date().toISOString()
-                };
-            });
-            console.log('Loaded', chats.length, 'chats from Firestore');
-        } else {
-            chats = [];
-            console.log('No chats found in Firestore');
+
+        if (snapshot.empty) {
+            state.chats = [];
+            return false;
         }
 
-        // Handle URL routing
-        if (urlChatId && urlChatId !== 'chat.html') {
-            const urlChat = chats.find(chat => chat.id === urlChatId);
-            if (urlChat) {
-                currentChatId = urlChatId;
-                await loadChat(currentChatId);
-                updateURL(currentChatId);
-            } else {
-                // Create new chat with the URL ID
-                await createNewChat(urlChatId);
-            }
-        } else if (chats.length > 0) {
-            // Load most recent chat
-            currentChatId = chats[0].id;
-            await loadChat(currentChatId);
-            updateURL(currentChatId);
-        } else {
-            // Create first chat
-            await createNewChat();
-        }
+        state.chats = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                title: data.title || 'New Chat',
+                messages: data.messages || [],
+                createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+                updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+            };
+        });
         
-        updateChatHistorySidebar();
-        
+        return true;
     } catch (error) {
-        console.error('Error loading chats from Firestore:', error);
-        await loadChatsFromLocalStorage();
+        console.error('Firestore load error:', error);
+        return false;
     }
 }
 
-// Load chats from local storage
-async function loadChatsFromLocalStorage() {
+// ==================== LOCAL STORAGE ====================
+function saveChatsToLocalStorage() {
+    if (!state.currentUser) return;
     try {
-        const savedChats = localStorage.getItem(`helaChats_${currentUser.uid}`);
-        if (savedChats) {
-            chats = JSON.parse(savedChats);
-        } else {
-            chats = [];
-        }
+        localStorage.setItem(`helaChats_${state.currentUser.uid}`, JSON.stringify(state.chats));
     } catch (error) {
-        console.error('Error loading chats from local storage:', error);
-        chats = [];
+        console.error('Local storage save error:', error);
     }
 }
 
-// Create a new chat
-async function createNewChat(specificId = null) {
+function loadChatsFromLocalStorage() {
+    if (!state.currentUser) return false;
+    try {
+        const saved = localStorage.getItem(`helaChats_${state.currentUser.uid}`);
+        if (saved) {
+            state.chats = JSON.parse(saved);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Local storage load error:', error);
+        return false;
+    }
+}
+
+// ==================== CHAT MANAGEMENT ====================
+async function createNewChat() {
     const newChat = {
-        id: specificId || generateChatId(),
+        id: generateChatId(),
         title: 'New Chat',
         messages: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
     
-    chats.unshift(newChat);
-    currentChatId = newChat.id;
+    state.chats.unshift(newChat);
+    state.currentChatId = newChat.id;
     
-    try {
-        await saveChatToFirestore(newChat);
-    } catch (error) {
-        saveChatsToLocalStorage();
-    }
+    await saveChatToFirestore(newChat);
+    saveChatsToLocalStorage();
     
-    if (chatMessages) chatMessages.innerHTML = '';
-    if (welcomeScreen) welcomeScreen.style.display = 'flex';
-    if (chatTitle) chatTitle.textContent = 'New Chat';
+    // Update UI
+    if (elements.chatMessages) elements.chatMessages.innerHTML = '';
+    if (elements.welcomeScreen) elements.welcomeScreen.style.display = 'flex';
+    if (elements.chatTitle) elements.chatTitle.textContent = 'New Chat';
     
-    updateURL(currentChatId);
+    updateURL(state.currentChatId);
     updateChatHistorySidebar();
+    
     return newChat.id;
 }
 
-// Update chat title
-async function updateChatTitle(chatId, firstMessage) {
-    const chat = chats.find(c => c.id === chatId);
+async function loadChat(chatId) {
+    const chat = state.chats.find(c => c.id === chatId);
+    if (!chat) {
+        console.log('Chat not found:', chatId);
+        return false;
+    }
+    
+    state.currentChatId = chatId;
+    
+    // Clear chat area
+    if (elements.chatMessages) {
+        elements.chatMessages.innerHTML = '';
+    }
+    
+    // Hide welcome screen
+    if (elements.welcomeScreen) {
+        elements.welcomeScreen.style.display = 'none';
+    }
+    
+    // Update title
+    if (elements.chatTitle) {
+        elements.chatTitle.textContent = chat.title;
+    }
+    
+    // Display messages
+    chat.messages.forEach(msg => {
+        if (msg.type === 'user') {
+            addMessageToUI('user', msg.content);
+        } else {
+            displayAIResponse(msg.content);
+        }
+    });
+    
+    updateURL(state.currentChatId);
+    updateChatHistorySidebar();
+    scrollToBottom();
+    
+    return true;
+}
+
+async function deleteChat(chatId, event) {
+    if (event) event.stopPropagation();
+    
+    if (!confirm('Are you sure you want to delete this chat?')) {
+        return;
+    }
+    
+    // Remove from state
+    state.chats = state.chats.filter(chat => chat.id !== chatId);
+    
+    // Delete from Firestore
+    await deleteChatFromFirestore(chatId);
+    
+    // Update local storage
+    saveChatsToLocalStorage();
+    
+    // Handle current chat deletion
+    if (state.currentChatId === chatId) {
+        if (state.chats.length > 0) {
+            state.currentChatId = state.chats[0].id;
+            await loadChat(state.currentChatId);
+        } else {
+            await createNewChat();
+        }
+    }
+    
+    updateChatHistorySidebar();
+}
+
+function updateChatTitle(chatId, firstMessage) {
+    const chat = state.chats.find(c => c.id === chatId);
     if (chat && chat.title === 'New Chat') {
         const title = firstMessage.length > 30 
             ? firstMessage.substring(0, 30) + '...' 
@@ -304,117 +319,65 @@ async function updateChatTitle(chatId, firstMessage) {
         chat.title = title;
         chat.updatedAt = new Date().toISOString();
         
-        try {
-            await saveChatToFirestore(chat);
-        } catch (error) {
-            saveChatsToLocalStorage();
-        }
-        
-        updateChatHistorySidebar();
-        
-        if (chatTitle) {
-            chatTitle.textContent = title;
-        }
-    }
-}
-
-// Add message to current chat
-async function addMessageToChat(sender, text) {
-    if (!currentChatId) return;
-    
-    const chat = chats.find(c => c.id === currentChatId);
-    if (chat) {
-        chat.messages.push({
-            type: sender,
-            content: text,
-            timestamp: new Date().toISOString()
-        });
-        
-        if (chat.messages.length > 50) {
-            chat.messages = chat.messages.slice(-50);
-        }
-        
-        chat.updatedAt = new Date().toISOString();
-        
-        try {
-            await saveChatToFirestore(chat);
-        } catch (error) {
-            saveChatsToLocalStorage();
-        }
-        
-        if (sender === 'user' && chat.messages.length === 1) {
-            await updateChatTitle(currentChatId, text);
-        }
-    }
-}
-
-// Load a specific chat
-async function loadChat(chatId) {
-    const chat = chats.find(c => c.id === chatId);
-    if (!chat) {
-        console.log('Chat not found:', chatId);
-        return;
-    }
-    
-    currentChatId = chatId;
-    
-    if (chatMessages) chatMessages.innerHTML = '';
-    if (welcomeScreen) welcomeScreen.style.display = 'none';
-    if (chatTitle) chatTitle.textContent = chat.title;
-    
-    chat.messages.forEach(msg => {
-        if (msg.type === 'user') {
-            addMessage('user', msg.content);
-        } else {
-            displayAIResponse(msg.content);
-        }
-    });
-    
-    scrollToBottom();
-    updateChatHistorySidebar();
-    updateURL(currentChatId);
-}
-
-// Delete a chat
-async function deleteChat(chatId, event) {
-    if (event) event.stopPropagation();
-    
-    if (confirm('Are you sure you want to delete this chat?')) {
-        chats = chats.filter(chat => chat.id !== chatId);
-        
-        await deleteChatFromFirestore(chatId);
+        saveChatToFirestore(chat);
         saveChatsToLocalStorage();
         
-        if (currentChatId === chatId) {
-            if (chats.length > 0) {
-                currentChatId = chats[0].id;
-                await loadChat(currentChatId);
-            } else {
-                await createNewChat();
-            }
-        }
-        
         updateChatHistorySidebar();
+        
+        if (elements.chatTitle && state.currentChatId === chatId) {
+            elements.chatTitle.textContent = title;
+        }
     }
 }
 
-// Update chat history sidebar
+async function addMessageToChat(sender, content) {
+    if (!state.currentChatId) return;
+    
+    const chat = state.chats.find(c => c.id === state.currentChatId);
+    if (!chat) return;
+    
+    chat.messages.push({
+        type: sender,
+        content: content,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Keep only last 100 messages
+    if (chat.messages.length > 100) {
+        chat.messages = chat.messages.slice(-100);
+    }
+    
+    chat.updatedAt = new Date().toISOString();
+    
+    // Update title if first user message
+    if (sender === 'user' && chat.messages.length === 1) {
+        await updateChatTitle(state.currentChatId, content);
+    }
+    
+    // Save to both storage
+    await saveChatToFirestore(chat);
+    saveChatsToLocalStorage();
+    
+    // Update sidebar
+    updateChatHistorySidebar();
+}
+
 function updateChatHistorySidebar() {
-    if (!chatHistory) return;
+    if (!elements.chatHistory) return;
     
-    chatHistory.innerHTML = '';
+    elements.chatHistory.innerHTML = '';
     
-    if (chats.length === 0) {
-        chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
+    if (state.chats.length === 0) {
+        elements.chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
         return;
     }
     
-    chats.forEach(chat => {
+    state.chats.forEach(chat => {
         const chatItem = document.createElement('div');
-        chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
+        chatItem.className = `chat-item ${chat.id === state.currentChatId ? 'active' : ''}`;
         chatItem.innerHTML = `
             <span class="chat-item-icon">💬</span>
-            <span class="chat-item-title">${chat.title}</span>
+            <span class="chat-item-title">${escapeHTML(chat.title)}</span>
             <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
         `;
         
@@ -422,18 +385,18 @@ function updateChatHistorySidebar() {
             if (!e.target.classList.contains('delete-chat')) {
                 loadChat(chat.id);
                 if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('open');
+                    elements.sidebar.classList.remove('open');
                 }
             }
         });
         
-        chatHistory.appendChild(chatItem);
+        elements.chatHistory.appendChild(chatItem);
     });
 }
 
-// Add message to chat display
-function addMessage(sender, text) {
-    if (!chatMessages) return;
+// ==================== UI MESSAGE FUNCTIONS ====================
+function addMessageToUI(sender, text) {
+    if (!elements.chatMessages) return;
     
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}`;
@@ -449,255 +412,18 @@ function addMessage(sender, text) {
     }
     
     const messageBubble = document.createElement('div');
-    messageBubble.className = 'message-bubble';
-    
-    if (sender === 'ai') {
-        messageBubble.classList.add('ai-bubble');
-        messageBubble.textContent = text;
-    } else {
-        messageBubble.textContent = text;
-    }
+    messageBubble.className = `message-bubble ${sender === 'ai' ? 'ai-bubble' : ''}`;
+    messageBubble.textContent = text;
     
     messageContent.appendChild(messageBubble);
     messageDiv.appendChild(messageContent);
-    chatMessages.appendChild(messageDiv);
+    elements.chatMessages.appendChild(messageDiv);
     
     scrollToBottom();
 }
 
-// FILE UPLOAD FUNCTIONS
-function initFileUpload() {
-    if (fileBtn && fileInput) {
-        fileBtn.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', handleFileSelect);
-    }
-}
-
-function handleFileSelect(event) {
-    const files = Array.from(event.target.files);
-    if (files.length === 0) return;
-
-    files.forEach(file => readFileContent(file));
-    fileInput.value = '';
-}
-
-function readFileContent(file) {
-    const reader = new FileReader();
-    
-    reader.onload = function(e) {
-        try {
-            const content = e.target.result;
-            
-            if (content.length > 1024 * 1024) {
-                showFileError(file, 'File too large for text extraction (max 1MB)');
-                return;
-            }
-
-            const fileData = {
-                name: file.name,
-                size: formatFileSize(file.size),
-                type: file.type,
-                content: content,
-                timestamp: new Date().toISOString()
-            };
-
-            uploadedFiles.push(fileData);
-            displayFilePreview(fileData);
-            showNotification(`File "${file.name}" uploaded successfully`);
-
-        } catch (error) {
-            showFileError(file, 'Unable to read file content');
-        }
-    };
-
-    reader.onerror = function() {
-        showFileError(file, 'Error reading file');
-    };
-
-    reader.readAsText(file);
-}
-
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function displayFilePreview(fileData) {
-    if (!chatMessages) return;
-
-    const previewDiv = document.createElement('div');
-    previewDiv.className = 'file-preview';
-    previewDiv.innerHTML = `
-        <div class="file-preview-header">
-            <div>
-                <div class="file-name">${escapeHTML(fileData.name)}</div>
-                <div class="file-size">${fileData.size}</div>
-            </div>
-            <button class="remove-file" onclick="removeFile('${fileData.name}')">×</button>
-        </div>
-        <div class="file-content">${escapeHTML(fileData.content.substring(0, 1000))}${fileData.content.length > 1000 ? '...' : ''}</div>
-    `;
-
-    chatMessages.appendChild(previewDiv);
-    scrollToBottom();
-}
-
-function removeFile(fileName) {
-    uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
-    
-    const previews = document.querySelectorAll('.file-preview');
-    previews.forEach(preview => {
-        if (preview.querySelector('.file-name').textContent === fileName) {
-            preview.remove();
-        }
-    });
-    
-    showNotification(`File "${fileName}" removed`);
-}
-
-function showFileError(file, message) {
-    if (!chatMessages) return;
-
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'file-error';
-    errorDiv.textContent = `${file.name}: ${message}`;
-    chatMessages.appendChild(errorDiv);
-    scrollToBottom();
-    setTimeout(() => errorDiv.remove(), 5000);
-}
-
-function getFileLanguage(filename) {
-    const ext = filename.split('.').pop().toLowerCase();
-    const languageMap = {
-        'js': 'javascript', 'jsx': 'jsx', 'ts': 'typescript', 'tsx': 'tsx',
-        'py': 'python', 'html': 'html', 'css': 'css', 'java': 'java',
-        'cpp': 'cpp', 'c': 'c', 'php': 'php', 'rb': 'ruby', 'go': 'go',
-        'rs': 'rust', 'json': 'json', 'xml': 'xml', 'csv': 'csv',
-        'md': 'markdown', 'sql': 'sql', 'yaml': 'yaml', 'yml': 'yaml',
-        'sh': 'bash', 'bat': 'batch', 'ps1': 'powershell', 'lua': 'lua'
-    };
-    return languageMap[ext] || 'text';
-}
-
-function clearUploadedFiles() {
-    const previews = document.querySelectorAll('.file-preview');
-    previews.forEach(preview => preview.remove());
-    uploadedFiles = [];
-}
-
-// Enhanced handleSend to include file content
-async function handleSend() {
-    const text = chatInput.value.trim();
-    const hasFiles = uploadedFiles.length > 0;
-    
-    if (!text && !hasFiles) return;
-    
-    chatInput.value = '';
-    
-    if (!currentChatId || chats.length === 0) {
-        await createNewChat();
-    }
-    
-    if (welcomeScreen) {
-        welcomeScreen.style.display = 'none';
-    }
-
-    let messageContent = text;
-    
-    if (hasFiles) {
-        messageContent += '\n\n--- Uploaded Files ---\n';
-        uploadedFiles.forEach(file => {
-            messageContent += `\n📁 ${file.name} (${file.size}):\n\`\`\`${getFileLanguage(file.name)}\n${file.content}\n\`\`\`\n`;
-        });
-    }
-
-    addMessage('user', text);
-    await addMessageToChat('user', messageContent);
-    clearUploadedFiles();
-
-    showTyping();
-    
-    try {
-        const reply = await callAI(messageContent);
-        removeTyping();
-        displayAIResponse(reply);
-        await addMessageToChat('ai', reply);
-    } catch (error) {
-        removeTyping();
-        const errorMessage = "I'm having trouble responding right now. Please try again.";
-        displayAIResponse(errorMessage);
-        await addMessageToChat('ai', errorMessage);
-    }
-}
-
-// Handle example prompts
-function handleExamplePrompt(prompt) {
-    if (chatInput) {
-        chatInput.value = prompt;
-        handleSend();
-    }
-}
-
-// Call AI API
-async function callAI(userMessage) {
-    try {
-        const context = getConversationContext();
-        
-        const messageToSend = `You are Hela Code, an AI programming assistant. Be helpful and enthusiastic about technology!
-
-${context}
-User: ${userMessage}
-Assistant:`;
-        
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${API_KEY}`
-            },
-            body: JSON.stringify({ 
-                message: messageToSend,
-                model: MODEL
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.response || "I apologize, but I received an unexpected response format.";
-        
-    } catch (error) {
-        console.error('AI API Error:', error);
-        throw error;
-    }
-}
-
-// Get conversation context
-function getConversationContext() {
-    if (!currentChatId) return '';
-    
-    const chat = chats.find(c => c.id === currentChatId);
-    if (!chat || chat.messages.length === 0) return '';
-    
-    const recentMessages = chat.messages.slice(-6);
-    let context = 'Conversation history:\n';
-    
-    recentMessages.forEach(msg => {
-        const role = msg.type === 'user' ? 'User' : 'Assistant';
-        context += `${role}: ${msg.content}\n`;
-    });
-    
-    return context;
-}
-
-// Display AI response with formatting
 function displayAIResponse(content) {
-    if (!chatMessages) return;
+    if (!elements.chatMessages) return;
     
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message ai';
@@ -712,103 +438,23 @@ function displayAIResponse(content) {
     
     const messageBubble = document.createElement('div');
     messageBubble.className = 'message-bubble ai-bubble';
-    messageBubble.innerHTML = formatResponse(content);
+    
+    // Simple formatting - you can enhance this later
+    const formattedContent = content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\`(.*?)\`/g, '<code>$1</code>');
+    
+    messageBubble.innerHTML = formattedContent;
     
     messageContent.appendChild(messageBubble);
     messageDiv.appendChild(messageContent);
-    chatMessages.appendChild(messageDiv);
+    elements.chatMessages.appendChild(messageDiv);
     
     scrollToBottom();
 }
 
-// Format AI response with markdown
-function formatResponse(text) {
-    if (!text) return '';
-    
-    let html = '';
-    const lines = text.split('\n');
-    let inCodeBlock = false;
-    let codeLanguage = '';
-    let codeContent = '';
-    
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        
-        if (line.startsWith('```')) {
-            if (!inCodeBlock) {
-                inCodeBlock = true;
-                codeLanguage = line.substring(3).trim() || 'text';
-                codeContent = '';
-            } else {
-                inCodeBlock = false;
-                html += createCodeBlock(codeContent, codeLanguage);
-            }
-            continue;
-        }
-        
-        if (inCodeBlock) {
-            codeContent += line + '\n';
-            continue;
-        }
-        
-        let processedLine = line;
-        
-        if (line.startsWith('## ')) {
-            processedLine = `<h3 class="response-header">${line.substring(3)}</h3>`;
-        } else if (line.startsWith('### ')) {
-            processedLine = `<h4 class="response-subheader">${line.substring(4)}</h4>`;
-        }
-        
-        processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        
-        if (line.trim().startsWith('• ')) {
-            processedLine = `<div class="bullet-point">${line.substring(2)}</div>`;
-        }
-        
-        if (/^\d+\.\s/.test(line.trim())) {
-            processedLine = `<div class="numbered-point">${line}</div>`;
-        }
-        
-        if (line.startsWith('> ')) {
-            processedLine = `<blockquote class="ai-note">${line.substring(2)}</blockquote>`;
-        }
-        
-        if (processedLine === line && line.trim() !== '') {
-            processedLine = `<p class="response-paragraph">${line}</p>`;
-        }
-        
-        if (line.trim() === '') {
-            processedLine = '<div class="paragraph-spacing"></div>';
-        }
-        
-        html += processedLine;
-    }
-    
-    if (inCodeBlock) {
-        html += createCodeBlock(codeContent, codeLanguage);
-    }
-    
-    return html;
-}
-
-// Create code block
-function createCodeBlock(content, language) {
-    const escapedContent = escapeHTML(content.trim());
-    return `
-        <div class="code-block">
-            <div class="code-header">
-                <span class="code-language">${language}</span>
-                <button class="copy-btn">Copy Code</button>
-            </div>
-            <pre><code class="language-${language}">${escapedContent}</code></pre>
-        </div>
-    `;
-}
-
-// Show typing indicator
-function showTyping() {
-    removeTyping();
-    if (!chatMessages) return;
+function showTypingIndicator() {
+    removeTypingIndicator();
     
     const typingDiv = document.createElement('div');
     typingDiv.className = 'message ai';
@@ -835,71 +481,329 @@ function showTyping() {
     
     messageContent.appendChild(messageBubble);
     typingDiv.appendChild(messageContent);
-    chatMessages.appendChild(typingDiv);
+    elements.chatMessages.appendChild(typingDiv);
     
     scrollToBottom();
 }
 
-function removeTyping() {
+function removeTypingIndicator() {
     const typing = document.getElementById('typing-indicator');
     if (typing) typing.remove();
 }
 
-// Initialize application
-document.addEventListener('DOMContentLoaded', async function() {
-    try {
-        // Set up event listeners
-        if (sendBtn) sendBtn.addEventListener('click', handleSend);
+// ==================== FILE UPLOAD ====================
+function initFileUpload() {
+    if (elements.fileBtn && elements.fileInput) {
+        elements.fileBtn.addEventListener('click', () => elements.fileInput.click());
+        elements.fileInput.addEventListener('change', handleFileSelect);
+    }
+}
 
-        if (chatInput) {
-            chatInput.addEventListener('keydown', e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                }
-            });
-            chatInput.addEventListener('input', autoResizeTextarea);
-        }
+function handleFileSelect(event) {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
 
-        if (newChatBtn) {
-            newChatBtn.addEventListener('click', async () => {
-                await createNewChat();
-            });
-        }
+    files.forEach(file => readFileContent(file));
+    elements.fileInput.value = '';
+}
 
-        initFileUpload();
-
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                auth.signOut().then(() => {
-                    window.location.href = 'index.html';
-                });
-            });
-        }
-
-        if (mobileMenu) {
-            mobileMenu.addEventListener('click', () => {
-                if (sidebar) sidebar.classList.toggle('open');
-            });
-        }
-
-        // Handle browser back/forward buttons
-        window.addEventListener('popstate', (event) => {
-            if (event.state && event.state.chatId) {
-                loadChat(event.state.chatId);
+function readFileContent(file) {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            const content = e.target.result;
+            
+            if (content.length > 1024 * 1024) {
+                showFileError(file, 'File too large (max 1MB)');
+                return;
             }
-        });
 
-        // Initialize the app
-        await initApp();
+            const fileData = {
+                name: file.name,
+                size: formatFileSize(file.size),
+                content: content,
+                timestamp: new Date().toISOString()
+            };
+
+            state.uploadedFiles.push(fileData);
+            displayFilePreview(fileData);
+            showNotification(`"${file.name}" uploaded`);
+
+        } catch (error) {
+            showFileError(file, 'Unable to read file');
+        }
+    };
+
+    reader.onerror = function() {
+        showFileError(file, 'Error reading file');
+    };
+
+    reader.readAsText(file);
+}
+
+function displayFilePreview(fileData) {
+    if (!elements.chatMessages) return;
+
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'file-preview';
+    previewDiv.innerHTML = `
+        <div class="file-preview-header">
+            <div class="file-name">${escapeHTML(fileData.name)}</div>
+            <button class="remove-file" onclick="removeFile('${fileData.name}')">×</button>
+        </div>
+        <div class="file-content">${escapeHTML(fileData.content.substring(0, 500))}${fileData.content.length > 500 ? '...' : ''}</div>
+    `;
+
+    elements.chatMessages.appendChild(previewDiv);
+    scrollToBottom();
+}
+
+function removeFile(fileName) {
+    state.uploadedFiles = state.uploadedFiles.filter(file => file.name !== fileName);
+    
+    const previews = document.querySelectorAll('.file-preview');
+    previews.forEach(preview => {
+        if (preview.querySelector('.file-name').textContent === fileName) {
+            preview.remove();
+        }
+    });
+    
+    showNotification(`"${fileName}" removed`);
+}
+
+function showFileError(file, message) {
+    if (!elements.chatMessages) return;
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'file-error';
+    errorDiv.textContent = `${file.name}: ${message}`;
+    elements.chatMessages.appendChild(errorDiv);
+    scrollToBottom();
+    setTimeout(() => errorDiv.remove(), 5000);
+}
+
+function clearUploadedFiles() {
+    const previews = document.querySelectorAll('.file-preview');
+    previews.forEach(preview => preview.remove());
+    state.uploadedFiles = [];
+}
+
+// ==================== AI API ====================
+async function callAI(userMessage) {
+    try {
+        const response = await fetch(API_CONFIG.URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_CONFIG.KEY}`
+            },
+            body: JSON.stringify({ 
+                message: userMessage,
+                model: API_CONFIG.MODEL
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.response) {
+            throw new Error('Invalid API response');
+        }
+        
+        return data.response;
         
     } catch (error) {
-        console.error('Initialization error:', error);
-        showNotification('Failed to initialize. Please refresh the page.');
+        console.error('AI API Error:', error);
+        throw error;
+    }
+}
+
+// ==================== MAIN CHAT HANDLER ====================
+async function handleSend() {
+    const text = elements.chatInput?.value.trim() || '';
+    const hasFiles = state.uploadedFiles.length > 0;
+    
+    if (!text && !hasFiles) return;
+    
+    // Clear input
+    if (elements.chatInput) {
+        elements.chatInput.value = '';
+        autoResizeTextarea();
+    }
+    
+    // Create new chat if needed
+    if (!state.currentChatId || state.chats.length === 0) {
+        await createNewChat();
+    }
+    
+    // Hide welcome screen
+    if (elements.welcomeScreen) {
+        elements.welcomeScreen.style.display = 'none';
+    }
+
+    // Build message content
+    let messageContent = text;
+    if (hasFiles) {
+        messageContent += '\n\n--- Uploaded Files ---\n';
+        state.uploadedFiles.forEach(file => {
+            messageContent += `\nFile: ${file.name} (${file.size})\nContent:\n${file.content}\n`;
+        });
+    }
+
+    // Add user message to UI and storage
+    addMessageToUI('user', text);
+    await addMessageToChat('user', messageContent);
+
+    // Clear uploaded files
+    clearUploadedFiles();
+
+    // Show typing indicator
+    showTypingIndicator();
+    
+    try {
+        // Get AI response
+        const reply = await callAI(messageContent);
+        removeTypingIndicator();
+        
+        // Add AI response to UI and storage
+        displayAIResponse(reply);
+        await addMessageToChat('ai', reply);
+        
+    } catch (error) {
+        removeTypingIndicator();
+        
+        const errorMessage = "Sorry, I'm having trouble responding. Please try again.";
+        displayAIResponse(errorMessage);
+        await addMessageToChat('ai', errorMessage);
+    }
+}
+
+function handleExamplePrompt(prompt) {
+    if (elements.chatInput) {
+        elements.chatInput.value = prompt;
+        handleSend();
+    }
+}
+
+// ==================== USER AUTH & INIT ====================
+function updateUserInfo(user) {
+    if (elements.userName) {
+        elements.userName.textContent = user.displayName || user.email || 'User';
+    }
+    
+    if (elements.userAvatar) {
+        const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+        elements.userAvatar.textContent = initial;
+        
+        if (user.photoURL) {
+            elements.userAvatar.style.backgroundImage = `url(${user.photoURL})`;
+            elements.userAvatar.style.backgroundSize = 'cover';
+            elements.userAvatar.textContent = '';
+        }
+    }
+}
+
+async function initializeApp() {
+    return new Promise((resolve, reject) => {
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                state.currentUser = user;
+                updateUserInfo(user);
+                
+                // Try to load from Firestore first, then localStorage
+                const firestoreSuccess = await loadChatsFromFirestore();
+                if (!firestoreSuccess) {
+                    await loadChatsFromLocalStorage();
+                }
+                
+                // Handle URL routing
+                const urlChatId = getChatIdFromURL();
+                if (urlChatId && state.chats.some(chat => chat.id === urlChatId)) {
+                    await loadChat(urlChatId);
+                } else if (state.chats.length > 0) {
+                    await loadChat(state.chats[0].id);
+                } else {
+                    await createNewChat();
+                }
+                
+                resolve(user);
+            } else {
+                window.location.href = 'index.html';
+            }
+        }, reject);
+    });
+}
+
+// ==================== EVENT LISTENERS & INIT ====================
+function setupEventListeners() {
+    // Send message
+    if (elements.sendBtn) {
+        elements.sendBtn.addEventListener('click', handleSend);
+    }
+
+    // Enter key to send
+    if (elements.chatInput) {
+        elements.chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+        
+        elements.chatInput.addEventListener('input', autoResizeTextarea);
+    }
+
+    // New chat
+    if (elements.newChatBtn) {
+        elements.newChatBtn.addEventListener('click', createNewChat);
+    }
+
+    // File upload
+    initFileUpload();
+
+    // Logout
+    if (elements.logoutBtn) {
+        elements.logoutBtn.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                window.location.href = 'index.html';
+            });
+        });
+    }
+
+    // Mobile menu
+    if (elements.mobileMenu) {
+        elements.mobileMenu.addEventListener('click', () => {
+            if (elements.sidebar) {
+                elements.sidebar.classList.toggle('open');
+            }
+        });
+    }
+
+    // Browser back/forward
+    window.addEventListener('popstate', (event) => {
+        if (event.state && event.state.chatId) {
+            loadChat(event.state.chatId);
+        }
+    });
+}
+
+// ==================== START APPLICATION ====================
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        setupEventListeners();
+        await initializeApp();
+        showNotification('Welcome to Hela Code!');
+    } catch (error) {
+        console.error('App initialization failed:', error);
+        showNotification('Failed to load. Please refresh.', 'error');
     }
 });
 
-// Global functions
+// Global functions for HTML onclick
 window.handleSend = handleSend;
 window.handleExamplePrompt = handleExamplePrompt;
 window.deleteChat = deleteChat;
@@ -908,13 +812,9 @@ window.shareChat = shareChat;
 
 // Feature placeholders
 window.learningChallenges = {
-    showChallengesModal: function() {
-        alert('Learning Challenges feature coming soon!');
-    }
+    showChallengesModal: () => alert('Challenges coming soon!')
 };
 
 window.achievementSystem = {
-    showAchievementsModal: function() {
-        alert('Achievements feature coming soon!');
-    }
+    showAchievementsModal: () => alert('Achievements coming soon!')
 };
