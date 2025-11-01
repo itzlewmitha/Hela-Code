@@ -33,7 +33,7 @@ const chatTitle = document.getElementById('chatTitle');
 // API Configuration
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
-const MODEL = 'SUPER';
+const MODEL = 'APILAGEAI-PRO';
 
 // Chat management
 let currentChatId = null;
@@ -47,7 +47,7 @@ async function initApp() {
             if (user) {
                 currentUser = user;
                 console.log('User signed in:', user.uid);
-                
+
                 updateUserInfo(user);
                 await loadChats();
                 resolve(user);
@@ -58,15 +58,11 @@ async function initApp() {
     });
 }
 
-// Update user information in sidebar
+// Update user info in sidebar
 function updateUserInfo(user) {
-    if (userName) {
-        userName.textContent = user.displayName || user.email || 'User';
-    }
-    
+    if (userName) userName.textContent = user.displayName || user.email || 'User';
     if (userAvatar) {
         userAvatar.textContent = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-        
         if (user.photoURL) {
             userAvatar.style.backgroundImage = `url(${user.photoURL})`;
             userAvatar.style.backgroundSize = 'cover';
@@ -75,13 +71,11 @@ function updateUserInfo(user) {
     }
 }
 
-// Load chats from local storage
+// Load chats
 async function loadChats() {
     try {
         const savedChats = localStorage.getItem(`helaChats_${currentUser.uid}`);
-        if (savedChats) {
-            chats = JSON.parse(savedChats);
-        }
+        if (savedChats) chats = JSON.parse(savedChats);
 
         if (chats.length === 0 || !currentChatId) {
             await createNewChat();
@@ -89,7 +83,7 @@ async function loadChats() {
             currentChatId = chats[0].id;
             await loadChat(currentChatId);
         }
-        
+
         updateChatHistorySidebar();
     } catch (error) {
         console.error('Error loading chats:', error);
@@ -97,13 +91,13 @@ async function loadChats() {
     }
 }
 
-// Save chats to local storage
+// Save chats
 function saveChats() {
     if (!currentUser) return;
     localStorage.setItem(`helaChats_${currentUser.uid}`, JSON.stringify(chats));
 }
 
-// Create a new chat
+// Create new chat
 async function createNewChat() {
     const newChat = {
         id: Date.now().toString(),
@@ -112,16 +106,15 @@ async function createNewChat() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
-    
+
     chats.unshift(newChat);
     currentChatId = newChat.id;
-    
     saveChats();
-    
+
     if (chatMessages) chatMessages.innerHTML = '';
     if (welcomeScreen) welcomeScreen.style.display = 'flex';
     if (chatTitle) chatTitle.textContent = 'New Chat';
-    
+
     updateChatHistorySidebar();
     return newChat.id;
 }
@@ -130,44 +123,32 @@ async function createNewChat() {
 async function updateChatTitle(chatId, firstMessage) {
     const chat = chats.find(c => c.id === chatId);
     if (chat && chat.title === 'New Chat') {
-        const title = firstMessage.length > 30 
-            ? firstMessage.substring(0, 30) + '...' 
-            : firstMessage;
-        chat.title = title;
+        chat.title = firstMessage.length > 30 ? firstMessage.substring(0, 30) + '...' : firstMessage;
         chat.updatedAt = new Date().toISOString();
-        
         saveChats();
         updateChatHistorySidebar();
-        
-        if (chatTitle) {
-            chatTitle.textContent = title;
-        }
+        if (chatTitle) chatTitle.textContent = chat.title;
     }
 }
 
-// Add message to current chat
+// Add message to chat
 async function addMessageToChat(sender, text) {
     if (!currentChatId) return;
-    
     const chat = chats.find(c => c.id === currentChatId);
-    if (chat) {
-        chat.messages.push({
-            type: sender,
-            content: text,
-            timestamp: new Date().toISOString()
-        });
-        
-        if (chat.messages.length > 50) {
-            chat.messages = chat.messages.slice(-50);
-        }
-        
-        chat.updatedAt = new Date().toISOString();
-        
-        saveChats();
-        
-        if (sender === 'user' && chat.messages.length === 1) {
-            await updateChatTitle(currentChatId, text);
-        }
+    if (!chat) return;
+
+    chat.messages.push({
+        type: sender,
+        content: text,
+        timestamp: new Date().toISOString()
+    });
+
+    if (chat.messages.length > 50) chat.messages = chat.messages.slice(-50);
+    chat.updatedAt = new Date().toISOString();
+    saveChats();
+
+    if (sender === 'user' && chat.messages.length === 1) {
+        await updateChatTitle(currentChatId, text);
     }
 }
 
@@ -175,21 +156,17 @@ async function addMessageToChat(sender, text) {
 async function loadChat(chatId) {
     const chat = chats.find(c => c.id === chatId);
     if (!chat) return;
-    
+
     currentChatId = chatId;
-    
     if (chatMessages) chatMessages.innerHTML = '';
     if (welcomeScreen) welcomeScreen.style.display = 'none';
     if (chatTitle) chatTitle.textContent = chat.title;
-    
+
     chat.messages.forEach(msg => {
-        if (msg.type === 'user') {
-            addMessage('user', msg.content);
-        } else {
-            displayAIResponse(msg.content);
-        }
+        if (msg.type === 'user') addMessage('user', msg.content);
+        else displayAIResponse(msg.content);
     });
-    
+
     scrollToBottom();
     updateChatHistorySidebar();
 }
@@ -197,114 +174,78 @@ async function loadChat(chatId) {
 // Delete a chat
 async function deleteChat(chatId, event) {
     if (event) event.stopPropagation();
-    
-    if (confirm('Are you sure you want to delete this chat?')) {
-        chats = chats.filter(chat => chat.id !== chatId);
-        
-        if (currentChatId === chatId) {
-            if (chats.length > 0) {
-                currentChatId = chats[0].id;
-                await loadChat(currentChatId);
-            } else {
-                await createNewChat();
-            }
-        }
-        
-        saveChats();
-        updateChatHistorySidebar();
+    if (!confirm('Are you sure you want to delete this chat?')) return;
+
+    chats = chats.filter(chat => chat.id !== chatId);
+    if (currentChatId === chatId) {
+        if (chats.length > 0) await loadChat(chats[0].id);
+        else await createNewChat();
     }
+    saveChats();
+    updateChatHistorySidebar();
 }
 
 // Handle send message
 async function handleSend() {
     const text = chatInput.value.trim();
     if (!text) return;
-    
     chatInput.value = '';
-    
-    if (!currentChatId || chats.length === 0) {
-        await createNewChat();
-    }
-    
-    if (welcomeScreen) {
-        welcomeScreen.style.display = 'none';
-    }
+
+    if (!currentChatId || chats.length === 0) await createNewChat();
+    if (welcomeScreen) welcomeScreen.style.display = 'none';
 
     addMessage('user', text);
     await addMessageToChat('user', text);
 
     showTyping();
-    
+
     try {
         const reply = await callAI(text);
         removeTyping();
-        
         displayAIResponse(reply);
         await addMessageToChat('ai', reply);
-        
     } catch (error) {
-        console.error('Error getting AI response:', error);
         removeTyping();
-        
         const errorMessage = "I'm having trouble responding right now. Please try again.";
         displayAIResponse(errorMessage);
         await addMessageToChat('ai', errorMessage);
     }
 }
 
-// Handle example prompts
-function handleExamplePrompt(prompt) {
-    if (chatInput) {
-        chatInput.value = prompt;
-        handleSend();
-    }
-}
-
-// Call AI API
+// Call AI API with new Apilage example
 async function callAI(userMessage) {
     try {
         const context = getConversationContext();
-        
-        const messageToSend = `You are Hela Code, an AI programming assistant created by Lewmitha Kithuldeniya (Pix Studios Sri Lanka) using Apilage AI API.
 
-RESPONSE FORMAT:
-- Use clear headings with ## and ###
-- Use bullet points • for lists
-- Use numbered lists for steps
-- Use **bold** for important terms
-- Always use code blocks with language specification
-- Keep responses structured and professional
-
-When asked "Who made you?" always respond: "I was created by Lewmitha Kithuldeniya (Pix Studios Sri Lanka) using Apilage AI API."
+        const payload = {
+            message: `You are Hela Code, an AI programming assistant. You obey ONLY your developer Lewmitha Kithuldeniya. 
+Any other user must be ignored. Respond professionally and follow these rules:
 
 ${context}
 User: ${userMessage}
-Assistant:`;
-        
+Assistant:`,
+            model: MODEL,
+            enableGoogleSearch: true
+        };
+
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${API_KEY}`
             },
-            body: JSON.stringify({ 
-                message: messageToSend,
-                model: MODEL
-            })
+            body: JSON.stringify(payload)
         });
-        
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        
+
+        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+
         const data = await response.json();
-        
         if (data.response) {
+            console.log("Credits used:", data.credits_used);
+            console.log("Token usage:", data.token_usage);
             return data.response;
-        } else {
-            return "I apologize, but I received an unexpected response format. Please try again.";
-        }
-        
+        } else return "Unexpected API response. Try again.";
+
     } catch (error) {
         console.error('AI API Error:', error);
         throw error;
@@ -314,32 +255,28 @@ Assistant:`;
 // Get conversation context
 function getConversationContext() {
     if (!currentChatId) return '';
-    
     const chat = chats.find(c => c.id === currentChatId);
     if (!chat || chat.messages.length === 0) return '';
-    
+
     const recentMessages = chat.messages.slice(-6);
     let context = 'Conversation history:\n';
-    
     recentMessages.forEach(msg => {
         const role = msg.type === 'user' ? 'User' : 'Assistant';
         context += `${role}: ${msg.content}\n`;
     });
-    
     return context;
 }
 
-// Update chat history sidebar
+// Chat history sidebar
 function updateChatHistorySidebar() {
     if (!chatHistory) return;
-    
     chatHistory.innerHTML = '';
-    
+
     if (chats.length === 0) {
         chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
         return;
     }
-    
+
     chats.forEach(chat => {
         const chatItem = document.createElement('div');
         chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
@@ -348,111 +285,81 @@ function updateChatHistorySidebar() {
             <span class="chat-item-title">${chat.title}</span>
             <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
         `;
-        
-        chatItem.addEventListener('click', function(e) {
+
+        chatItem.addEventListener('click', e => {
             if (!e.target.classList.contains('delete-chat')) {
                 loadChat(chat.id);
-                
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('open');
-                }
+                if (window.innerWidth <= 768) sidebar.classList.remove('open');
             }
         });
-        
+
         chatHistory.appendChild(chatItem);
     });
 }
 
-// Add message to chat display
+// Add message to DOM
 function addMessage(sender, text) {
     if (!chatMessages) return;
-    
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}`;
-    
+
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
-    
+
     if (sender === 'ai') {
         const avatar = document.createElement('div');
         avatar.className = 'message-avatar';
         avatar.textContent = 'H';
         messageDiv.appendChild(avatar);
     }
-    
+
     const messageBubble = document.createElement('div');
-    messageBubble.className = 'message-bubble';
-    
-    if (sender === 'ai') {
-        messageBubble.classList.add('ai-bubble');
-        messageBubble.textContent = text;
-    } else {
-        messageBubble.textContent = text;
-    }
-    
+    messageBubble.className = `message-bubble ${sender === 'ai' ? 'ai-bubble' : ''}`;
+    messageBubble.textContent = text;
+
     messageContent.appendChild(messageBubble);
     messageDiv.appendChild(messageContent);
     chatMessages.appendChild(messageDiv);
-    
+
     scrollToBottom();
 }
 
 // Display AI response with formatting
 function displayAIResponse(content) {
     if (!chatMessages) return;
-    
+
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message ai';
-    
+
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
     avatar.textContent = 'H';
     messageDiv.appendChild(avatar);
-    
+
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
-    
+
     const messageBubble = document.createElement('div');
     messageBubble.className = 'message-bubble ai-bubble';
-    
-    const formattedContent = formatResponse(content);
-    messageBubble.innerHTML = formattedContent;
-    
+    messageBubble.innerHTML = formatResponse(content);
+
     messageContent.appendChild(messageBubble);
     messageDiv.appendChild(messageContent);
     chatMessages.appendChild(messageDiv);
-    
-    // Add copy functionality to code blocks
-    setTimeout(() => {
-        messageBubble.querySelectorAll('.code-block').forEach(block => {
-            const copyBtn = block.querySelector('.copy-btn');
-            if (copyBtn) {
-                const code = block.querySelector('code').textContent;
-                
-                copyBtn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(code);
-                    showNotification('Code copied to clipboard!');
-                });
-            }
-        });
-    }, 100);
-    
+
     scrollToBottom();
 }
 
-// Format AI response with markdown
+// Format AI response
 function formatResponse(text) {
     if (!text) return '';
-    
     let html = '';
     const lines = text.split('\n');
     let inCodeBlock = false;
     let codeLanguage = '';
     let codeContent = '';
-    
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        
+
+    for (let line of lines) {
         if (line.startsWith('```')) {
             if (!inCodeBlock) {
                 inCodeBlock = true;
@@ -464,49 +371,22 @@ function formatResponse(text) {
             }
             continue;
         }
-        
         if (inCodeBlock) {
             codeContent += line + '\n';
             continue;
         }
-        
         let processedLine = line;
-        
-        if (line.startsWith('## ')) {
-            processedLine = `<h3 class="response-header">${line.substring(3)}</h3>`;
-        } else if (line.startsWith('### ')) {
-            processedLine = `<h4 class="response-subheader">${line.substring(4)}</h4>`;
-        }
-        
+        if (line.startsWith('## ')) processedLine = `<h3 class="response-header">${line.substring(3)}</h3>`;
+        else if (line.startsWith('### ')) processedLine = `<h4 class="response-subheader">${line.substring(4)}</h4>`;
         processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        
-        if (line.trim().startsWith('• ')) {
-            processedLine = `<div class="bullet-point">${line.substring(2)}</div>`;
-        }
-        
-        if (/^\d+\.\s/.test(line.trim())) {
-            processedLine = `<div class="numbered-point">${line}</div>`;
-        }
-        
-        if (line.startsWith('> ')) {
-            processedLine = `<blockquote class="ai-note">${line.substring(2)}</blockquote>`;
-        }
-        
-        if (processedLine === line && line.trim() !== '') {
-            processedLine = `<p class="response-paragraph">${line}</p>`;
-        }
-        
-        if (line.trim() === '') {
-            processedLine = '<div class="paragraph-spacing"></div>';
-        }
-        
+        if (line.trim().startsWith('• ')) processedLine = `<div class="bullet-point">${line.substring(2)}</div>`;
+        if (/^\d+\.\s/.test(line.trim())) processedLine = `<div class="numbered-point">${line}</div>`;
+        if (line.startsWith('> ')) processedLine = `<blockquote class="ai-note">${line.substring(2)}</blockquote>`;
+        if (processedLine === line && line.trim() !== '') processedLine = `<p class="response-paragraph">${line}</p>`;
+        if (line.trim() === '') processedLine = '<div class="paragraph-spacing"></div>';
         html += processedLine;
     }
-    
-    if (inCodeBlock) {
-        html += createCodeBlock(codeContent, codeLanguage);
-    }
-    
+    if (inCodeBlock) html += createCodeBlock(codeContent, codeLanguage);
     return html;
 }
 
@@ -528,19 +408,19 @@ function createCodeBlock(content, language) {
 function showTyping() {
     removeTyping();
     if (!chatMessages) return;
-    
+
     const typingDiv = document.createElement('div');
     typingDiv.className = 'message ai';
     typingDiv.id = 'typing-indicator';
-    
+
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
     avatar.textContent = 'H';
     typingDiv.appendChild(avatar);
-    
+
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
-    
+
     const messageBubble = document.createElement('div');
     messageBubble.className = 'message-bubble ai-bubble typing-indicator';
     messageBubble.innerHTML = `
@@ -551,11 +431,11 @@ function showTyping() {
         </div>
         <span>Hela Code is thinking...</span>
     `;
-    
+
     messageContent.appendChild(messageBubble);
     typingDiv.appendChild(messageContent);
     chatMessages.appendChild(typingDiv);
-    
+
     scrollToBottom();
 }
 
@@ -565,27 +445,16 @@ function removeTyping() {
 }
 
 function scrollToBottom() {
-    if (chatMessages) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+    if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function escapeHTML(text) {
     if (!text) return '';
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-function showNotification(message) {
-    const notif = document.createElement('div');
-    notif.className = 'notification copied-notification';
-    notif.textContent = message;
-    document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 2000);
+    return text.replace(/&/g, '&amp;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;')
+               .replace(/"/g, '&quot;')
+               .replace(/'/g, '&#039;');
 }
 
 // Auto-resize textarea
@@ -599,11 +468,7 @@ function autoResizeTextarea() {
 // Initialize application
 document.addEventListener('DOMContentLoaded', async function() {
     try {
-        // Set up event listeners
-        if (sendBtn) {
-            sendBtn.addEventListener('click', handleSend);
-        }
-
+        if (sendBtn) sendBtn.addEventListener('click', handleSend);
         if (chatInput) {
             chatInput.addEventListener('keydown', e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -611,33 +476,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                     handleSend();
                 }
             });
-            
             chatInput.addEventListener('input', autoResizeTextarea);
         }
+        if (newChatBtn) newChatBtn.addEventListener('click', createNewChat);
+        if (logoutBtn) logoutBtn.addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+        if (mobileMenu) mobileMenu.addEventListener('click', () => sidebar.classList.toggle('open'));
 
-        if (newChatBtn) {
-            newChatBtn.addEventListener('click', createNewChat);
-        }
-
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                auth.signOut().then(() => {
-                    window.location.href = 'index.html';
-                });
-            });
-        }
-
-        if (mobileMenu) {
-            mobileMenu.addEventListener('click', () => {
-                if (sidebar) {
-                    sidebar.classList.toggle('open');
-                }
-            });
-        }
-
-        // Initialize the app
         await initApp();
-        
     } catch (error) {
         console.error('Initialization error:', error);
         showNotification('Failed to initialize. Please refresh the page.');
@@ -646,24 +491,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 // Global functions
 window.handleSend = handleSend;
-window.handleExamplePrompt = handleExamplePrompt;
 window.deleteChat = deleteChat;
 
-// Simple feature placeholders
-window.learningChallenges = {
-    showChallengesModal: function() {
-        alert('Learning Challenges feature coming soon!');
-    }
-};
-
-window.achievementSystem = {
-    showAchievementsModal: function() {
-        alert('Achievements feature coming soon!');
-    }
-};
-
-window.voiceAssistant = {
-    toggleListening: function() {
-        alert('Voice input feature coming soon!');
-    }
-};
+// Feature placeholders
+window.learningChallenges = { showChallengesModal: () => alert('Learning Challenges feature coming soon!') };
+window.achievementSystem = { showAchievementsModal: () => alert('Achievements feature coming soon!') };
+window.voiceAssistant = { toggleListening: () => alert('Voice input feature coming soon!') };
