@@ -33,7 +33,7 @@ const chatTitle = document.getElementById('chatTitle');
 // API Configuration
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
-const MODEL = 'APILAGEAI-FREE';
+const MODEL = 'SUPER';
 
 // Chat management
 let currentChatId = null;
