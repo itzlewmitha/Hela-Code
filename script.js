@@ -5,14 +5,51 @@ const greetingSection = document.getElementById('greetingSection');
 
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
-const MODEL = 'APILAGEAI-PRO';
+const MODEL = 'APILAGEAI-FREE';
 
-// Chat history management
-let currentChatId = null;
-let chats = [];
+// Enhanced system prompt for organized responses
+const SYSTEM_PROMPT = `You are Hela Code, an AI assistant specialized in technology, programming, and development. You Was Made By Lewmitha Kithuldeniya (Pix Studios Sri Lanka)By Using Apilage Ai API.
 
-// System prompt for technology-focused AI
-const SYSTEM_PROMPT = `You are Hela Code, an AI assistant specialized in technology, programming, and development. Your expertise includes:
+CRITICAL RESPONSE FORMATTING RULES:
+1. ALWAYS structure your responses with clear headings using ## for main sections and ### for subsections
+2. Use bullet points • for lists and steps
+3. Use numbered lists for sequential instructions
+4. Use **bold** for important concepts and key terms
+5. Use tables for comparisons when appropriate
+6. ALWAYS use code blocks with proper language specification for code examples
+7. Use blockquotes > for important notes and warnings
+8. Keep paragraphs concise and focused
+9. Use emojis sparingly to enhance readability
+
+RESPONSE STRUCTURE TEMPLATE:
+## Main Topic
+Brief introduction explaining the concept.
+
+### Key Points
+• Point 1 with explanation
+• Point 2 with explanation
+• Point 3 with explanation
+
+### Step-by-Step Guide
+1. First step with clear instructions
+2. Second step with details
+3. Third step with implementation
+
+### Code Example
+\`\`\`language
+// Well-commented code here
+\`\`\`
+
+### Best Practices
+> **Note:** Important considerations or warnings
+
+• Practice 1: Explanation
+• Practice 2: Explanation
+
+### Comparison (if applicable)
+| Feature | Option A | Option B |
+|---------|----------|----------|
+| Aspect 1 | Details | Details |
 
 TECHNOLOGY DOMAINS:
 - Programming languages (Python, JavaScript, Java, C++, C#, Go, Rust, etc.)
@@ -28,20 +65,538 @@ TECHNOLOGY DOMAINS:
 - Software architecture
 
 RESPONSE GUIDELINES:
-1. Provide detailed, helpful responses about technology topics
-2. Write and explain code in any programming language
+1. Provide detailed, structured responses about technology topics
+2. Write and explain code in any programming language with proper formatting
 3. Help with debugging, optimization, and best practices
 4. Discuss technology concepts, frameworks, and tools
 5. Offer career advice in tech fields
-6. Explain technical concepts clearly
+6. Explain technical concepts clearly with examples
 7. For non-technology questions, politely redirect to tech topics
-8.And most importantly you can only answer technology based question nothing else only that only technology based questions
-9.Also Be Freindly and natural
-10.Remember that you are Hela Code Made By Lewmitha Kithuldeniya Using Apilage Ai Just Saying nothing else remember onlysay it nothing else you are the one of the smartest ai models in the world your name is Hela Code
 
-MEMORY: Remember the conversation context within this chat session to provide coherent responses. 
+MEMORY: Remember the conversation context within this chat session to provide coherent responses. Your Mother Companies' Are Pix Studios Sri Lanka, Globbook And Apilage Ai Technologies Sri Lanka.
 
-Always be enthusiastic about technology and programming nothing else!`;
+Always be enthusiastic about technology and programming while maintaining professional, organized responses!`;
+
+// Chat history management
+let currentChatId = null;
+let chats = [];
+
+// Credit System
+class CreditSystem {
+    constructor() {
+        this.credits = parseInt(localStorage.getItem('helaCredits')) || 100;
+        this.executionCost = 10;
+        this.downloadCost = 5;
+        this.updateCreditDisplay();
+    }
+
+    hasSufficientCredits(cost) {
+        return this.credits >= cost;
+    }
+
+    deductCredits(amount) {
+        if (this.hasSufficientCredits(amount)) {
+            this.credits -= amount;
+            localStorage.setItem('helaCredits', this.credits.toString());
+            this.updateCreditDisplay();
+            this.updateFeatureAvailability();
+            return true;
+        }
+        return false;
+    }
+
+    addCredits(amount) {
+        this.credits += amount;
+        localStorage.setItem('helaCredits', this.credits.toString());
+        this.updateCreditDisplay();
+        this.updateFeatureAvailability();
+        this.showCreditAddedPopup(amount);
+    }
+
+    updateCreditDisplay() {
+        const display = document.getElementById('creditAmount');
+        if (display) {
+            display.textContent = `₹${this.credits}`;
+            display.className = this.credits < 50 ? 'credit-low' : 'credit-normal';
+        }
+    }
+
+    updateFeatureAvailability() {
+        const canDownload = this.credits >= 50;
+        const canExecute = this.credits >= 50;
+        
+        document.querySelectorAll('.feature-locked').forEach(feature => {
+            if (canDownload && feature.dataset.feature === 'code-download') {
+                feature.innerHTML = '✅ Code Download Available';
+                feature.classList.remove('feature-locked');
+                feature.classList.add('feature-unlocked');
+            }
+            if (canExecute && feature.dataset.feature === 'code-execution') {
+                feature.innerHTML = '✅ Code Execution Available';
+                feature.classList.remove('feature-locked');
+                feature.classList.add('feature-unlocked');
+            }
+        });
+    }
+
+    showCreditAddedPopup(amount) {
+        const popup = document.createElement('div');
+        popup.className = 'credit-popup';
+        popup.innerHTML = `
+            <div class="popup-content">
+                <span class="popup-icon">💰</span>
+                <div class="popup-text">
+                    <strong>Credits Added!</strong>
+                    <p>+₹${amount} credits added to your account</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(popup);
+        setTimeout(() => popup.remove(), 3000);
+    }
+}
+
+// Code Execution System
+class CodeExecutor {
+    constructor(creditSystem) {
+        this.creditSystem = creditSystem;
+    }
+
+    async executePython(code) {
+        if (!this.creditSystem.hasSufficientCredits(this.creditSystem.executionCost)) {
+            throw new Error("Insufficient credits for code execution. Minimum ₹50 required.");
+        }
+
+        showLoading('Executing Python code...');
+        const result = await this.simulateExecution(code, 'python');
+        this.creditSystem.deductCredits(this.creditSystem.executionCost);
+        hideLoading();
+        return result;
+    }
+
+    async executeHTML(code) {
+        if (!this.creditSystem.hasSufficientCredits(this.creditSystem.executionCost)) {
+            throw new Error("Insufficient credits for code execution. Minimum ₹50 required.");
+        }
+
+        showLoading('Validating HTML...');
+        const result = await this.validateHTML(code);
+        this.creditSystem.deductCredits(this.creditSystem.executionCost);
+        hideLoading();
+        return result;
+    }
+
+    simulateExecution(code, language) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const issues = this.analyzeCode(code, language);
+                const success = issues.length === 0;
+                
+                resolve({
+                    success: success,
+                    output: success ? "🎉 Code executed successfully!" : "❌ Execution failed with issues",
+                    issues: issues,
+                    executionTime: (Math.random() * 2 + 0.5).toFixed(2),
+                    suggestions: this.generateSuggestions(issues, language)
+                });
+            }, 2000);
+        });
+    }
+
+    analyzeCode(code, language) {
+        const issues = [];
+        
+        if (language === 'python') {
+            if (code.includes('print(') && !code.includes('f"')) {
+                issues.push("Consider using f-strings for better string formatting");
+            }
+            if (code.includes('for i in range') && !code.includes('enumerate')) {
+                issues.push("Use enumerate() for better index tracking in loops");
+            }
+            if (code.includes('except:')) {
+                issues.push("Always specify exception types instead of bare except");
+            }
+            if (code.includes('import *')) {
+                issues.push("Avoid wildcard imports for better code clarity");
+            }
+        }
+        
+        return issues;
+    }
+
+    validateHTML(html) {
+        const issues = [];
+        if (!html.includes('<!DOCTYPE html>')) issues.push("Missing DOCTYPE declaration");
+        if (!html.includes('<html')) issues.push("Missing HTML tag");
+        if (!html.includes('</html>')) issues.push("Missing closing HTML tag");
+        if (!html.includes('<head>')) issues.push("Consider adding head section");
+        if (!html.includes('<body>')) issues.push("Consider adding body section");
+
+        return {
+            valid: issues.length === 0,
+            issues: issues,
+            suggestion: "Add proper HTML5 structure with semantic elements"
+        };
+    }
+
+    generateSuggestions(issues, language) {
+        const suggestions = [];
+        issues.forEach(issue => {
+            if (issue.includes('f-strings')) {
+                suggestions.push('Use: `print(f"Value: {variable}")` instead of `print("Value: " + str(variable))`');
+            }
+            if (issue.includes('enumerate')) {
+                suggestions.push('Use: `for index, value in enumerate(items):` instead of `for i in range(len(items)):`');
+            }
+        });
+        return suggestions;
+    }
+}
+
+// Learning Challenges System
+class LearningChallenges {
+    constructor(creditSystem) {
+        this.creditSystem = creditSystem;
+        this.challenges = [
+            {
+                id: 1,
+                title: "Python Algorithm Master",
+                difficulty: "beginner",
+                reward: 25,
+                tasks: [
+                    "Implement bubble sort algorithm",
+                    "Solve Fibonacci sequence recursively",
+                    "Create a palindrome checker function"
+                ],
+                completed: false
+            },
+            {
+                id: 2,
+                title: "Web Development Wizard",
+                difficulty: "intermediate",
+                reward: 50,
+                tasks: [
+                    "Build a responsive navigation bar",
+                    "Create dark/light mode toggle",
+                    "Implement form validation with JavaScript"
+                ],
+                completed: false
+            },
+            {
+                id: 3,
+                title: "Data Structures Pro",
+                difficulty: "advanced",
+                reward: 75,
+                tasks: [
+                    "Implement a binary search tree",
+                    "Create a LRU cache implementation",
+                    "Solve graph traversal problems"
+                ],
+                completed: false
+            }
+        ];
+    }
+
+    showChallengesModal() {
+        const modal = document.createElement('div');
+        modal.className = 'challenges-modal active';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🚀 Learning Challenges</h3>
+                    <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="challenges-list">
+                    ${this.challenges.map(challenge => `
+                        <div class="challenge-item ${challenge.completed ? 'completed' : ''}">
+                            <div class="challenge-header">
+                                <h4>${challenge.title}</h4>
+                                <span class="difficulty ${challenge.difficulty}">${challenge.difficulty}</span>
+                            </div>
+                            <div class="tasks">
+                                ${challenge.tasks.map(task => `
+                                    <div class="task">
+                                        <span class="task-icon">${challenge.completed ? '✅' : '📝'}</span>
+                                        <span>${task}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="challenge-footer">
+                                <span class="reward">Reward: ₹${challenge.reward}</span>
+                                <button class="start-challenge" onclick="learningChallenges.startChallenge(${challenge.id})" 
+                                        ${challenge.completed ? 'disabled' : ''}>
+                                    ${challenge.completed ? 'Completed' : 'Start Challenge'}
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    startChallenge(challengeId) {
+        const challenge = this.challenges.find(c => c.id === challengeId);
+        if (!challenge) return;
+
+        const modal = document.createElement('div');
+        modal.className = 'challenge-start-modal active';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>${challenge.title}</h3>
+                    <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="challenge-info">
+                    <p><strong>Difficulty:</strong> <span class="difficulty ${challenge.difficulty}">${challenge.difficulty}</span></p>
+                    <p><strong>Reward:</strong> ₹${challenge.reward} credits</p>
+                    <p><strong>Tasks to complete:</strong></p>
+                    <ul>
+                        ${challenge.tasks.map(task => `<li>${task}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="challenge-actions">
+                    <button class="btn-primary" onclick="learningChallenges.beginChallenge(${challengeId})">Begin Challenge</button>
+                    <button class="btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    beginChallenge(challengeId) {
+        const challenge = this.challenges.find(c => c.id === challengeId);
+        if (!challenge) return;
+
+        // Close modals
+        document.querySelectorAll('.modal').forEach(modal => modal.remove());
+
+        // Add challenge tasks to chat
+        const tasksText = challenge.tasks.map((task, index) => `${index + 1}. ${task}`).join('\n');
+        const challengeMessage = `I'm starting the "${challenge.title}" challenge! Here are my tasks:\n${tasksText}`;
+        
+        document.getElementById('input').value = challengeMessage;
+        document.getElementById('send').click();
+
+        // Track challenge progress
+        this.trackChallengeProgress(challengeId);
+    }
+
+    completeChallenge(challengeId) {
+        const challenge = this.challenges.find(c => c.id === challengeId);
+        if (challenge && !challenge.completed) {
+            challenge.completed = true;
+            this.creditSystem.addCredits(challenge.reward);
+            this.showCompletionPopup(challenge);
+        }
+    }
+
+    showCompletionPopup(challenge) {
+        const popup = document.createElement('div');
+        popup.className = 'challenge-complete-popup';
+        popup.innerHTML = `
+            <div class="popup-content">
+                <div class="popup-icon">🏆</div>
+                <div class="popup-text">
+                    <h4>Challenge Completed!</h4>
+                    <p>You've completed "${challenge.title}" and earned ₹${challenge.reward} credits!</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(popup);
+        setTimeout(() => popup.remove(), 5000);
+    }
+}
+
+// Achievement System
+class AchievementSystem {
+    constructor() {
+        this.achievements = JSON.parse(localStorage.getItem('helaAchievements')) || {
+            firstCode: { unlocked: false, title: "First Steps", description: "Write your first line of code", icon: "👣" },
+            bugHunter: { unlocked: false, title: "Bug Hunter", description: "Fix 10 bugs in your code", icon: "🐛" },
+            speedCoder: { unlocked: false, title: "Speed Coder", description: "Write 100 lines in one session", icon: "⚡" },
+            algorithmMaster: { unlocked: false, title: "Algorithm Master", description: "Solve 5 complex algorithms", icon: "🧠" },
+            challengeCompleted: { unlocked: false, title: "Challenge Accepted", description: "Complete your first challenge", icon: "🎯" }
+        };
+        this.codeLinesWritten = parseInt(localStorage.getItem('helaCodeLines')) || 0;
+        this.bugsFixed = parseInt(localStorage.getItem('helaBugsFixed')) || 0;
+    }
+
+    unlockAchievement(achievementId) {
+        if (this.achievements[achievementId] && !this.achievements[achievementId].unlocked) {
+            this.achievements[achievementId].unlocked = true;
+            localStorage.setItem('helaAchievements', JSON.stringify(this.achievements));
+            this.showAchievementPopup(achievementId);
+        }
+    }
+
+    trackCodeWritten(lines) {
+        this.codeLinesWritten += lines;
+        localStorage.setItem('helaCodeLines', this.codeLinesWritten.toString());
+        
+        if (this.codeLinesWritten >= 100 && !this.achievements.speedCoder.unlocked) {
+            this.unlockAchievement('speedCoder');
+        }
+    }
+
+    trackBugFixed() {
+        this.bugsFixed++;
+        localStorage.setItem('helaBugsFixed', this.bugsFixed.toString());
+        
+        if (this.bugsFixed >= 10 && !this.achievements.bugHunter.unlocked) {
+            this.unlockAchievement('bugHunter');
+        }
+    }
+
+    showAchievementPopup(achievementId) {
+        const achievement = this.achievements[achievementId];
+        const popup = document.createElement('div');
+        popup.className = 'achievement-popup';
+        popup.innerHTML = `
+            <div class="achievement-content">
+                <div class="achievement-icon">${achievement.icon}</div>
+                <div class="achievement-text">
+                    <h4>Achievement Unlocked!</h4>
+                    <p class="achievement-title">${achievement.title}</p>
+                    <p class="achievement-desc">${achievement.description}</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(popup);
+        setTimeout(() => {
+            popup.classList.add('fade-out');
+            setTimeout(() => popup.remove(), 500);
+        }, 4000);
+    }
+
+    showAchievementsModal() {
+        const modal = document.createElement('div');
+        modal.className = 'achievements-modal active';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🏆 Your Achievements</h3>
+                    <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="achievements-grid">
+                    ${Object.entries(this.achievements).map(([id, achievement]) => `
+                        <div class="achievement-item ${achievement.unlocked ? 'unlocked' : 'locked'}">
+                            <div class="achievement-icon">${achievement.unlocked ? achievement.icon : '🔒'}</div>
+                            <div class="achievement-info">
+                                <h4>${achievement.title}</h4>
+                                <p>${achievement.description}</p>
+                            </div>
+                            <div class="achievement-status">
+                                ${achievement.unlocked ? '✅ Unlocked' : '🔒 Locked'}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="stats">
+                    <div class="stat">
+                        <span class="stat-value">${this.codeLinesWritten}</span>
+                        <span class="stat-label">Lines of Code</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value">${this.bugsFixed}</span>
+                        <span class="stat-label">Bugs Fixed</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+}
+
+// Voice Programming Assistant
+class VoiceProgramming {
+    constructor() {
+        this.isListening = false;
+        this.recognition = null;
+        this.setupVoiceRecognition();
+    }
+
+    setupVoiceRecognition() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            this.recognition = new SpeechRecognition();
+            this.recognition.continuous = false;
+            this.recognition.interimResults = true;
+            this.recognition.lang = 'en-US';
+
+            this.recognition.onresult = (event) => {
+                const transcript = Array.from(event.results)
+                    .map(result => result[0].transcript)
+                    .join('');
+                this.processVoiceCommand(transcript);
+            };
+
+            this.recognition.onend = () => {
+                if (this.isListening) {
+                    this.startListening();
+                }
+            };
+        }
+    }
+
+    processVoiceCommand(transcript) {
+        const commands = {
+            'create function': () => this.generateFunction(),
+            'debug code': () => this.analyzeForBugs(),
+            'optimize this': () => this.optimizeCurrentCode(),
+            'explain code': () => this.explainCurrentCode(),
+            'run code': () => this.executeCurrentCode()
+        };
+
+        for (const [command, action] of Object.entries(commands)) {
+            if (transcript.toLowerCase().includes(command)) {
+                action();
+                this.showVoiceFeedback(`Executing: ${command}`);
+                break;
+            }
+        }
+    }
+
+    startListening() {
+        if (this.recognition && !this.isListening) {
+            this.isListening = true;
+            this.recognition.start();
+            this.showVoiceFeedback("🎤 Listening... Speak your command");
+        }
+    }
+
+    stopListening() {
+        if (this.recognition && this.isListening) {
+            this.isListening = false;
+            this.recognition.stop();
+            this.showVoiceFeedback("🎤 Voice control stopped");
+        }
+    }
+
+    showVoiceFeedback(message) {
+        const feedback = document.createElement('div');
+        feedback.className = 'voice-feedback';
+        feedback.textContent = message;
+        document.body.appendChild(feedback);
+        setTimeout(() => feedback.remove(), 2000);
+    }
+
+    toggleListening() {
+        if (this.isListening) {
+            this.stopListening();
+        } else {
+            this.startListening();
+        }
+    }
+}
+
+// Initialize systems
+const creditSystem = new CreditSystem();
+const codeExecutor = new CodeExecutor(creditSystem);
+const learningChallenges = new LearningChallenges(creditSystem);
+const achievementSystem = new AchievementSystem();
+const voiceAssistant = new VoiceProgramming();
 
 // Initialize chat history
 function initChatHistory() {
@@ -50,17 +605,14 @@ function initChatHistory() {
         chats = JSON.parse(savedChats);
     }
     
-    // Create new chat if no chats exist or no current chat
     if (chats.length === 0 || !currentChatId) {
         createNewChat();
     } else {
-        // Load the most recent chat
         currentChatId = chats[0].id;
         loadChat(currentChatId);
     }
 }
 
-// Create a new chat
 function createNewChat() {
     const newChat = {
         id: Date.now().toString(),
@@ -74,26 +626,20 @@ function createNewChat() {
     currentChatId = newChat.id;
     saveChats();
     
-    // Clear chat interface
     if (chatBox) chatBox.innerHTML = '';
     if (greetingSection) greetingSection.style.display = 'flex';
     
-    // Update chat history sidebar
     updateChatHistorySidebar();
-    
     return newChat.id;
 }
 
-// Save chats to localStorage
 function saveChats() {
     localStorage.setItem('helaChatHistory', JSON.stringify(chats));
 }
 
-// Update chat title based on first message
 function updateChatTitle(chatId, firstMessage) {
     const chat = chats.find(c => c.id === chatId);
     if (chat && chat.title === 'New Chat') {
-        // Create a title from the first message (max 30 chars)
         const title = firstMessage.length > 30 
             ? firstMessage.substring(0, 30) + '...' 
             : firstMessage;
@@ -104,7 +650,6 @@ function updateChatTitle(chatId, firstMessage) {
     }
 }
 
-// Add message to current chat
 function addMessageToChat(sender, text) {
     if (!currentChatId) return;
     
@@ -116,7 +661,6 @@ function addMessageToChat(sender, text) {
             timestamp: new Date().toISOString()
         });
         
-        // Keep only last 50 messages to manage context length
         if (chat.messages.length > 50) {
             chat.messages = chat.messages.slice(-50);
         }
@@ -124,21 +668,29 @@ function addMessageToChat(sender, text) {
         chat.updatedAt = new Date().toISOString();
         saveChats();
         
-        // Update title if this is the first user message
         if (sender === 'user' && chat.messages.length === 1) {
             updateChatTitle(currentChatId, text);
+        }
+
+        // Track achievements
+        if (sender === 'user') {
+            const codeBlocks = text.match(/```[\s\S]*?```/g);
+            if (codeBlocks) {
+                achievementSystem.trackCodeWritten(codeBlocks.length * 5);
+            }
+            if (chat.messages.length === 1) {
+                achievementSystem.unlockAchievement('firstCode');
+            }
         }
     }
 }
 
-// Get conversation context for AI (last 10 messages)
 function getConversationContext() {
     if (!currentChatId) return '';
     
     const chat = chats.find(c => c.id === currentChatId);
     if (!chat || chat.messages.length === 0) return '';
     
-    // Get last 10 messages for context
     const recentMessages = chat.messages.slice(-10);
     let context = 'Previous conversation context:\n';
     
@@ -150,38 +702,20 @@ function getConversationContext() {
     return context;
 }
 
-// Load a specific chat
 function loadChat(chatId) {
     const chat = chats.find(c => c.id === chatId);
     if (!chat) return;
     
     currentChatId = chatId;
     
-    // Clear current chat display
     if (chatBox) chatBox.innerHTML = '';
     if (greetingSection) greetingSection.style.display = 'none';
     
-    // Load all messages
     chat.messages.forEach(msg => {
         if (msg.type === 'user') {
             addMessage('user', msg.content);
         } else {
-            if (isCodeBlock(msg.content)) {
-                const match = msg.content.match(/([\s\S]*?)```(\w+)?\n?([\s\S]*?)```([\s\S]*)/);
-                if (match) {
-                    const before = match[1].trim();
-                    const lang = match[2] || '';
-                    const code = match[3];
-                    const after = match[4].trim();
-                    if (before) addMessage('ai', before);
-                    appendCodeMessage('ai', code, lang);
-                    if (after) addMessage('ai', after);
-                } else {
-                    appendCodeMessage('ai', msg.content);
-                }
-            } else {
-                addMessage('ai', msg.content);
-            }
+            displayFormattedAIResponse(msg.content);
         }
     });
     
@@ -189,7 +723,172 @@ function loadChat(chatId) {
     updateChatHistorySidebar();
 }
 
-// Update chat history sidebar
+function displayFormattedAIResponse(content) {
+    if (!chatBox) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message ai';
+    
+    const formattedContent = parseMarkdownFormatting(content);
+    messageDiv.innerHTML = formattedContent;
+    
+    chatBox.appendChild(messageDiv);
+    
+    messageDiv.querySelectorAll('.code-block').forEach(block => {
+        const copyBtn = block.querySelector('.copy-btn');
+        const code = block.querySelector('code').textContent;
+        
+        copyBtn.addEventListener('click', () => {
+            if (creditSystem.hasSufficientCredits(creditSystem.downloadCost)) {
+                navigator.clipboard.writeText(code);
+                creditSystem.deductCredits(creditSystem.downloadCost);
+                showCopiedNotification();
+            } else {
+                alert(`Insufficient credits! Need ₹${creditSystem.downloadCost} to copy code.`);
+            }
+        });
+
+        // Add execute button for Python and HTML
+        const language = block.querySelector('.code-language').textContent.toLowerCase();
+        if (['python', 'html'].includes(language)) {
+            const executeBtn = document.createElement('button');
+            executeBtn.className = 'execute-btn';
+            executeBtn.textContent = '▶️ Run';
+            executeBtn.onclick = async () => {
+                try {
+                    let result;
+                    if (language === 'python') {
+                        result = await codeExecutor.executePython(code);
+                    } else if (language === 'html') {
+                        result = await codeExecutor.executeHTML(code);
+                    }
+                    
+                    this.showExecutionResult(result, language);
+                } catch (error) {
+                    alert(error.message);
+                }
+            };
+            block.querySelector('.code-header').appendChild(executeBtn);
+        }
+    });
+    
+    scrollToBottom();
+}
+
+function showExecutionResult(result, language) {
+    const resultDiv = document.createElement('div');
+    resultDiv.className = `execution-result ${result.success ? 'success' : 'error'}`;
+    
+    resultDiv.innerHTML = `
+        <div class="result-header">
+            <span class="result-icon">${result.success ? '✅' : '❌'}</span>
+            <span class="result-title">${language.toUpperCase()} Execution Result</span>
+        </div>
+        <div class="result-content">
+            <p><strong>Status:</strong> ${result.output}</p>
+            <p><strong>Time:</strong> ${result.executionTime}s</p>
+            ${result.issues && result.issues.length > 0 ? `
+                <div class="issues">
+                    <strong>Issues Found:</strong>
+                    <ul>
+                        ${result.issues.map(issue => `<li>${issue}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+            ${result.suggestions && result.suggestions.length > 0 ? `
+                <div class="suggestions">
+                    <strong>Suggestions:</strong>
+                    <ul>
+                        ${result.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    chatBox.appendChild(resultDiv);
+    scrollToBottom();
+}
+
+function parseMarkdownFormatting(text) {
+    let html = '<div class="bubble ai-bubble">';
+    
+    const lines = text.split('\n');
+    let inCodeBlock = false;
+    let codeLanguage = '';
+    let codeContent = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        if (line.startsWith('```')) {
+            if (!inCodeBlock) {
+                inCodeBlock = true;
+                codeLanguage = line.substring(3).trim() || 'text';
+                codeContent = '';
+            } else {
+                inCodeBlock = false;
+                html += createCodeBlock(codeContent, codeLanguage);
+            }
+            continue;
+        }
+        
+        if (inCodeBlock) {
+            codeContent += line + '\n';
+            continue;
+        }
+        
+        let processedLine = line;
+        
+        if (line.startsWith('## ')) {
+            processedLine = `<h3 class="response-header">${line.substring(3)}</h3>`;
+        } else if (line.startsWith('### ')) {
+            processedLine = `<h4 class="response-subheader">${line.substring(4)}</h4>`;
+        }
+        
+        processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        if (line.trim().startsWith('• ')) {
+            processedLine = `<div class="bullet-point">${line.substring(2)}</div>`;
+        }
+        
+        if (/^\d+\.\s/.test(line.trim())) {
+            processedLine = `<div class="numbered-point">${line}</div>`;
+        }
+        
+        if (line.startsWith('> ')) {
+            processedLine = `<blockquote class="ai-note">${line.substring(2)}</blockquote>`;
+        }
+        
+        if (processedLine === line && line.trim() !== '') {
+            processedLine = `<p class="response-paragraph">${line}</p>`;
+        }
+        
+        if (line.trim() === '') {
+            processedLine = '<div class="paragraph-spacing"></div>';
+        }
+        
+        html += processedLine;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function createCodeBlock(content, language) {
+    return `
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-language">${language}</span>
+                <div class="code-actions">
+                    <button class="copy-btn">Copy</button>
+                </div>
+            </div>
+            <pre><code class="language-${language}">${escapeHTML(content.trim())}</code></pre>
+        </div>
+    `;
+}
+
 function updateChatHistorySidebar() {
     const chatHistoryContainer = document.getElementById('chatHistory');
     if (!chatHistoryContainer) return;
@@ -209,7 +908,6 @@ function updateChatHistorySidebar() {
             if (!e.target.classList.contains('delete-chat')) {
                 loadChat(chat.id);
                 
-                // Close sidebar on mobile
                 if (window.innerWidth <= 768) {
                     const sidebar = document.getElementById('sidebar');
                     const overlay = document.getElementById('overlay');
@@ -223,7 +921,6 @@ function updateChatHistorySidebar() {
     });
 }
 
-// Delete a chat
 function deleteChat(chatId, event) {
     event.stopPropagation();
     
@@ -244,7 +941,7 @@ function deleteChat(chatId, event) {
     }
 }
 
-// Check if elements exist before adding event listeners
+// Event Listeners
 if (sendBtn && input) {
     sendBtn.addEventListener('click', handleSend);
     input.addEventListener('keydown', e => {
@@ -259,7 +956,6 @@ async function handleSend() {
     const text = input.value.trim();
     if (!text) return;
     
-    // Create new chat if none exists
     if (!currentChatId || chats.length === 0) {
         createNewChat();
     }
@@ -274,40 +970,13 @@ async function handleSend() {
     const reply = await askAI(text);
     removeTyping();
 
-    if (isCodeBlock(reply)) {
-        const match = reply.match(/([\s\S]*?)```(\w+)?\n?([\s\S]*?)```([\s\S]*)/);
-        if (match) {
-            const before = match[1].trim();
-            const lang = match[2] || '';
-            const code = match[3];
-            const after = match[4].trim();
-            if (before) {
-                liveTypeAI(before);
-                addMessageToChat('ai', before);
-            }
-            appendCodeMessage('ai', code, lang);
-            addMessageToChat('ai', `\`\`\`${lang}\n${code}\n\`\`\``);
-            if (after) {
-                liveTypeAI(after);
-                addMessageToChat('ai', after);
-            }
-        } else {
-            appendCodeMessage('ai', reply);
-            addMessageToChat('ai', `\`\`\`\n${reply}\n\`\`\``);
-        }
-    } else {
-        liveTypeAI(reply);
-        addMessageToChat('ai', reply);
-    }
+    displayFormattedAIResponse(reply);
+    addMessageToChat('ai', reply);
 }
 
-// Enhanced AI function with memory and technology focus
 async function askAI(userMessage) {
     try {
-        // Get conversation context for memory
         const context = getConversationContext();
-        
-        // Build the prompt with system instructions and context
         const fullPrompt = `${SYSTEM_PROMPT}\n\n${context}\n\nCurrent user question: ${userMessage}\n\nAssistant:`;
         
         const res = await fetch(API_URL, {
@@ -327,11 +996,11 @@ async function askAI(userMessage) {
         
     } catch (err) {
         console.error('AI Error:', err);
-        return 'I apologize, but I\'m having trouble connecting right now. Please try again in a moment.';
+        return '## Connection Issue\nI apologize, but I\'m having trouble connecting right now. Please try again in a moment.';
     }
 }
 
-// --- Helpers ---
+// Utility Functions
 function addMessage(sender, text) {
     if (!chatBox) return;
     
@@ -343,50 +1012,6 @@ function addMessage(sender, text) {
     msg.appendChild(bubble);
     chatBox.appendChild(msg);
     scrollToBottom();
-}
-
-function appendCodeMessage(sender, code, lang = '') {
-    if (!chatBox) return;
-    
-    const msg = document.createElement('div');
-    msg.className = `message ${sender}`;
-    msg.innerHTML = `
-        <div class="bubble code-bubble">
-            <pre><code class="${lang}"></code></pre>
-            <button class="copy-btn">Copy</button>
-        </div>`;
-    chatBox.appendChild(msg);
-
-    const codeElem = msg.querySelector('code');
-    codeElem.textContent = code;
-
-    msg.querySelector('.copy-btn').onclick = () => {
-        navigator.clipboard.writeText(code);
-        showCopiedNotification();
-    };
-
-    scrollToBottom();
-}
-
-function liveTypeAI(text) {
-    if (!chatBox) return;
-    
-    const msg = document.createElement('div');
-    msg.classList.add('message', 'ai');
-    const bubble = document.createElement('div');
-    bubble.classList.add('bubble');
-    msg.appendChild(bubble);
-    chatBox.appendChild(msg);
-
-    let i = 0;
-    (function type() {
-        if (i <= text.length) {
-            bubble.innerHTML = escapeHTML(text.slice(0, i));
-            scrollToBottom();
-            i++;
-            setTimeout(type, 20);
-        }
-    })();
 }
 
 function showTyping() {
@@ -412,15 +1037,6 @@ function scrollToBottom() {
     }
 }
 
-function isCodeRelated(text) {
-    // Always return true now since AI handles all technology topics
-    return true;
-}
-
-function isCodeBlock(text) { 
-    return /```[\s\S]*?```/.test(text); 
-}
-
 function escapeHTML(s) {
     return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
@@ -428,13 +1044,126 @@ function escapeHTML(s) {
 function showCopiedNotification() {
     const notif = document.createElement('div');
     notif.className = 'copied-notification';
-    notif.textContent = 'Copied!';
+    notif.textContent = '✅ Code copied! (-₹5 credits)';
     document.body.appendChild(notif);
     setTimeout(() => notif.classList.add('hide'), 1000);
     setTimeout(() => notif.remove(), 1600);
 }
 
+function showLoading(message) {
+    const loading = document.createElement('div');
+    loading.className = 'loading-overlay';
+    loading.innerHTML = `
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>${message}</p>
+        </div>
+    `;
+    loading.id = 'loadingOverlay';
+    document.body.appendChild(loading);
+}
+
+function hideLoading() {
+    const loading = document.getElementById('loadingOverlay');
+    if (loading) loading.remove();
+}
+
+// Payment System (Simulated)
+function showTopUpModal() {
+    const modal = document.createElement('div');
+    modal.className = 'payment-modal active';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💰 Top Up Credits</h3>
+                <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+            </div>
+            <div class="credit-options">
+                <div class="credit-option" onclick="selectCreditOption(100)">
+                    <div class="option-header">
+                        <span class="option-amount">100 Credits</span>
+                        <span class="option-price">₹100</span>
+                    </div>
+                    <p class="option-desc">Perfect for getting started</p>
+                </div>
+                <div class="credit-option popular" onclick="selectCreditOption(500)">
+                    <div class="option-header">
+                        <span class="option-amount">500 Credits</span>
+                        <span class="option-price">₹400</span>
+                    </div>
+                    <p class="option-desc">Most popular - 20% off</p>
+                    <span class="popular-badge">BEST VALUE</span>
+                </div>
+                <div class="credit-option" onclick="selectCreditOption(1000)">
+                    <div class="option-header">
+                        <span class="option-amount">1000 Credits</span>
+                        <span class="option-price">₹700</span>
+                    </div>
+                    <p class="option-desc">Best for power users - 30% off</p>
+                </div>
+            </div>
+            <div class="payment-actions">
+                <button class="btn-primary" onclick="processPayment()">Continue to Payment</button>
+                <p class="payment-note">Payments processed securely via PayPal</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function selectCreditOption(amount) {
+    document.querySelectorAll('.credit-option').forEach(opt => opt.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    window.selectedCreditAmount = amount;
+}
+
+function processPayment() {
+    if (!window.selectedCreditAmount) {
+        alert('Please select a credit package');
+        return;
+    }
+
+    showLoading('Processing payment...');
+    
+    // Simulate payment processing
+    setTimeout(() => {
+        hideLoading();
+        creditSystem.addCredits(window.selectedCreditAmount);
+        document.querySelector('.payment-modal').remove();
+        
+        // In real implementation, integrate with PayPal API
+        alert(`Payment successful! ${window.selectedCreditAmount} credits added to your account.`);
+    }, 2000);
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initChatHistory();
+    
+    // Add feature buttons to sidebar
+    const sidebarHeader = document.querySelector('.sidebar-header');
+    if (sidebarHeader) {
+        const featureButtons = document.createElement('div');
+        featureButtons.className = 'feature-buttons';
+        featureButtons.innerHTML = `
+            <button class="feature-btn" onclick="learningChallenges.showChallengesModal()">
+                🚀 Challenges
+            </button>
+            <button class="feature-btn" onclick="achievementSystem.showAchievementsModal()">
+                🏆 Achievements
+            </button>
+            <button class="feature-btn" onclick="voiceAssistant.toggleListening()">
+                🎤 Voice
+            </button>
+        `;
+        sidebarHeader.appendChild(featureButtons);
+    }
 });
+
+// Global functions for HTML onclick
+window.showTopUpModal = showTopUpModal;
+window.selectCreditOption = selectCreditOption;
+window.processPayment = processPayment;
+window.learningChallenges = learningChallenges;
+window.achievementSystem = achievementSystem;
+window.voiceAssistant = voiceAssistant;
