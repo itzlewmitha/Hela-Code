@@ -1,8 +1,38 @@
-const chatBox = document.getElementById('chat');
-const input = document.getElementById('input');
-const sendBtn = document.getElementById('send');
-const greetingSection = document.getElementById('greetingSection');
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
+    authDomain: "hela-code.firebaseapp.com",
+    projectId: "hela-code",
+    storageBucket: "hela-code.appspot.com",
+    messagingSenderId: "813299203715",
+    appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
+};
 
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+// Firebase services
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// DOM Elements
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+const welcomeScreen = document.getElementById('welcomeScreen');
+const newChatBtn = document.getElementById('newChatBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const mobileMenu = document.getElementById('mobileMenu');
+const sidebar = document.getElementById('sidebar');
+const chatHistory = document.getElementById('chatHistory');
+const userAvatar = document.getElementById('userAvatar');
+const userName = document.getElementById('userName');
+const chatTitle = document.getElementById('chatTitle');
+const voiceBtn = document.getElementById('voiceBtn');
+
+// API Configuration
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
 const MODEL = 'APILAGEAI-PRO';
@@ -61,25 +91,6 @@ TECHNOLOGY DOMAINS:
 
 Always be enthusiastic about technology and programming while maintaining professional, organized responses!`;
 
-// Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
-    authDomain: "hela-code.firebaseapp.com",
-    projectId: "hela-code",
-    storageBucket: "hela-code.appspot.com",
-    messagingSenderId: "813299203715",
-    appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
-};
-
-// Initialize Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-// Firebase services
-const auth = firebase.auth();
-const db = firebase.firestore();
-
 // Chat history management
 let currentChatId = null;
 let chats = [];
@@ -110,20 +121,17 @@ async function initFirebase() {
 
 // Update user information in sidebar
 function updateUserInfo(user) {
-    const userNameElement = document.getElementById('userName');
-    const userAvatarElement = document.getElementById('userAvatar');
-    
-    if (userNameElement) {
-        userNameElement.textContent = user.displayName || user.email || 'User';
+    if (userName) {
+        userName.textContent = user.displayName || user.email || 'User';
     }
     
-    if (userAvatarElement) {
-        userAvatarElement.textContent = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+    if (userAvatar) {
+        userAvatar.textContent = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
         
         if (user.photoURL) {
-            userAvatarElement.style.backgroundImage = `url(${user.photoURL})`;
-            userAvatarElement.style.backgroundSize = 'cover';
-            userAvatarElement.textContent = '';
+            userAvatar.style.backgroundImage = `url(${user.photoURL})`;
+            userAvatar.style.backgroundSize = 'cover';
+            userAvatar.textContent = '';
         }
     }
 }
@@ -219,7 +227,7 @@ function saveToLocalStorage() {
     localStorage.setItem('helaChatHistory', JSON.stringify(chats));
 }
 
-// Learning Challenges System (Simplified without credits)
+// Learning Challenges System
 class LearningChallenges {
     constructor() {
         this.challenges = [
@@ -250,7 +258,7 @@ class LearningChallenges {
 
     showChallengesModal() {
         const modal = document.createElement('div');
-        modal.className = 'challenges-modal active';
+        modal.className = 'modal challenges-modal active';
         modal.innerHTML = `
             <div class="modal-content">
                 <div class="modal-header">
@@ -291,7 +299,7 @@ class LearningChallenges {
         const tasksText = challenge.tasks.map((task, index) => `${index + 1}. ${task}`).join('\n');
         const challengeMessage = `I'm starting the "${challenge.title}" challenge! Here are my tasks:\n${tasksText}`;
         
-        document.getElementById('input').value = challengeMessage;
+        chatInput.value = challengeMessage;
         handleSend();
         
         document.querySelectorAll('.modal').forEach(modal => modal.remove());
@@ -359,7 +367,7 @@ class AchievementSystem {
 
     showAchievementsModal() {
         const modal = document.createElement('div');
-        modal.className = 'achievements-modal active';
+        modal.className = 'modal achievements-modal active';
         modal.innerHTML = `
             <div class="modal-content">
                 <div class="modal-header">
@@ -386,7 +394,7 @@ class AchievementSystem {
     }
 }
 
-// Fixed Voice Programming Assistant
+// Voice Programming Assistant
 class VoiceProgramming {
     constructor() {
         this.isListening = false;
@@ -406,6 +414,7 @@ class VoiceProgramming {
             this.recognition.onstart = () => {
                 this.isListening = true;
                 this.showVoiceFeedback("🎤 Listening... Speak now");
+                if (voiceBtn) voiceBtn.classList.add('listening');
             };
 
             this.recognition.onresult = (event) => {
@@ -420,22 +429,21 @@ class VoiceProgramming {
                     }
                 }
                 
-                // Update input field with what user is saying
-                const input = document.getElementById('input');
-                if (input) {
-                    input.value = this.finalTranscript + interimTranscript;
+                if (chatInput) {
+                    chatInput.value = this.finalTranscript + interimTranscript;
                 }
             };
 
             this.recognition.onend = () => {
                 this.isListening = false;
+                if (voiceBtn) voiceBtn.classList.remove('listening');
+                
                 if (this.finalTranscript.trim()) {
                     this.showVoiceFeedback("✅ Speech captured! Click send or speak again.");
                 } else {
                     this.showVoiceFeedback("🎤 Click microphone to try again");
                 }
                 
-                // Auto-restart if we have final transcript
                 if (this.finalTranscript.trim()) {
                     setTimeout(() => {
                         this.startListening();
@@ -445,6 +453,8 @@ class VoiceProgramming {
 
             this.recognition.onerror = (event) => {
                 this.isListening = false;
+                if (voiceBtn) voiceBtn.classList.remove('listening');
+                
                 if (event.error === 'not-allowed') {
                     this.showVoiceFeedback("❌ Microphone access denied. Please allow microphone permissions.");
                 } else {
@@ -453,15 +463,17 @@ class VoiceProgramming {
             };
         } else {
             console.warn('Speech recognition not supported in this browser');
+            if (voiceBtn) {
+                voiceBtn.style.display = 'none';
+            }
         }
     }
 
     startListening() {
         if (this.recognition && !this.isListening) {
             this.finalTranscript = '';
-            const input = document.getElementById('input');
-            if (input) {
-                input.value = '';
+            if (chatInput) {
+                chatInput.value = '';
             }
             this.recognition.start();
         }
@@ -482,7 +494,6 @@ class VoiceProgramming {
     }
 
     showVoiceFeedback(message) {
-        // Remove existing feedback
         const existingFeedback = document.querySelector('.voice-feedback');
         if (existingFeedback) {
             existingFeedback.remove();
@@ -525,8 +536,9 @@ async function createNewChat() {
     
     await saveChatToFirebase(newChat);
     
-    if (chatBox) chatBox.innerHTML = '';
-    if (greetingSection) greetingSection.style.display = 'flex';
+    if (chatMessages) chatMessages.innerHTML = '';
+    if (welcomeScreen) welcomeScreen.style.display = 'flex';
+    if (chatTitle) chatTitle.textContent = 'New Chat';
     
     updateChatHistorySidebar();
     return newChat.id;
@@ -544,6 +556,10 @@ async function updateChatTitle(chatId, firstMessage) {
         
         await saveChatToFirebase(chat);
         updateChatHistorySidebar();
+        
+        if (chatTitle) {
+            chatTitle.textContent = title;
+        }
     }
 }
 
@@ -591,8 +607,9 @@ async function loadChat(chatId) {
     
     currentChatId = chatId;
     
-    if (chatBox) chatBox.innerHTML = '';
-    if (greetingSection) greetingSection.style.display = 'none';
+    if (chatMessages) chatMessages.innerHTML = '';
+    if (welcomeScreen) welcomeScreen.style.display = 'none';
+    if (chatTitle) chatTitle.textContent = chat.title;
     
     chat.messages.forEach(msg => {
         if (msg.type === 'user') {
@@ -608,7 +625,7 @@ async function loadChat(chatId) {
 
 // Delete a chat
 async function deleteChat(chatId, event) {
-    event.stopPropagation();
+    if (event) event.stopPropagation();
     
     if (confirm('Are you sure you want to delete this chat?')) {
         if (currentUser) {
@@ -638,19 +655,19 @@ async function deleteChat(chatId, event) {
     }
 }
 
-// Fixed: Handle send message
+// Handle send message
 async function handleSend() {
-    const text = input.value.trim();
+    const text = chatInput.value.trim();
     if (!text) return;
     
     // Clear input immediately
-    input.value = '';
+    chatInput.value = '';
     
     if (!currentChatId || chats.length === 0) {
         await createNewChat();
     }
     
-    if (greetingSection) greetingSection.style.display = 'none';
+    if (welcomeScreen) welcomeScreen.style.display = 'none';
 
     // Add user message to chat
     addMessage('user', text);
@@ -670,6 +687,12 @@ async function handleSend() {
         displayFormattedAIResponse("I apologize, but I'm having trouble responding right now. Please try again.");
         await addMessageToChat('ai', "Error: Unable to get response");
     }
+}
+
+// Handle example prompts
+function handleExamplePrompt(prompt) {
+    chatInput.value = prompt;
+    handleSend();
 }
 
 // AI function
@@ -723,13 +746,12 @@ function getConversationContext() {
 
 // Update chat history sidebar
 function updateChatHistorySidebar() {
-    const chatHistoryContainer = document.getElementById('chatHistory');
-    if (!chatHistoryContainer) return;
+    if (!chatHistory) return;
     
-    chatHistoryContainer.innerHTML = '';
+    chatHistory.innerHTML = '';
     
     if (chats.length === 0) {
-        chatHistoryContainer.innerHTML = '<div class="no-chats">No conversations yet</div>';
+        chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
         return;
     }
     
@@ -747,21 +769,18 @@ function updateChatHistorySidebar() {
                 loadChat(chat.id);
                 
                 if (window.innerWidth <= 768) {
-                    const sidebar = document.getElementById('sidebar');
-                    const overlay = document.getElementById('overlay');
-                    if (sidebar) sidebar.classList.remove('open');
-                    if (overlay) overlay.classList.remove('open');
+                    sidebar.classList.remove('open');
                 }
             }
         });
         
-        chatHistoryContainer.appendChild(chatItem);
+        chatHistory.appendChild(chatItem);
     });
 }
 
 // Display formatted AI response
 function displayFormattedAIResponse(content) {
-    if (!chatBox) return;
+    if (!chatMessages) return;
     
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message ai';
@@ -769,17 +788,19 @@ function displayFormattedAIResponse(content) {
     const formattedContent = parseMarkdownFormatting(content);
     messageDiv.innerHTML = formattedContent;
     
-    chatBox.appendChild(messageDiv);
+    chatMessages.appendChild(messageDiv);
     
     // Add copy functionality to code blocks
     messageDiv.querySelectorAll('.code-block').forEach(block => {
         const copyBtn = block.querySelector('.copy-btn');
-        const code = block.querySelector('code').textContent;
-        
-        copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(code);
-            showCopiedNotification();
-        });
+        if (copyBtn) {
+            const code = block.querySelector('code').textContent;
+            
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(code);
+                showCopiedNotification();
+            });
+        }
     });
     
     scrollToBottom();
@@ -787,7 +808,7 @@ function displayFormattedAIResponse(content) {
 
 // Parse markdown formatting to HTML
 function parseMarkdownFormatting(text) {
-    let html = '<div class="bubble ai-bubble">';
+    let html = '<div class="message-content"><div class="message-bubble ai-bubble">';
     
     const lines = text.split('\n');
     let inCodeBlock = false;
@@ -847,7 +868,7 @@ function parseMarkdownFormatting(text) {
         html += processedLine;
     }
     
-    html += '</div>';
+    html += '</div></div>';
     return html;
 }
 
@@ -866,39 +887,63 @@ function createCodeBlock(content, language) {
 
 // Add message to chat display
 function addMessage(sender, text) {
-    if (!chatBox) return;
+    if (!chatMessages) return;
     
-    const msg = document.createElement('div');
-    msg.classList.add('message', sender);
-    const bubble = document.createElement('div');
-    bubble.classList.add('bubble');
-    bubble.textContent = text;
-    msg.appendChild(bubble);
-    chatBox.appendChild(msg);
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    const messageBubble = document.createElement('div');
+    messageBubble.className = 'message-bubble';
+    messageBubble.textContent = text;
+    
+    messageContent.appendChild(messageBubble);
+    messageDiv.appendChild(messageContent);
+    chatMessages.appendChild(messageDiv);
+    
     scrollToBottom();
 }
 
 // Show typing indicator
 function showTyping() {
     removeTyping();
-    if (!chatBox) return;
+    if (!chatMessages) return;
     
-    const t = document.createElement('div');
-    t.className = 'message ai';
-    t.id = 'typing-indicator';
-    t.innerHTML = `<div class="bubble">Hela Code is thinking... 💭</div>`;
-    chatBox.appendChild(t);
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message ai';
+    typingDiv.id = 'typing-indicator';
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    const messageBubble = document.createElement('div');
+    messageBubble.className = 'message-bubble ai-bubble typing-indicator';
+    messageBubble.innerHTML = `
+        <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        </div>
+        <span>Hela Code is thinking...</span>
+    `;
+    
+    messageContent.appendChild(messageBubble);
+    typingDiv.appendChild(messageContent);
+    chatMessages.appendChild(typingDiv);
+    
     scrollToBottom();
 }
 
 function removeTyping() {
-    const t = document.getElementById('typing-indicator');
-    if (t) t.remove();
+    const typing = document.getElementById('typing-indicator');
+    if (typing) typing.remove();
 }
 
 function scrollToBottom() {
-    if (chatBox) {
-        chatBox.scrollTop = chatBox.scrollHeight;
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 }
 
@@ -908,11 +953,10 @@ function escapeHTML(s) {
 
 function showCopiedNotification() {
     const notif = document.createElement('div');
-    notif.className = 'copied-notification';
+    notif.className = 'notification copied-notification';
     notif.textContent = '✅ Code copied to clipboard!';
     document.body.appendChild(notif);
-    setTimeout(() => notif.classList.add('hide'), 1000);
-    setTimeout(() => notif.remove(), 1600);
+    setTimeout(() => notif.remove(), 2000);
 }
 
 function showLoading(message) {
@@ -935,7 +979,7 @@ function hideLoading() {
 
 function showError(message) {
     const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
+    errorDiv.className = 'notification error-message';
     errorDiv.innerHTML = `
         <div class="error-content">
             <span class="error-icon">⚠️</span>
@@ -946,30 +990,59 @@ function showError(message) {
     setTimeout(() => errorDiv.remove(), 5000);
 }
 
+// Auto-resize textarea
+function autoResizeTextarea() {
+    if (chatInput) {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    }
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     try {
-        // Set up event listeners first
-        if (sendBtn && input) {
+        // Set up event listeners
+        if (sendBtn && chatInput) {
             sendBtn.addEventListener('click', handleSend);
-            input.addEventListener('keydown', e => {
+            chatInput.addEventListener('keydown', e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleSend();
                 }
             });
+            
+            chatInput.addEventListener('input', autoResizeTextarea);
+        }
+
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', createNewChat);
+        }
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    window.location.href = 'index.html';
+                });
+            });
+        }
+
+        if (mobileMenu) {
+            mobileMenu.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+            });
+        }
+
+        if (voiceBtn) {
+            voiceBtn.addEventListener('click', () => {
+                voiceAssistant.toggleListening();
+            });
         }
 
         // Initialize Firebase and load data
         await initFirebase();
-        await achievementSystem.loadUserAchievements(currentUser.uid);
-        
-        // Show welcome message
-        setTimeout(() => {
-            if (typeof liveTypeAI === 'function') {
-                liveTypeAI(`Welcome back, ${currentUser.displayName || currentUser.email}! 👋 Ready to code?`);
-            }
-        }, 800);
+        if (currentUser) {
+            await achievementSystem.loadUserAchievements(currentUser.uid);
+        }
         
     } catch (error) {
         console.error('Initialization error:', error);
@@ -986,30 +1059,8 @@ window.addEventListener('beforeunload', () => {
 
 // Global functions
 window.handleSend = handleSend;
+window.handleExamplePrompt = handleExamplePrompt;
 window.learningChallenges = learningChallenges;
 window.achievementSystem = achievementSystem;
 window.voiceAssistant = voiceAssistant;
 window.deleteChat = deleteChat;
-
-// Live type AI message (for welcome messages)
-function liveTypeAI(text) {
-    if (!chatBox) return;
-    
-    const msg = document.createElement('div');
-    msg.classList.add('message', 'ai');
-    const bubble = document.createElement('div');
-    bubble.classList.add('bubble', 'ai-bubble');
-    msg.appendChild(bubble);
-    chatBox.appendChild(msg);
-
-    let i = 0;
-    function type() {
-        if (i < text.length) {
-            bubble.innerHTML = parseMarkdownFormatting(text.slice(0, i + 1));
-            scrollToBottom();
-            i++;
-            setTimeout(type, 20);
-        }
-    }
-    type();
-}
