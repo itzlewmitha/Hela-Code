@@ -1,9 +1,3 @@
-<!-- Include Firebase compat SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-<script>
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
@@ -82,8 +76,85 @@ function updateUserInfo(user) {
     }
 }
 
-// Load chats from local storage
+// Save chat to Firestore
+async function saveChatToFirestore(chat) {
+    try {
+        await db.collection('users')
+            .doc(currentUser.uid)
+            .collection('chats')
+            .doc(chat.id)
+            .set({
+                ...chat,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        console.log('Chat saved to Firestore:', chat.id);
+    } catch (error) {
+        console.error('Error saving chat to Firestore:', error);
+        throw error;
+    }
+}
+
+// Delete chat from Firestore
+async function deleteChatFromFirestore(chatId) {
+    try {
+        await db.collection('users')
+            .doc(currentUser.uid)
+            .collection('chats')
+            .doc(chatId)
+            .delete();
+        console.log('Chat deleted from Firestore:', chatId);
+    } catch (error) {
+        console.error('Error deleting chat from Firestore:', error);
+        throw error;
+    }
+}
+
+// Load chats from Firestore
 async function loadChats() {
+    try {
+        const snapshot = await db.collection('users')
+            .doc(currentUser.uid)
+            .collection('chats')
+            .orderBy('updatedAt', 'desc')
+            .get();
+        
+        if (!snapshot.empty) {
+            chats = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            
+            // Convert Firestore timestamps to ISO strings
+            chats.forEach(chat => {
+                if (chat.createdAt && chat.createdAt.toDate) {
+                    chat.createdAt = chat.createdAt.toDate().toISOString();
+                }
+                if (chat.updatedAt && chat.updatedAt.toDate) {
+                    chat.updatedAt = chat.updatedAt.toDate().toISOString();
+                }
+                chat.messages = chat.messages || [];
+            });
+        } else {
+            chats = [];
+        }
+
+        if (chats.length === 0 || !currentChatId) {
+            await createNewChat();
+        } else {
+            currentChatId = chats[0].id;
+            await loadChat(currentChatId);
+        }
+        
+        updateChatHistorySidebar();
+    } catch (error) {
+        console.error('Error loading chats from Firestore:', error);
+        // Fallback to local storage
+        await loadChatsFromLocalStorage();
+    }
+}
+
+// Fallback: Load chats from local storage
+async function loadChatsFromLocalStorage() {
     try {
         const savedChats = localStorage.getItem(`helaChats_${currentUser.uid}`);
         if (savedChats) {
@@ -96,24 +167,16 @@ async function loadChats() {
             currentChatId = chats[0].id;
             await loadChat(currentChatId);
         }
-        
-        updateChatHistorySidebar();
     } catch (error) {
-        console.error('Error loading chats:', error);
+        console.error('Error loading chats from local storage:', error);
         await createNewChat();
     }
-}
-
-// Save chats to local storage
-function saveChats() {
-    if (!currentUser) return;
-    localStorage.setItem(`helaChats_${currentUser.uid}`, JSON.stringify(chats));
 }
 
 // Create a new chat
 async function createNewChat() {
     const newChat = {
-        id: Date.now().toString(),
+        id: generateChatId(),
         title: 'New Chat',
         messages: [],
         createdAt: new Date().toISOString(),
@@ -123,7 +186,13 @@ async function createNewChat() {
     chats.unshift(newChat);
     currentChatId = newChat.id;
     
-    saveChats();
+    // Save to Firestore
+    try {
+        await saveChatToFirestore(newChat);
+    } catch (error) {
+        console.error('Failed to save to Firestore, using local storage:', error);
+        saveChatsToLocalStorage();
+    }
     
     if (chatMessages) chatMessages.innerHTML = '';
     if (welcomeScreen) welcomeScreen.style.display = 'flex';
@@ -131,6 +200,11 @@ async function createNewChat() {
     
     updateChatHistorySidebar();
     return newChat.id;
+}
+
+// Generate unique chat ID
+function generateChatId() {
+    return Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
 // Update chat title
@@ -143,7 +217,14 @@ async function updateChatTitle(chatId, firstMessage) {
         chat.title = title;
         chat.updatedAt = new Date().toISOString();
         
-        saveChats();
+        // Update in Firestore
+        try {
+            await saveChatToFirestore(chat);
+        } catch (error) {
+            console.error('Failed to update chat title in Firestore:', error);
+            saveChatsToLocalStorage();
+        }
+        
         updateChatHistorySidebar();
         
         if (chatTitle) {
@@ -170,12 +251,24 @@ async function addMessageToChat(sender, text) {
         
         chat.updatedAt = new Date().toISOString();
         
-        saveChats();
+        // Save to Firestore
+        try {
+            await saveChatToFirestore(chat);
+        } catch (error) {
+            console.error('Failed to save message to Firestore:', error);
+            saveChatsToLocalStorage();
+        }
         
         if (sender === 'user' && chat.messages.length === 1) {
             await updateChatTitle(currentChatId, text);
         }
     }
+}
+
+// Save chats to local storage (fallback)
+function saveChatsToLocalStorage() {
+    if (!currentUser) return;
+    localStorage.setItem(`helaChats_${currentUser.uid}`, JSON.stringify(chats));
 }
 
 // Load a specific chat
@@ -208,6 +301,14 @@ async function deleteChat(chatId, event) {
     if (confirm('Are you sure you want to delete this chat?')) {
         chats = chats.filter(chat => chat.id !== chatId);
         
+        // Delete from Firestore
+        try {
+            await deleteChatFromFirestore(chatId);
+        } catch (error) {
+            console.error('Failed to delete from Firestore:', error);
+            saveChatsToLocalStorage();
+        }
+        
         if (currentChatId === chatId) {
             if (chats.length > 0) {
                 currentChatId = chats[0].id;
@@ -217,9 +318,113 @@ async function deleteChat(chatId, event) {
             }
         }
         
-        saveChats();
         updateChatHistorySidebar();
     }
+}
+
+// Share chat functionality
+function shareChat(chatId, event) {
+    if (event) event.stopPropagation();
+    
+    const chat = chats.find(c => c.id === chatId);
+    if (!chat) return;
+    
+    // Create shareable link
+    const shareData = {
+        chatId: chatId,
+        title: chat.title,
+        timestamp: Date.now()
+    };
+    
+    const encodedData = btoa(JSON.stringify(shareData));
+    const shareUrl = `${window.location.origin}${window.location.pathname}?shared=${encodedData}`;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        showNotification('Chat link copied to clipboard!');
+    }).catch(() => {
+        // Fallback: show URL in prompt
+        prompt('Share this chat link:', shareUrl);
+    });
+}
+
+// Handle shared chat
+async function handleSharedChat() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedData = urlParams.get('shared');
+    
+    if (sharedData) {
+        try {
+            const decodedData = JSON.parse(atob(sharedData));
+            const { chatId } = decodedData;
+            
+            // Load shared chat
+            const chatDoc = await db.collection('users')
+                .doc(currentUser.uid)
+                .collection('chats')
+                .doc(chatId)
+                .get();
+                
+            if (chatDoc.exists) {
+                const sharedChat = {
+                    id: generateChatId(), // New ID for the copy
+                    title: `Shared: ${chatDoc.data().title}`,
+                    messages: chatDoc.data().messages || [],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                chats.unshift(sharedChat);
+                currentChatId = sharedChat.id;
+                
+                await saveChatToFirestore(sharedChat);
+                await loadChat(sharedChat.id);
+                
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        } catch (error) {
+            console.error('Error loading shared chat:', error);
+            showNotification('Error loading shared chat');
+        }
+    }
+}
+
+// Update chat history sidebar with share button
+function updateChatHistorySidebar() {
+    if (!chatHistory) return;
+    
+    chatHistory.innerHTML = '';
+    
+    if (chats.length === 0) {
+        chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
+        return;
+    }
+    
+    chats.forEach(chat => {
+        const chatItem = document.createElement('div');
+        chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
+        chatItem.innerHTML = `
+            <span class="chat-item-icon">💬</span>
+            <span class="chat-item-title">${chat.title}</span>
+            <div class="chat-item-actions">
+                <button class="share-chat" onclick="shareChat('${chat.id}', event)" title="Share chat">🔗</button>
+                <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
+            </div>
+        `;
+        
+        chatItem.addEventListener('click', function(e) {
+            if (!e.target.classList.contains('delete-chat') && !e.target.classList.contains('share-chat')) {
+                loadChat(chat.id);
+                
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        });
+        
+        chatHistory.appendChild(chatItem);
+    });
 }
 
 // Handle send message
@@ -343,40 +548,6 @@ function getConversationContext() {
     });
     
     return context;
-}
-
-// Update chat history sidebar
-function updateChatHistorySidebar() {
-    if (!chatHistory) return;
-    
-    chatHistory.innerHTML = '';
-    
-    if (chats.length === 0) {
-        chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
-        return;
-    }
-    
-    chats.forEach(chat => {
-        const chatItem = document.createElement('div');
-        chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
-        chatItem.innerHTML = `
-            <span class="chat-item-icon">💬</span>
-            <span class="chat-item-title">${chat.title}</span>
-            <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
-        `;
-        
-        chatItem.addEventListener('click', function(e) {
-            if (!e.target.classList.contains('delete-chat')) {
-                loadChat(chat.id);
-                
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('open');
-                }
-            }
-        });
-        
-        chatHistory.appendChild(chatItem);
-    });
 }
 
 // Add message to chat display
@@ -654,6 +825,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Initialize the app
         await initApp();
         
+        // Handle shared chats after initialization
+        await handleSharedChat();
+        
     } catch (error) {
         console.error('Initialization error:', error);
         showNotification('Failed to initialize. Please refresh the page.');
@@ -664,6 +838,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 window.handleSend = handleSend;
 window.handleExamplePrompt = handleExamplePrompt;
 window.deleteChat = deleteChat;
+window.shareChat = shareChat;
 
 // Simple feature placeholders
 window.learningChallenges = {
@@ -683,4 +858,3 @@ window.voiceAssistant = {
         alert('Voice input feature coming soon!');
     }
 };
-</script>
