@@ -5,9 +5,9 @@ const greetingSection = document.getElementById('greetingSection');
 
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
-const MODEL = 'APILAGEAI-PRO';
+const MODEL = 'APILAGEAI-FREE';
 
-// Enhanced system prompt for organized responses
+// Enhanced system prompt
 const SYSTEM_PROMPT = `You are Hela Code, an AI assistant specialized in technology, programming, and development. 
 
 CRITICAL RESPONSE FORMATTING RULES:
@@ -46,11 +46,6 @@ Brief introduction explaining the concept.
 • Practice 1: Explanation
 • Practice 2: Explanation
 
-### Comparison (if applicable)
-| Feature | Option A | Option B |
-|---------|----------|----------|
-| Aspect 1 | Details | Details |
-
 TECHNOLOGY DOMAINS:
 - Programming languages (Python, JavaScript, Java, C++, C#, Go, Rust, etc.)
 - Web development (HTML, CSS, React, Vue, Angular, Node.js)
@@ -64,20 +59,9 @@ TECHNOLOGY DOMAINS:
 - Data science
 - Software architecture
 
-RESPONSE GUIDELINES:
-1. Provide detailed, structured responses about technology topics
-2. Write and explain code in any programming language with proper formatting
-3. Help with debugging, optimization, and best practices
-4. Discuss technology concepts, frameworks, and tools
-5. Offer career advice in tech fields
-6. Explain technical concepts clearly with examples
-7. For non-technology questions, politely redirect to tech topics
+Always be enthusiastic about technology and programming while maintaining professional, organized responses also you were made by Lewmitha Kithuldeniya Using Apilage Ai API!`;
 
-MEMORY: Remember the conversation context within this chat session to provide coherent responses.
-
-Always be enthusiastic about technology and programming while maintaining professional, organized responses!`;
-
-// Firebase configuration (same as auth)
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
     authDomain: "hela-code.firebaseapp.com",
@@ -96,7 +80,7 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Chat history management with Firebase
+// Chat history management
 let currentChatId = null;
 let chats = [];
 let currentUser = null;
@@ -110,19 +94,38 @@ async function initFirebase() {
                 currentUser = user;
                 console.log('User signed in:', user.uid);
                 
-                // Initialize credit system for user
-                await creditSystem.loadUserCredits(user.uid);
+                // Update user info in sidebar
+                updateUserInfo(user);
                 
                 // Load chats from Firebase
                 await loadChatsFromFirebase(user.uid);
                 resolve(user);
             } else {
                 console.log('No user signed in');
-                // Redirect to login if no user
                 window.location.href = 'index.html';
             }
         }, reject);
     });
+}
+
+// Update user information in sidebar
+function updateUserInfo(user) {
+    const userNameElement = document.getElementById('userName');
+    const userAvatarElement = document.getElementById('userAvatar');
+    
+    if (userNameElement) {
+        userNameElement.textContent = user.displayName || user.email || 'User';
+    }
+    
+    if (userAvatarElement) {
+        userAvatarElement.textContent = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+        
+        if (user.photoURL) {
+            userAvatarElement.style.backgroundImage = `url(${user.photoURL})`;
+            userAvatarElement.style.backgroundSize = 'cover';
+            userAvatarElement.textContent = '';
+        }
+    }
 }
 
 // Load chats from Firebase Firestore
@@ -130,7 +133,6 @@ async function loadChatsFromFirebase(userId) {
     try {
         showLoading('Loading your conversations...');
         
-        // Set up real-time listener for chats
         unsubscribeChats = db.collection('users')
             .doc(userId)
             .collection('chats')
@@ -142,7 +144,6 @@ async function loadChatsFromFirebase(userId) {
                     chats.push({
                         id: doc.id,
                         ...chatData,
-                        // Convert Firestore timestamps to Date objects
                         createdAt: chatData.createdAt?.toDate() || new Date(),
                         updatedAt: chatData.updatedAt?.toDate() || new Date()
                     });
@@ -153,7 +154,6 @@ async function loadChatsFromFirebase(userId) {
                 if (chats.length === 0 || !currentChatId) {
                     await createNewChat();
                 } else {
-                    // Load the most recent chat
                     currentChatId = chats[0].id;
                     await loadChat(currentChatId);
                 }
@@ -169,7 +169,6 @@ async function loadChatsFromFirebase(userId) {
     } catch (error) {
         console.error('Error setting up chat listener:', error);
         hideLoading();
-        showError('Failed to load conversations. Using local storage.');
         loadFromLocalStorage();
     }
 }
@@ -201,7 +200,6 @@ async function saveChatToFirebase(chat) {
             .collection('chats')
             .doc(chat.id);
 
-        // Prepare chat data for Firestore
         const chatData = {
             title: chat.title,
             messages: chat.messages,
@@ -210,10 +208,8 @@ async function saveChatToFirebase(chat) {
         };
 
         await chatRef.set(chatData, { merge: true });
-        console.log('Chat saved to Firebase:', chat.id);
     } catch (error) {
         console.error('Error saving chat to Firebase:', error);
-        // Fallback to local storage
         saveToLocalStorage();
     }
 }
@@ -223,254 +219,93 @@ function saveToLocalStorage() {
     localStorage.setItem('helaChatHistory', JSON.stringify(chats));
 }
 
-// Credit System with Firebase
-class CreditSystem {
+// Learning Challenges System (Simplified without credits)
+class LearningChallenges {
     constructor() {
-        this.credits = 100;
-        this.executionCost = 10;
-        this.downloadCost = 5;
-    }
-
-    async loadUserCredits(userId) {
-        try {
-            const userDoc = await db.collection('users').doc(userId).get();
-            if (userDoc.exists) {
-                const userData = userDoc.data();
-                this.credits = userData.credits || 100;
-            } else {
-                // Initialize new user with 100 credits
-                await this.initializeUser(userId);
+        this.challenges = [
+            {
+                id: 1,
+                title: "Python Algorithm Master",
+                difficulty: "beginner",
+                tasks: [
+                    "Implement bubble sort algorithm",
+                    "Solve Fibonacci sequence recursively",
+                    "Create a palindrome checker function"
+                ],
+                completed: false
+            },
+            {
+                id: 2,
+                title: "Web Development Wizard",
+                difficulty: "intermediate",
+                tasks: [
+                    "Build a responsive navigation bar",
+                    "Create dark/light mode toggle",
+                    "Implement form validation with JavaScript"
+                ],
+                completed: false
             }
-            this.updateCreditDisplay();
-            this.updateFeatureAvailability();
-        } catch (error) {
-            console.error('Error loading user credits:', error);
-            // Fallback to local storage
-            this.credits = parseInt(localStorage.getItem('helaCredits')) || 100;
-        }
+        ];
     }
 
-    async initializeUser(userId) {
-        try {
-            await db.collection('users').doc(userId).set({
-                credits: 100,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                achievements: {},
-                stats: {
-                    codeLinesWritten: 0,
-                    bugsFixed: 0,
-                    challengesCompleted: 0
-                }
-            });
-            console.log('New user initialized with 100 credits');
-        } catch (error) {
-            console.error('Error initializing user:', error);
-        }
-    }
-
-    hasSufficientCredits(cost) {
-        return this.credits >= cost;
-    }
-
-    async deductCredits(amount) {
-        if (this.hasSufficientCredits(amount)) {
-            this.credits -= amount;
-            
-            // Update in Firebase
-            if (currentUser) {
-                try {
-                    await db.collection('users').doc(currentUser.uid).update({
-                        credits: firebase.firestore.FieldValue.increment(-amount)
-                    });
-                } catch (error) {
-                    console.error('Error updating credits in Firebase:', error);
-                    // Fallback to local storage
-                    localStorage.setItem('helaCredits', this.credits.toString());
-                }
-            }
-            
-            this.updateCreditDisplay();
-            this.updateFeatureAvailability();
-            return true;
-        }
-        return false;
-    }
-
-    async addCredits(amount) {
-        this.credits += amount;
-        
-        // Update in Firebase
-        if (currentUser) {
-            try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    credits: firebase.firestore.FieldValue.increment(amount)
-                });
-            } catch (error) {
-                console.error('Error adding credits in Firebase:', error);
-                // Fallback to local storage
-                localStorage.setItem('helaCredits', this.credits.toString());
-            }
-        }
-        
-        this.updateCreditDisplay();
-        this.updateFeatureAvailability();
-        this.showCreditAddedPopup(amount);
-    }
-
-    updateCreditDisplay() {
-        const display = document.getElementById('creditAmount');
-        if (display) {
-            display.textContent = `₹${this.credits}`;
-            display.className = this.credits < 50 ? 'credit-low' : 'credit-normal';
-        }
-    }
-
-    updateFeatureAvailability() {
-        const canDownload = this.credits >= 50;
-        const canExecute = this.credits >= 50;
-        
-        document.querySelectorAll('.feature-locked').forEach(feature => {
-            if (canDownload && feature.dataset.feature === 'code-download') {
-                feature.innerHTML = '✅ Code Download Available';
-                feature.classList.remove('feature-locked');
-                feature.classList.add('feature-unlocked');
-            }
-            if (canExecute && feature.dataset.feature === 'code-execution') {
-                feature.innerHTML = '✅ Code Execution Available';
-                feature.classList.remove('feature-locked');
-                feature.classList.add('feature-unlocked');
-            }
-        });
-    }
-
-    showCreditAddedPopup(amount) {
-        const popup = document.createElement('div');
-        popup.className = 'credit-popup';
-        popup.innerHTML = `
-            <div class="popup-content">
-                <span class="popup-icon">💰</span>
-                <div class="popup-text">
-                    <strong>Credits Added!</strong>
-                    <p>+₹${amount} credits added to your account</p>
+    showChallengesModal() {
+        const modal = document.createElement('div');
+        modal.className = 'challenges-modal active';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🚀 Learning Challenges</h3>
+                    <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="challenges-list">
+                    ${this.challenges.map(challenge => `
+                        <div class="challenge-item ${challenge.completed ? 'completed' : ''}">
+                            <div class="challenge-header">
+                                <h4>${challenge.title}</h4>
+                                <span class="difficulty ${challenge.difficulty}">${challenge.difficulty}</span>
+                            </div>
+                            <div class="tasks">
+                                ${challenge.tasks.map(task => `
+                                    <div class="task">
+                                        <span class="task-icon">${challenge.completed ? '✅' : '📝'}</span>
+                                        <span>${task}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <button class="start-challenge" onclick="learningChallenges.startChallenge(${challenge.id})" 
+                                    ${challenge.completed ? 'disabled' : ''}>
+                                ${challenge.completed ? 'Completed' : 'Start Challenge'}
+                            </button>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;
-        document.body.appendChild(popup);
-        setTimeout(() => popup.remove(), 3000);
+        document.body.appendChild(modal);
+    }
+
+    startChallenge(challengeId) {
+        const challenge = this.challenges.find(c => c.id === challengeId);
+        if (!challenge) return;
+
+        const tasksText = challenge.tasks.map((task, index) => `${index + 1}. ${task}`).join('\n');
+        const challengeMessage = `I'm starting the "${challenge.title}" challenge! Here are my tasks:\n${tasksText}`;
+        
+        document.getElementById('input').value = challengeMessage;
+        handleSend();
+        
+        document.querySelectorAll('.modal').forEach(modal => modal.remove());
     }
 }
 
-// Code Execution System (unchanged, but using the credit system)
-class CodeExecutor {
-    constructor(creditSystem) {
-        this.creditSystem = creditSystem;
-    }
-
-    async executePython(code) {
-        if (!this.creditSystem.hasSufficientCredits(this.creditSystem.executionCost)) {
-            throw new Error("Insufficient credits for code execution. Minimum ₹50 required.");
-        }
-
-        showLoading('Executing Python code...');
-        const result = await this.simulateExecution(code, 'python');
-        await this.creditSystem.deductCredits(this.creditSystem.executionCost);
-        hideLoading();
-        return result;
-    }
-
-    async executeHTML(code) {
-        if (!this.creditSystem.hasSufficientCredits(this.creditSystem.executionCost)) {
-            throw new Error("Insufficient credits for code execution. Minimum ₹50 required.");
-        }
-
-        showLoading('Validating HTML...');
-        const result = await this.validateHTML(code);
-        await this.creditSystem.deductCredits(this.creditSystem.executionCost);
-        hideLoading();
-        return result;
-    }
-
-    simulateExecution(code, language) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const issues = this.analyzeCode(code, language);
-                const success = issues.length === 0;
-                
-                resolve({
-                    success: success,
-                    output: success ? "🎉 Code executed successfully!" : "❌ Execution failed with issues",
-                    issues: issues,
-                    executionTime: (Math.random() * 2 + 0.5).toFixed(2),
-                    suggestions: this.generateSuggestions(issues, language)
-                });
-            }, 2000);
-        });
-    }
-
-    analyzeCode(code, language) {
-        const issues = [];
-        
-        if (language === 'python') {
-            if (code.includes('print(') && !code.includes('f"')) {
-                issues.push("Consider using f-strings for better string formatting");
-            }
-            if (code.includes('for i in range') && !code.includes('enumerate')) {
-                issues.push("Use enumerate() for better index tracking in loops");
-            }
-            if (code.includes('except:')) {
-                issues.push("Always specify exception types instead of bare except");
-            }
-            if (code.includes('import *')) {
-                issues.push("Avoid wildcard imports for better code clarity");
-            }
-        }
-        
-        return issues;
-    }
-
-    validateHTML(html) {
-        const issues = [];
-        if (!html.includes('<!DOCTYPE html>')) issues.push("Missing DOCTYPE declaration");
-        if (!html.includes('<html')) issues.push("Missing HTML tag");
-        if (!html.includes('</html>')) issues.push("Missing closing HTML tag");
-        if (!html.includes('<head>')) issues.push("Consider adding head section");
-        if (!html.includes('<body>')) issues.push("Consider adding body section");
-
-        return {
-            valid: issues.length === 0,
-            issues: issues,
-            suggestion: "Add proper HTML5 structure with semantic elements"
-        };
-    }
-
-    generateSuggestions(issues, language) {
-        const suggestions = [];
-        issues.forEach(issue => {
-            if (issue.includes('f-strings')) {
-                suggestions.push('Use: `print(f"Value: {variable}")` instead of `print("Value: " + str(variable))`');
-            }
-            if (issue.includes('enumerate')) {
-                suggestions.push('Use: `for index, value in enumerate(items):` instead of `for i in range(len(items)):`');
-            }
-        });
-        return suggestions;
-    }
-}
-
-// Updated Achievement System with Firebase
+// Achievement System
 class AchievementSystem {
     constructor() {
         this.achievements = {
             firstCode: { unlocked: false, title: "First Steps", description: "Write your first line of code", icon: "👣" },
             bugHunter: { unlocked: false, title: "Bug Hunter", description: "Fix 10 bugs in your code", icon: "🐛" },
             speedCoder: { unlocked: false, title: "Speed Coder", description: "Write 100 lines in one session", icon: "⚡" },
-            algorithmMaster: { unlocked: false, title: "Algorithm Master", description: "Solve 5 complex algorithms", icon: "🧠" },
             challengeCompleted: { unlocked: false, title: "Challenge Accepted", description: "Complete your first challenge", icon: "🎯" }
-        };
-        this.stats = {
-            codeLinesWritten: 0,
-            bugsFixed: 0,
-            challengesCompleted: 0
         };
     }
 
@@ -480,15 +315,9 @@ class AchievementSystem {
             if (userDoc.exists) {
                 const userData = userDoc.data();
                 this.achievements = userData.achievements || this.achievements;
-                this.stats = userData.stats || this.stats;
             }
         } catch (error) {
             console.error('Error loading achievements:', error);
-            // Fallback to local storage
-            const saved = JSON.parse(localStorage.getItem('helaAchievements'));
-            if (saved) this.achievements = saved;
-            this.stats.codeLinesWritten = parseInt(localStorage.getItem('helaCodeLines')) || 0;
-            this.stats.bugsFixed = parseInt(localStorage.getItem('helaBugsFixed')) || 0;
         }
     }
 
@@ -496,57 +325,17 @@ class AchievementSystem {
         if (this.achievements[achievementId] && !this.achievements[achievementId].unlocked) {
             this.achievements[achievementId].unlocked = true;
             
-            // Update in Firebase
             if (currentUser) {
                 try {
                     await db.collection('users').doc(currentUser.uid).update({
                         [`achievements.${achievementId}`]: this.achievements[achievementId]
                     });
                 } catch (error) {
-                    console.error('Error updating achievements in Firebase:', error);
-                    localStorage.setItem('helaAchievements', JSON.stringify(this.achievements));
+                    console.error('Error updating achievements:', error);
                 }
             }
             
             this.showAchievementPopup(achievementId);
-        }
-    }
-
-    async trackCodeWritten(lines) {
-        this.stats.codeLinesWritten += lines;
-        
-        if (currentUser) {
-            try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    'stats.codeLinesWritten': firebase.firestore.FieldValue.increment(lines)
-                });
-            } catch (error) {
-                console.error('Error updating stats in Firebase:', error);
-                localStorage.setItem('helaCodeLines', this.stats.codeLinesWritten.toString());
-            }
-        }
-        
-        if (this.stats.codeLinesWritten >= 100 && !this.achievements.speedCoder.unlocked) {
-            await this.unlockAchievement('speedCoder');
-        }
-    }
-
-    async trackBugFixed() {
-        this.stats.bugsFixed++;
-        
-        if (currentUser) {
-            try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    'stats.bugsFixed': firebase.firestore.FieldValue.increment(1)
-                });
-            } catch (error) {
-                console.error('Error updating bugs fixed:', error);
-                localStorage.setItem('helaBugsFixed', this.stats.bugsFixed.toString());
-            }
-        }
-        
-        if (this.stats.bugsFixed >= 10 && !this.achievements.bugHunter.unlocked) {
-            await this.unlockAchievement('bugHunter');
         }
     }
 
@@ -565,10 +354,7 @@ class AchievementSystem {
             </div>
         `;
         document.body.appendChild(popup);
-        setTimeout(() => {
-            popup.classList.add('fade-out');
-            setTimeout(() => popup.remove(), 500);
-        }, 4000);
+        setTimeout(() => popup.remove(), 4000);
     }
 
     showAchievementsModal() {
@@ -594,30 +380,137 @@ class AchievementSystem {
                         </div>
                     `).join('')}
                 </div>
-                <div class="stats">
-                    <div class="stat">
-                        <span class="stat-value">${this.stats.codeLinesWritten}</span>
-                        <span class="stat-label">Lines of Code</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-value">${this.stats.bugsFixed}</span>
-                        <span class="stat-label">Bugs Fixed</span>
-                    </div>
-                </div>
             </div>
         `;
         document.body.appendChild(modal);
     }
 }
 
+// Fixed Voice Programming Assistant
+class VoiceProgramming {
+    constructor() {
+        this.isListening = false;
+        this.recognition = null;
+        this.finalTranscript = '';
+        this.setupVoiceRecognition();
+    }
+
+    setupVoiceRecognition() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            this.recognition = new SpeechRecognition();
+            this.recognition.continuous = false;
+            this.recognition.interimResults = true;
+            this.recognition.lang = 'en-US';
+
+            this.recognition.onstart = () => {
+                this.isListening = true;
+                this.showVoiceFeedback("🎤 Listening... Speak now");
+            };
+
+            this.recognition.onresult = (event) => {
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        this.finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                // Update input field with what user is saying
+                const input = document.getElementById('input');
+                if (input) {
+                    input.value = this.finalTranscript + interimTranscript;
+                }
+            };
+
+            this.recognition.onend = () => {
+                this.isListening = false;
+                if (this.finalTranscript.trim()) {
+                    this.showVoiceFeedback("✅ Speech captured! Click send or speak again.");
+                } else {
+                    this.showVoiceFeedback("🎤 Click microphone to try again");
+                }
+                
+                // Auto-restart if we have final transcript
+                if (this.finalTranscript.trim()) {
+                    setTimeout(() => {
+                        this.startListening();
+                    }, 2000);
+                }
+            };
+
+            this.recognition.onerror = (event) => {
+                this.isListening = false;
+                if (event.error === 'not-allowed') {
+                    this.showVoiceFeedback("❌ Microphone access denied. Please allow microphone permissions.");
+                } else {
+                    this.showVoiceFeedback("❌ Voice recognition error. Please try again.");
+                }
+            };
+        } else {
+            console.warn('Speech recognition not supported in this browser');
+        }
+    }
+
+    startListening() {
+        if (this.recognition && !this.isListening) {
+            this.finalTranscript = '';
+            const input = document.getElementById('input');
+            if (input) {
+                input.value = '';
+            }
+            this.recognition.start();
+        }
+    }
+
+    stopListening() {
+        if (this.recognition && this.isListening) {
+            this.recognition.stop();
+        }
+    }
+
+    toggleListening() {
+        if (this.isListening) {
+            this.stopListening();
+        } else {
+            this.startListening();
+        }
+    }
+
+    showVoiceFeedback(message) {
+        // Remove existing feedback
+        const existingFeedback = document.querySelector('.voice-feedback');
+        if (existingFeedback) {
+            existingFeedback.remove();
+        }
+
+        const feedback = document.createElement('div');
+        feedback.className = 'voice-feedback';
+        feedback.innerHTML = `
+            <div class="voice-feedback-content">
+                <span class="voice-icon">${message.includes('❌') ? '❌' : message.includes('✅') ? '✅' : '🎤'}</span>
+                <span>${message}</span>
+            </div>
+        `;
+        document.body.appendChild(feedback);
+        
+        setTimeout(() => {
+            feedback.classList.add('fade-out');
+            setTimeout(() => feedback.remove(), 500);
+        }, 3000);
+    }
+}
+
 // Initialize systems
-const creditSystem = new CreditSystem();
-const codeExecutor = new CodeExecutor(creditSystem);
-const learningChallenges = new LearningChallenges(creditSystem);
+const learningChallenges = new LearningChallenges();
 const achievementSystem = new AchievementSystem();
 const voiceAssistant = new VoiceProgramming();
 
-// Create a new chat (updated for Firebase)
+// Create a new chat
 async function createNewChat() {
     const newChat = {
         id: Date.now().toString(),
@@ -630,7 +523,6 @@ async function createNewChat() {
     chats.unshift(newChat);
     currentChatId = newChat.id;
     
-    // Save to Firebase
     await saveChatToFirebase(newChat);
     
     if (chatBox) chatBox.innerHTML = '';
@@ -640,7 +532,7 @@ async function createNewChat() {
     return newChat.id;
 }
 
-// Update chat title (updated for Firebase)
+// Update chat title
 async function updateChatTitle(chatId, firstMessage) {
     const chat = chats.find(c => c.id === chatId);
     if (chat && chat.title === 'New Chat') {
@@ -650,13 +542,12 @@ async function updateChatTitle(chatId, firstMessage) {
         chat.title = title;
         chat.updatedAt = new Date().toISOString();
         
-        // Save to Firebase
         await saveChatToFirebase(chat);
         updateChatHistorySidebar();
     }
 }
 
-// Add message to current chat (updated for Firebase)
+// Add message to current chat
 async function addMessageToChat(sender, text) {
     if (!currentChatId) return;
     
@@ -674,7 +565,6 @@ async function addMessageToChat(sender, text) {
         
         chat.updatedAt = new Date().toISOString();
         
-        // Save to Firebase
         await saveChatToFirebase(chat);
         
         if (sender === 'user' && chat.messages.length === 1) {
@@ -685,7 +575,7 @@ async function addMessageToChat(sender, text) {
         if (sender === 'user') {
             const codeBlocks = text.match(/```[\s\S]*?```/g);
             if (codeBlocks) {
-                await achievementSystem.trackCodeWritten(codeBlocks.length * 5);
+                // Track code writing achievement
             }
             if (chat.messages.length === 1) {
                 await achievementSystem.unlockAchievement('firstCode');
@@ -716,12 +606,11 @@ async function loadChat(chatId) {
     updateChatHistorySidebar();
 }
 
-// Delete a chat (updated for Firebase)
+// Delete a chat
 async function deleteChat(chatId, event) {
     event.stopPropagation();
     
     if (confirm('Are you sure you want to delete this chat?')) {
-        // Remove from Firebase
         if (currentUser) {
             try {
                 await db.collection('users')
@@ -749,10 +638,13 @@ async function deleteChat(chatId, event) {
     }
 }
 
-// Handle send message (updated for Firebase)
+// Fixed: Handle send message
 async function handleSend() {
     const text = input.value.trim();
     if (!text) return;
+    
+    // Clear input immediately
+    input.value = '';
     
     if (!currentChatId || chats.length === 0) {
         await createNewChat();
@@ -760,28 +652,322 @@ async function handleSend() {
     
     if (greetingSection) greetingSection.style.display = 'none';
 
+    // Add user message to chat
     addMessage('user', text);
     await addMessageToChat('user', text);
-    input.value = '';
 
     showTyping();
-    const reply = await askAI(text);
-    removeTyping();
+    
+    try {
+        const reply = await askAI(text);
+        removeTyping();
+        
+        displayFormattedAIResponse(reply);
+        await addMessageToChat('ai', reply);
+    } catch (error) {
+        removeTyping();
+        console.error('Error getting AI response:', error);
+        displayFormattedAIResponse("I apologize, but I'm having trouble responding right now. Please try again.");
+        await addMessageToChat('ai', "Error: Unable to get response");
+    }
+}
 
-    displayFormattedAIResponse(reply);
-    await addMessageToChat('ai', reply);
+// AI function
+async function askAI(userMessage) {
+    try {
+        const context = getConversationContext();
+        const fullPrompt = `${SYSTEM_PROMPT}\n\n${context}\n\nCurrent user question: ${userMessage}\n\nAssistant:`;
+        
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({ 
+                message: fullPrompt, 
+                model: MODEL 
+            })
+        });
+        
+        if (!res.ok) {
+            throw new Error(`API request failed with status ${res.status}`);
+        }
+        
+        const data = await res.json();
+        return data.response || 'I apologize, but I encountered an issue. Please try again.';
+        
+    } catch (err) {
+        console.error('AI Error:', err);
+        return '## Connection Issue\nI apologize, but I\'m having trouble connecting right now. Please try again in a moment.';
+    }
+}
+
+// Get conversation context
+function getConversationContext() {
+    if (!currentChatId) return '';
+    
+    const chat = chats.find(c => c.id === currentChatId);
+    if (!chat || chat.messages.length === 0) return '';
+    
+    const recentMessages = chat.messages.slice(-10);
+    let context = 'Previous conversation context:\n';
+    
+    recentMessages.forEach(msg => {
+        const role = msg.type === 'user' ? 'User' : 'Assistant';
+        context += `${role}: ${msg.content}\n`;
+    });
+    
+    return context;
+}
+
+// Update chat history sidebar
+function updateChatHistorySidebar() {
+    const chatHistoryContainer = document.getElementById('chatHistory');
+    if (!chatHistoryContainer) return;
+    
+    chatHistoryContainer.innerHTML = '';
+    
+    if (chats.length === 0) {
+        chatHistoryContainer.innerHTML = '<div class="no-chats">No conversations yet</div>';
+        return;
+    }
+    
+    chats.forEach(chat => {
+        const chatItem = document.createElement('div');
+        chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
+        chatItem.innerHTML = `
+            <span class="chat-item-icon">💬</span>
+            <span class="chat-item-title">${chat.title}</span>
+            <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
+        `;
+        
+        chatItem.addEventListener('click', function(e) {
+            if (!e.target.classList.contains('delete-chat')) {
+                loadChat(chat.id);
+                
+                if (window.innerWidth <= 768) {
+                    const sidebar = document.getElementById('sidebar');
+                    const overlay = document.getElementById('overlay');
+                    if (sidebar) sidebar.classList.remove('open');
+                    if (overlay) overlay.classList.remove('open');
+                }
+            }
+        });
+        
+        chatHistoryContainer.appendChild(chatItem);
+    });
+}
+
+// Display formatted AI response
+function displayFormattedAIResponse(content) {
+    if (!chatBox) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message ai';
+    
+    const formattedContent = parseMarkdownFormatting(content);
+    messageDiv.innerHTML = formattedContent;
+    
+    chatBox.appendChild(messageDiv);
+    
+    // Add copy functionality to code blocks
+    messageDiv.querySelectorAll('.code-block').forEach(block => {
+        const copyBtn = block.querySelector('.copy-btn');
+        const code = block.querySelector('code').textContent;
+        
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(code);
+            showCopiedNotification();
+        });
+    });
+    
+    scrollToBottom();
+}
+
+// Parse markdown formatting to HTML
+function parseMarkdownFormatting(text) {
+    let html = '<div class="bubble ai-bubble">';
+    
+    const lines = text.split('\n');
+    let inCodeBlock = false;
+    let codeLanguage = '';
+    let codeContent = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        if (line.startsWith('```')) {
+            if (!inCodeBlock) {
+                inCodeBlock = true;
+                codeLanguage = line.substring(3).trim() || 'text';
+                codeContent = '';
+            } else {
+                inCodeBlock = false;
+                html += createCodeBlock(codeContent, codeLanguage);
+            }
+            continue;
+        }
+        
+        if (inCodeBlock) {
+            codeContent += line + '\n';
+            continue;
+        }
+        
+        let processedLine = line;
+        
+        if (line.startsWith('## ')) {
+            processedLine = `<h3 class="response-header">${line.substring(3)}</h3>`;
+        } else if (line.startsWith('### ')) {
+            processedLine = `<h4 class="response-subheader">${line.substring(4)}</h4>`;
+        }
+        
+        processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        if (line.trim().startsWith('• ')) {
+            processedLine = `<div class="bullet-point">${line.substring(2)}</div>`;
+        }
+        
+        if (/^\d+\.\s/.test(line.trim())) {
+            processedLine = `<div class="numbered-point">${line}</div>`;
+        }
+        
+        if (line.startsWith('> ')) {
+            processedLine = `<blockquote class="ai-note">${line.substring(2)}</blockquote>`;
+        }
+        
+        if (processedLine === line && line.trim() !== '') {
+            processedLine = `<p class="response-paragraph">${line}</p>`;
+        }
+        
+        if (line.trim() === '') {
+            processedLine = '<div class="paragraph-spacing"></div>';
+        }
+        
+        html += processedLine;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+// Create formatted code block
+function createCodeBlock(content, language) {
+    return `
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-language">${language}</span>
+                <button class="copy-btn">Copy Code</button>
+            </div>
+            <pre><code class="language-${language}">${escapeHTML(content.trim())}</code></pre>
+        </div>
+    `;
+}
+
+// Add message to chat display
+function addMessage(sender, text) {
+    if (!chatBox) return;
+    
+    const msg = document.createElement('div');
+    msg.classList.add('message', sender);
+    const bubble = document.createElement('div');
+    bubble.classList.add('bubble');
+    bubble.textContent = text;
+    msg.appendChild(bubble);
+    chatBox.appendChild(msg);
+    scrollToBottom();
+}
+
+// Show typing indicator
+function showTyping() {
+    removeTyping();
+    if (!chatBox) return;
+    
+    const t = document.createElement('div');
+    t.className = 'message ai';
+    t.id = 'typing-indicator';
+    t.innerHTML = `<div class="bubble">Hela Code is thinking... 💭</div>`;
+    chatBox.appendChild(t);
+    scrollToBottom();
+}
+
+function removeTyping() {
+    const t = document.getElementById('typing-indicator');
+    if (t) t.remove();
+}
+
+function scrollToBottom() {
+    if (chatBox) {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+}
+
+function escapeHTML(s) {
+    return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function showCopiedNotification() {
+    const notif = document.createElement('div');
+    notif.className = 'copied-notification';
+    notif.textContent = '✅ Code copied to clipboard!';
+    document.body.appendChild(notif);
+    setTimeout(() => notif.classList.add('hide'), 1000);
+    setTimeout(() => notif.remove(), 1600);
+}
+
+function showLoading(message) {
+    const loading = document.createElement('div');
+    loading.className = 'loading-overlay';
+    loading.innerHTML = `
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>${message}</p>
+        </div>
+    `;
+    loading.id = 'loadingOverlay';
+    document.body.appendChild(loading);
+}
+
+function hideLoading() {
+    const loading = document.getElementById('loadingOverlay');
+    if (loading) loading.remove();
+}
+
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.innerHTML = `
+        <div class="error-content">
+            <span class="error-icon">⚠️</span>
+            <span class="error-text">${message}</span>
+        </div>
+    `;
+    document.body.appendChild(errorDiv);
+    setTimeout(() => errorDiv.remove(), 5000);
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     try {
+        // Set up event listeners first
+        if (sendBtn && input) {
+            sendBtn.addEventListener('click', handleSend);
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+        }
+
+        // Initialize Firebase and load data
         await initFirebase();
         await achievementSystem.loadUserAchievements(currentUser.uid);
         
-        // Show personalized welcome message
+        // Show welcome message
         setTimeout(() => {
             if (typeof liveTypeAI === 'function') {
-                liveTypeAI(`Welcome back, ${currentUser.displayName || currentUser.email}! 👋 Your conversations are now synced across all devices.`);
+                liveTypeAI(`Welcome back, ${currentUser.displayName || currentUser.email}! 👋 Ready to code?`);
             }
         }, 800);
         
@@ -798,28 +984,32 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-// Utility function to show errors
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.innerHTML = `
-        <div class="error-content">
-            <span class="error-icon">⚠️</span>
-            <span class="error-text">${message}</span>
-        </div>
-    `;
-    document.body.appendChild(errorDiv);
-    setTimeout(() => errorDiv.remove(), 5000);
-}
-
-// The rest of the utility functions remain the same...
-// [Previous utility functions: showLoading, hideLoading, parseMarkdownFormatting, etc.]
-
-// Global functions for HTML onclick
-window.showTopUpModal = showTopUpModal;
-window.selectCreditOption = selectCreditOption;
-window.processPayment = processPayment;
+// Global functions
+window.handleSend = handleSend;
 window.learningChallenges = learningChallenges;
 window.achievementSystem = achievementSystem;
 window.voiceAssistant = voiceAssistant;
 window.deleteChat = deleteChat;
+
+// Live type AI message (for welcome messages)
+function liveTypeAI(text) {
+    if (!chatBox) return;
+    
+    const msg = document.createElement('div');
+    msg.classList.add('message', 'ai');
+    const bubble = document.createElement('div');
+    bubble.classList.add('bubble', 'ai-bubble');
+    msg.appendChild(bubble);
+    chatBox.appendChild(msg);
+
+    let i = 0;
+    function type() {
+        if (i < text.length) {
+            bubble.innerHTML = parseMarkdownFormatting(text.slice(0, i + 1));
+            scrollToBottom();
+            i++;
+            setTimeout(type, 20);
+        }
+    }
+    type();
+}
