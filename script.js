@@ -1,23 +1,22 @@
-// Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
-    authDomain: "hela-code.firebaseapp.com",
-    projectId: "hela-code",
-    storageBucket: "hela-code.appspot.com",
-    messagingSenderId: "813299203715",
-    appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
-};
+// script.js - Firestore per-chat + messages subcollection (Firebase v8 style)
 
-// Initialize Firebase
+// Make sure firebase SDK scripts are loaded in your HTML (v8 namespaced)
+// <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+// <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+// <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+// Your firebaseConfig should already be initialized elsewhere (or you can include it here)
 if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+    // If you already call firebase.initializeApp earlier, skip this block.
+    // firebase.initializeApp(firebaseConfig);
 }
 
-// Firebase services
+// Services
 const auth = firebase.auth();
 const db = firebase.firestore();
+const FieldValue = firebase.firestore.FieldValue;
 
-// DOM Elements
+// DOM elements (keep same names you used)
 const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
@@ -31,37 +30,28 @@ const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
 const chatTitle = document.getElementById('chatTitle');
 
-// API Configuration
+// API constants (keep as before)
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
 const MODEL = 'APILAGEAI-PRO';
 
-// Chat management
-let currentChatId = null;
-let chats = [];
+// State
 let currentUser = null;
+let chats = []; // metadata list (ordered by updatedAt desc)
+let currentChatId = null;
+let activeMessagesUnsub = null; // unsubscribe function for current chat messages listener
+let chatsUnsub = null; // unsubscribe for chats list listener
 
-// Initialize the application
+// ---------- Initialization ----------
+
 async function initApp() {
     return new Promise((resolve, reject) => {
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 currentUser = user;
-                console.log('User signed in:', user.uid);
-
                 updateUserInfo(user);
-                await loadChats();
-                
-                // Real-time sync with Firestore
-                db.collection('users').doc(currentUser.uid)
-                  .onSnapshot(snapshot => {
-                      if (snapshot.exists && snapshot.data().chats) {
-                          chats = snapshot.data().chats;
-                          if (currentChatId) loadChat(currentChatId);
-                          updateChatHistorySidebar();
-                      }
-                  });
-
+                await loadChats();           // load chats list (no auto new chat)
+                listenToChats();             // real-time updates for chat list
                 resolve(user);
             } else {
                 window.location.href = 'index.html';
@@ -70,15 +60,11 @@ async function initApp() {
     });
 }
 
-// Update user info in sidebar
 function updateUserInfo(user) {
-    if (userName) {
-        userName.textContent = user.displayName || user.email || 'User';
-    }
-    
+    if (userName) userName.textContent = user.displayName || user.email || 'User';
     if (userAvatar) {
-        userAvatar.textContent = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-        
+        const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+        userAvatar.textContent = initial;
         if (user.photoURL) {
             userAvatar.style.backgroundImage = `url(${user.photoURL})`;
             userAvatar.style.backgroundSize = 'cover';
@@ -87,207 +73,351 @@ function updateUserInfo(user) {
     }
 }
 
-// Load chats from Firestore
+// ---------- Chats list (metadata) ----------
+
 async function loadChats() {
     if (!currentUser) return;
 
     try {
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-        if (userDoc.exists && userDoc.data().chats) {
-            chats = userDoc.data().chats;
-        } else {
-            chats = [];
-        }
+        const snapshot = await db
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('chats')
+            .orderBy('updatedAt', 'desc')
+            .limit(50)
+            .get();
 
-        if (chats.length === 0 || !currentChatId) {
-            await createNewChat();
-        } else {
-            currentChatId = chats[0].id;
+        chats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Do NOT auto-create a new chat. If chats available, load the latest; otherwise show welcome screen.
+        if (chats.length > 0) {
+            // Keep currentChatId if it's already set and still exists; otherwise pick the most recent.
+            if (!currentChatId || !chats.find(c => c.id === currentChatId)) {
+                currentChatId = chats[0].id;
+            }
             await loadChat(currentChatId);
+        } else {
+            currentChatId = null;
+            if (chatMessages) chatMessages.innerHTML = '';
+            if (welcomeScreen) welcomeScreen.style.display = 'flex';
+            if (chatTitle) chatTitle.textContent = 'Welcome';
         }
 
         updateChatHistorySidebar();
-    } catch (error) {
-        console.error('Error loading chats from Firebase:', error);
-        await createNewChat();
+    } catch (err) {
+        console.error('loadChats error', err);
+        showNotification('Unable to load chats. Check your connection.');
     }
 }
 
-// Save chats to Firestore
-async function saveChats() {
+function listenToChats() {
     if (!currentUser) return;
 
-    try {
-        await db.collection('users').doc(currentUser.uid).set({
-            chats: chats
-        }, { merge: true });
-    } catch (error) {
-        console.error('Error saving chats to Firebase:', error);
-    }
-}
+    // Clean previous listener if any
+    if (chatsUnsub) chatsUnsub();
 
-// Create a new chat
-async function createNewChat() {
-    const newChat = {
-        id: Date.now().toString(),
-        title: 'New Chat',
-        messages: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-    };
-
-    chats.unshift(newChat);
-    currentChatId = newChat.id;
-
-    await saveChats();
-
-    if (chatMessages) chatMessages.innerHTML = '';
-    if (welcomeScreen) welcomeScreen.style.display = 'flex';
-    if (chatTitle) chatTitle.textContent = 'New Chat';
-
-    updateChatHistorySidebar();
-    return newChat.id;
-}
-
-// Update chat title
-async function updateChatTitle(chatId, firstMessage) {
-    const chat = chats.find(c => c.id === chatId);
-    if (chat && chat.title === 'New Chat') {
-        const title = firstMessage.length > 30 
-            ? firstMessage.substring(0, 30) + '...' 
-            : firstMessage;
-        chat.title = title;
-        chat.updatedAt = new Date().toISOString();
-        
-        await saveChats();
-        updateChatHistorySidebar();
-        
-        if (chatTitle) {
-            chatTitle.textContent = title;
-        }
-    }
-}
-
-// Add message to current chat
-async function addMessageToChat(sender, text) {
-    if (!currentChatId) return;
-    
-    const chat = chats.find(c => c.id === currentChatId);
-    if (chat) {
-        chat.messages.push({
-            type: sender,
-            content: text,
-            timestamp: new Date().toISOString()
+    chatsUnsub = db
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('chats')
+        .orderBy('updatedAt', 'desc')
+        .limit(100)
+        .onSnapshot(snapshot => {
+            chats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            updateChatHistorySidebar();
+            // If we have a current chat selected but its metadata changed, update title
+            const currentMeta = chats.find(c => c.id === currentChatId);
+            if (currentMeta && chatTitle) chatTitle.textContent = currentMeta.title || 'Chat';
+        }, err => {
+            console.error('listenToChats snapshot error', err);
         });
-        
-        if (chat.messages.length > 50) {
-            chat.messages = chat.messages.slice(-50);
-        }
-        
-        chat.updatedAt = new Date().toISOString();
-        
-        await saveChats();
-        
-        if (sender === 'user' && chat.messages.length === 1) {
-            await updateChatTitle(currentChatId, text);
-        }
+}
+
+// ---------- Create chat (metadata doc only) ----------
+
+async function createNewChat() {
+    if (!currentUser) return null;
+
+    try {
+        const chatsCol = db.collection('users').doc(currentUser.uid).collection('chats');
+        const newDocRef = chatsCol.doc(); // auto id
+        const now = new Date().toISOString();
+        const newChat = {
+            title: 'New Chat',
+            createdAt: now,
+            updatedAt: now
+        };
+        await newDocRef.set(newChat);
+        // local insert at head (real-time listener will also update)
+        chats.unshift({ id: newDocRef.id, ...newChat });
+        currentChatId = newDocRef.id;
+        updateChatHistorySidebar();
+        return newDocRef.id;
+    } catch (err) {
+        console.error('createNewChat error', err);
+        showNotification('Could not create chat. Try again.');
+        return null;
     }
 }
 
-// Load a specific chat
-async function loadChat(chatId) {
-    const chat = chats.find(c => c.id === chatId);
-    if (!chat) return;
-    
-    currentChatId = chatId;
-    
-    if (chatMessages) chatMessages.innerHTML = '';
-    if (welcomeScreen) welcomeScreen.style.display = 'none';
-    if (chatTitle) chatTitle.textContent = chat.title;
-    
-    chat.messages.forEach(msg => {
-        if (msg.type === 'user') {
-            addMessage('user', msg.content);
-        } else {
-            displayAIResponse(msg.content);
+// ---------- Messages: add / listen / load ----------
+
+async function addMessageToChat(chatId, sender, content) {
+    if (!currentUser || !chatId) return;
+
+    try {
+        const messagesCol = db
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('chats')
+            .doc(chatId)
+            .collection('messages');
+
+        const now = new Date().toISOString();
+        const messageDoc = {
+            sender, // 'user' or 'ai'
+            content,
+            timestamp: now
+        };
+
+        // Add message document
+        await messagesCol.add(messageDoc);
+
+        // Update chat metadata updatedAt, and set title if was 'New Chat' and sender is user
+        const chatRef = db.collection('users').doc(currentUser.uid).collection('chats').doc(chatId);
+        const metaUpdate = { updatedAt: now };
+        // If chat metadata says title 'New Chat' and this is the first user message, set a short title
+        // We can't reliably check "first message" here, but we can try to set title if it's still New Chat
+        const chatSnap = await chatRef.get();
+        if (chatSnap.exists) {
+            const meta = chatSnap.data();
+            if ((meta.title === 'New Chat' || !meta.title) && sender === 'user') {
+                const shortTitle = content.length > 30 ? content.slice(0, 30) + '...' : content;
+                metaUpdate.title = shortTitle;
+            }
         }
-    });
-    
-    scrollToBottom();
-    updateChatHistorySidebar();
+
+        await chatRef.set(metaUpdate, { merge: true });
+
+    } catch (err) {
+        console.error('addMessageToChat error', err);
+        showNotification('Failed to save message. Check connection.');
+    }
 }
 
-// Delete a chat
+function startListeningMessages(chatId) {
+    if (!currentUser || !chatId) return;
+
+    // unsubscribe previous messages listener
+    if (activeMessagesUnsub) activeMessagesUnsub();
+
+    const messagesRef = db
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('timestamp', 'asc');
+
+    activeMessagesUnsub = messagesRef.onSnapshot(snapshot => {
+        if (chatMessages) chatMessages.innerHTML = '';
+        snapshot.docs.forEach(doc => {
+            const m = doc.data();
+            if (m.sender === 'user') addMessage('user', m.content, false);
+            else addMessage('ai', m.content, false);
+        });
+        // hide welcome when messages present
+        if (welcomeScreen) welcomeScreen.style.display = 'none';
+        scrollToBottom();
+    }, err => {
+        console.error('messages listener error', err);
+    });
+}
+
+async function loadChat(chatId) {
+    if (!currentUser || !chatId) return;
+
+    try {
+        currentChatId = chatId;
+        // fetch metadata (so we have title)
+        const chatRef = db.collection('users').doc(currentUser.uid).collection('chats').doc(chatId);
+        const metaSnap = await chatRef.get();
+        if (metaSnap.exists) {
+            const meta = metaSnap.data();
+            if (chatTitle) chatTitle.textContent = meta.title || 'Chat';
+        }
+
+        // Start listening to messages live (and populate UI)
+        startListeningMessages(chatId);
+
+        updateChatHistorySidebar();
+    } catch (err) {
+        console.error('loadChat error', err);
+    }
+}
+
+// ---------- Delete Chat ----------
+
 async function deleteChat(chatId, event) {
     if (event) event.stopPropagation();
-    
-    if (confirm('Are you sure you want to delete this chat?')) {
-        chats = chats.filter(chat => chat.id !== chatId);
-        
+    if (!currentUser || !chatId) return;
+
+    if (!confirm('Are you sure you want to delete this chat?')) return;
+
+    try {
+        // delete all messages in subcollection in a simple batched loop
+        const messagesCol = db.collection('users').doc(currentUser.uid).collection('chats').doc(chatId).collection('messages');
+        const msgsSnap = await messagesCol.get();
+        const batch = db.batch();
+        msgsSnap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+
+        // delete chat doc
+        await db.collection('users').doc(currentUser.uid).collection('chats').doc(chatId).delete();
+
+        // cleanup local state
+        chats = chats.filter(c => c.id !== chatId);
         if (currentChatId === chatId) {
+            if (activeMessagesUnsub) { activeMessagesUnsub(); activeMessagesUnsub = null; }
             if (chats.length > 0) {
                 currentChatId = chats[0].id;
                 await loadChat(currentChatId);
             } else {
-                await createNewChat();
+                currentChatId = null;
+                if (chatMessages) chatMessages.innerHTML = '';
+                if (welcomeScreen) welcomeScreen.style.display = 'flex';
+                if (chatTitle) chatTitle.textContent = 'Welcome';
             }
         }
-        
-        await saveChats();
+
         updateChatHistorySidebar();
+    } catch (err) {
+        console.error('deleteChat error', err);
+        showNotification('Failed to delete chat.');
     }
 }
 
-// Handle send message
+// ---------- UI: Chat history sidebar ----------
+
+function updateChatHistorySidebar() {
+    if (!chatHistory) return;
+    chatHistory.innerHTML = '';
+
+    if (!chats || chats.length === 0) {
+        chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
+        return;
+    }
+
+    chats.forEach(chat => {
+        const chatItem = document.createElement('div');
+        chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
+        chatItem.innerHTML = `
+            <span class="chat-item-icon">💬</span>
+            <span class="chat-item-title">${escapeHTML(chat.title || 'New Chat')}</span>
+            <button class="delete-chat" title="Delete chat">🗑️</button>
+        `;
+
+        // open chat when clicking anywhere except delete button
+        chatItem.addEventListener('click', (e) => {
+            if (e.target && e.target.classList && e.target.classList.contains('delete-chat')) {
+                deleteChat(chat.id, e);
+                return;
+            }
+            loadChat(chat.id);
+            if (window.innerWidth <= 768 && sidebar) sidebar.classList.remove('open');
+        });
+
+        chatHistory.appendChild(chatItem);
+    });
+}
+
+// ---------- UI: Messages display ----------
+
+function addMessage(sender, text, saveToFirestore = true) {
+    // saveToFirestore parameter used by live listener false to avoid duplication
+    if (!chatMessages) return;
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+
+    if (sender === 'ai') {
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = 'H';
+        messageDiv.appendChild(avatar);
+    }
+
+    const messageBubble = document.createElement('div');
+    messageBubble.className = 'message-bubble';
+    if (sender === 'ai') {
+        messageBubble.classList.add('ai-bubble');
+        // formatted content could be added here if needed; using plain text for consistency with stored messages
+        messageBubble.textContent = text;
+    } else {
+        messageBubble.textContent = text;
+    }
+
+    messageContent.appendChild(messageBubble);
+    messageDiv.appendChild(messageContent);
+    chatMessages.appendChild(messageDiv);
+    scrollToBottom();
+
+    // Only persist if requested (we persist via addMessageToChat which writes to Firestore)
+    // The caller (handleSend and AI reply flow) will call addMessageToChat separately.
+}
+
+// ---------- Message sending flow ----------
+
 async function handleSend() {
     const text = chatInput.value.trim();
     if (!text) return;
-    
+
+    // Create a new chat only when user sends first message and no chat exists
+    if (!currentChatId) {
+        const newChatId = await createNewChat();
+        if (!newChatId) {
+            showNotification('Could not create chat. Try again.');
+            return;
+        }
+        currentChatId = newChatId;
+        // start listening messages for this new chat
+        startListeningMessages(currentChatId);
+    }
+
+    // Add and save user message
+    addMessage('user', text, false); // local UI immediately
+    await addMessageToChat(currentChatId, 'user', text);
     chatInput.value = '';
-    
-    if (!currentChatId || chats.length === 0) {
-        await createNewChat();
-    }
-    
-    if (welcomeScreen) {
-        welcomeScreen.style.display = 'none';
-    }
+    autoResizeTextarea();
 
-    addMessage('user', text);
-    await addMessageToChat('user', text);
-
+    // Show typing indicator
     showTyping();
-    
+
     try {
+        // Get AI reply
         const reply = await callAI(text);
+
+        // Persist AI reply
+        await addMessageToChat(currentChatId, 'ai', reply);
+        // hide typing will be handled by messages listener once AI message saved; still remove typing here
         removeTyping();
-        
-        displayAIResponse(reply);
-        await addMessageToChat('ai', reply);
-        
-    } catch (error) {
-        console.error('Error getting AI response:', error);
+    } catch (err) {
+        console.error('handleSend AI error', err);
         removeTyping();
-        
-        const errorMessage = "I'm having trouble responding right now. Please try again.";
-        displayAIResponse(errorMessage);
-        await addMessageToChat('ai', errorMessage);
+        const errorMsg = "I'm having trouble responding right now. Please try again.";
+        await addMessageToChat(currentChatId, 'ai', errorMsg);
     }
 }
 
-// Handle example prompts
-function handleExamplePrompt(prompt) {
-    if (chatInput) {
-        chatInput.value = prompt;
-        handleSend();
-    }
-}
+// ---------- Call AI API (unchanged behavior) ----------
 
-// Call AI API
 async function callAI(userMessage) {
     try {
-        const context = getConversationContext();
-        
+        const context = await getConversationContextForAI();
+
         const messageToSend = `You are Hela Code, an AI programming assistant created by Lewmitha Kithuldeniya (Pix Studios Sri Lanka) using Apilage AI API.
 
 RESPONSE FORMAT:
@@ -303,267 +433,79 @@ When asked "Who made you?" always respond: "I was created by Lewmitha Kithuldeni
 ${context}
 User: ${userMessage}
 Assistant:`;
-        
+
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${API_KEY}`
             },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 message: messageToSend,
                 model: MODEL
             })
         });
-        
+
         if (!response.ok) {
             throw new Error(`API request failed with status ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
-        if (data.response) {
-            return data.response;
-        } else {
-            return "I apologize, but I received an unexpected response format. Please try again.";
-        }
-        
-    } catch (error) {
-        console.error('AI API Error:', error);
-        throw error;
+        if (data.response) return data.response;
+        return "I apologize, but I received an unexpected response format. Please try again.";
+    } catch (err) {
+        console.error('callAI error', err);
+        throw err;
     }
 }
 
-// Get conversation context
-function getConversationContext() {
-    if (!currentChatId) return '';
-    
-    const chat = chats.find(c => c.id === currentChatId);
-    if (!chat || chat.messages.length === 0) return '';
-    
-    const recentMessages = chat.messages.slice(-6);
-    let context = 'Conversation history:\n';
-    
-    recentMessages.forEach(msg => {
-        const role = msg.type === 'user' ? 'User' : 'Assistant';
-        context += `${role}: ${msg.content}\n`;
-    });
-    
-    return context;
-}
+// Build a short conversation context from recent messages to send to AI
+async function getConversationContextForAI() {
+    if (!currentUser || !currentChatId) return '';
 
-// Update chat history sidebar
-function updateChatHistorySidebar() {
-    if (!chatHistory) return;
-    
-    chatHistory.innerHTML = '';
-    
-    if (chats.length === 0) {
-        chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
-        return;
-    }
-    
-    chats.forEach(chat => {
-        const chatItem = document.createElement('div');
-        chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
-        chatItem.innerHTML = `
-            <span class="chat-item-icon">💬</span>
-            <span class="chat-item-title">${chat.title}</span>
-            <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
-        `;
-        
-        chatItem.addEventListener('click', function(e) {
-            if (!e.target.classList.contains('delete-chat')) {
-                loadChat(chat.id);
-                
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('open');
-                }
-            }
+    try {
+        const msgsSnap = await db
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('chats')
+            .doc(currentChatId)
+            .collection('messages')
+            .orderBy('timestamp', 'desc')
+            .limit(6)
+            .get();
+
+        // reverse to chronological
+        const messages = msgsSnap.docs.map(d => d.data()).reverse();
+        let context = 'Conversation history:\n';
+        messages.forEach(m => {
+            const role = m.sender === 'user' ? 'User' : 'Assistant';
+            context += `${role}: ${m.content}\n`;
         });
-        
-        chatHistory.appendChild(chatItem);
-    });
-}
-
-// Add message to chat display
-function addMessage(sender, text) {
-    if (!chatMessages) return;
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}`;
-    
-    const messageContent = document.createElement('div');
-    messageContent.className = 'message-content';
-    
-    if (sender === 'ai') {
-        const avatar = document.createElement('div');
-        avatar.className = 'message-avatar';
-        avatar.textContent = 'H';
-        messageDiv.appendChild(avatar);
+        return context;
+    } catch (err) {
+        console.error('getConversationContextForAI error', err);
+        return '';
     }
-    
-    const messageBubble = document.createElement('div');
-    messageBubble.className = 'message-bubble';
-    
-    if (sender === 'ai') {
-        messageBubble.classList.add('ai-bubble');
-        messageBubble.textContent = text;
-    } else {
-        messageBubble.textContent = text;
-    }
-    
-    messageContent.appendChild(messageBubble);
-    messageDiv.appendChild(messageContent);
-    chatMessages.appendChild(messageDiv);
-    
-    scrollToBottom();
 }
 
-// Display AI response with formatting
-function displayAIResponse(content) {
-    if (!chatMessages) return;
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message ai';
-    
-    const avatar = document.createElement('div');
-    avatar.className = 'message-avatar';
-    avatar.textContent = 'H';
-    messageDiv.appendChild(avatar);
-    
-    const messageContent = document.createElement('div');
-    messageContent.className = 'message-content';
-    
-    const messageBubble = document.createElement('div');
-    messageBubble.className = 'message-bubble ai-bubble';
-    
-    const formattedContent = formatResponse(content);
-    messageBubble.innerHTML = formattedContent;
-    
-    messageContent.appendChild(messageBubble);
-    messageDiv.appendChild(messageContent);
-    chatMessages.appendChild(messageDiv);
-    
-    // Add copy functionality to code blocks
-    setTimeout(() => {
-        messageBubble.querySelectorAll('.code-block').forEach(block => {
-            const copyBtn = block.querySelector('.copy-btn');
-            if (copyBtn) {
-                const code = block.querySelector('code').textContent;
-                
-                copyBtn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(code);
-                    showNotification('Code copied to clipboard!');
-                });
-            }
-        });
-    }, 100);
-    
-    scrollToBottom();
-}
+// ---------- Helpers: formatting, typing, scrolling ----------
 
-// Format AI response with markdown
-function formatResponse(text) {
-    if (!text) return '';
-    
-    let html = '';
-    const lines = text.split('\n');
-    let inCodeBlock = false;
-    let codeLanguage = '';
-    let codeContent = '';
-    
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        
-        if (line.startsWith('```')) {
-            if (!inCodeBlock) {
-                inCodeBlock = true;
-                codeLanguage = line.substring(3).trim() || 'text';
-                codeContent = '';
-            } else {
-                inCodeBlock = false;
-                html += createCodeBlock(codeContent, codeLanguage);
-            }
-            continue;
-        }
-        
-        if (inCodeBlock) {
-            codeContent += line + '\n';
-            continue;
-        }
-        
-        let processedLine = line;
-        
-        if (line.startsWith('## ')) {
-            processedLine = `<h3 class="response-header">${line.substring(3)}</h3>`;
-        } else if (line.startsWith('### ')) {
-            processedLine = `<h4 class="response-subheader">${line.substring(4)}</h4>`;
-        }
-        
-        processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        
-        if (line.trim().startsWith('• ')) {
-            processedLine = `<div class="bullet-point">${line.substring(2)}</div>`;
-        }
-        
-        if (/^\d+\.\s/.test(line.trim())) {
-            processedLine = `<div class="numbered-point">${line}</div>`;
-        }
-        
-        if (line.startsWith('> ')) {
-            processedLine = `<blockquote class="ai-note">${line.substring(2)}</blockquote>`;
-        }
-        
-        if (processedLine === line && line.trim() !== '') {
-            processedLine = `<p class="response-paragraph">${line}</p>`;
-        }
-        
-        if (line.trim() === '') {
-            processedLine = '<div class="paragraph-spacing"></div>';
-        }
-        
-        html += processedLine;
-    }
-    
-    if (inCodeBlock) {
-        html += createCodeBlock(codeContent, codeLanguage);
-    }
-    
-    return html;
-}
-
-// Create code block
-function createCodeBlock(content, language) {
-    const escapedContent = escapeHTML(content.trim());
-    return `
-        <div class="code-block">
-            <div class="code-header">
-                <span class="code-language">${language}</span>
-                <button class="copy-btn">Copy Code</button>
-            </div>
-            <pre><code class="language-${language}">${escapedContent}</code></pre>
-        </div>
-    `;
-}
-
-// Show typing indicator
 function showTyping() {
     removeTyping();
     if (!chatMessages) return;
-    
+
     const typingDiv = document.createElement('div');
     typingDiv.className = 'message ai';
     typingDiv.id = 'typing-indicator';
-    
+
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
     avatar.textContent = 'H';
     typingDiv.appendChild(avatar);
-    
+
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
-    
+
     const messageBubble = document.createElement('div');
     messageBubble.className = 'message-bubble ai-bubble typing-indicator';
     messageBubble.innerHTML = `
@@ -574,23 +516,21 @@ function showTyping() {
         </div>
         <span>Hela Code is thinking...</span>
     `;
-    
+
     messageContent.appendChild(messageBubble);
     typingDiv.appendChild(messageContent);
     chatMessages.appendChild(typingDiv);
-    
+
     scrollToBottom();
 }
 
 function removeTyping() {
-    const typing = document.getElementById('typing-indicator');
-    if (typing) typing.remove();
+    const t = document.getElementById('typing-indicator');
+    if (t) t.remove();
 }
 
 function scrollToBottom() {
-    if (chatMessages) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+    if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function escapeHTML(text) {
@@ -604,11 +544,11 @@ function escapeHTML(text) {
 }
 
 function showNotification(message) {
-    const notif = document.createElement('div');
-    notif.className = 'notification copied-notification';
-    notif.textContent = message;
-    document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 2000);
+    const n = document.createElement('div');
+    n.className = 'notification copied-notification';
+    n.textContent = message;
+    document.body.appendChild(n);
+    setTimeout(() => n.remove(), 2000);
 }
 
 // Auto-resize textarea
@@ -619,13 +559,13 @@ function autoResizeTextarea() {
     }
 }
 
-// Initialize application
-document.addEventListener('DOMContentLoaded', async function() {
+// ---------- DOM events + init ----------
+
+document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Set up event listeners
         if (sendBtn) sendBtn.addEventListener('click', handleSend);
         if (chatInput) {
-            chatInput.addEventListener('keydown', e => {
+            chatInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleSend();
@@ -633,7 +573,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
             chatInput.addEventListener('input', autoResizeTextarea);
         }
-        if (newChatBtn) newChatBtn.addEventListener('click', createNewChat);
+        if (newChatBtn) newChatBtn.addEventListener('click', async () => {
+            // If the user explicitly clicks New Chat, create one
+            const newId = await createNewChat();
+            if (newId) loadChat(newId);
+        });
         if (logoutBtn) logoutBtn.addEventListener('click', () => {
             auth.signOut().then(() => window.location.href = 'index.html');
         });
@@ -642,19 +586,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
 
         await initApp();
-        
-    } catch (error) {
-        console.error('Initialization error:', error);
-        showNotification('Failed to initialize. Please refresh the page.');
+    } catch (err) {
+        console.error('Initialization error', err);
+        showNotification('Failed to initialize. Refresh the page.');
     }
 });
 
-// Global functions
+// Expose some functions globally used in HTML
 window.handleSend = handleSend;
-window.handleExamplePrompt = handleExamplePrompt;
 window.deleteChat = deleteChat;
+window.handleExamplePrompt = (prompt) => {
+    if (chatInput) {
+        chatInput.value = prompt;
+        handleSend();
+    }
+};
 
-// Simple feature placeholders
-window.learningChallenges = { showChallengesModal: () => alert('Learning Challenges feature coming soon!') };
-window.achievementSystem = { showAchievementsModal: () => alert('Achievements feature coming soon!') };
-window.voiceAssistant = { toggleListening: () => alert('Voice input feature coming soon!') };
+// Simple placeholders (unchanged)
+window.learningChallenges = { showChallengesModal: function() { alert('Learning Challenges feature coming soon!'); } };
+window.achievementSystem = { showAchievementsModal: function() { alert('Achievements feature coming soon!'); } };
+window.voiceAssistant = { toggleListening: function() { alert('Voice input feature coming soon!'); } };
