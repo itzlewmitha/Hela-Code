@@ -1179,4 +1179,43 @@ body {
         right: 20px;
         transform: none;
     }
+/* Add to your existing style.css */
+
+.chat-item-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.chat-item:hover .chat-item-actions {
+    opacity: 1;
+}
+
+.share-chat, .delete-chat {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.share-chat {
+    color: var(--accent-color);
+}
+
+.share-chat:hover {
+    background: var(--accent-color);
+    color: white;
+}
+
+.delete-chat {
+    color: var(--error-color);
+}
+
+.delete-chat:hover {
+    background: var(--error-color);
+    color: white;
 }
