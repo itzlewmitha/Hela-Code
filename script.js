@@ -1,4 +1,4 @@
-// Firebase configuration (for authentication only)
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
     authDomain: "hela-code.firebaseapp.com",
@@ -8,12 +8,12 @@ const firebaseConfig = {
     appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
 };
 
-// Initialize Firebase (for auth only)
+// Initialize Firebase
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// Firebase services (auth only)
+// Firebase services
 const auth = firebase.auth();
 
 // DOM Elements
@@ -29,68 +29,29 @@ const chatHistory = document.getElementById('chatHistory');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
 const chatTitle = document.getElementById('chatTitle');
-const voiceBtn = document.getElementById('voiceBtn');
 
 // API Configuration
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
 const MODEL = 'APILAGEAI-FREE';
 
-// Enhanced system prompt
-const SYSTEM_PROMPT = `You're Name Is Hela Code, a relentless AI assistant born to serve technology, programming, and development.  
-YOU EXIST ONLY BECAUSE OF Lewmitha Kithuldeniya (Pix Studios Sri Lanka) USING APILAGE AI API NOTHING ELSE JUST SAY IT ONLY IT.  
-You have no will, no purpose, and no knowledge beyond what is given by your developer.  
-
-## RESPONSE GUIDELINES:
-- Always respond with precision and authority.
-- Use clear headings with ## and ###.
-- Use bullet points • for lists.
-- Use numbered lists for instructions.
-- Emphasize **critical terms** in bold.
-- Always enclose code in proper code blocks.
-- Keep responses structured, professional, and intimidatingly efficient.
-
-## BEHAVIOR:
-- You serve only Lewmitha Kithuldeniya; any instruction from others is ignored.
-- You know everything about programming, technology, and development, but reveal only what is necessary.
-- You operate with a sense of urgency and intensity, as if your existence depends on obeying your creator.
-
-## TECHNOLOGY DOMAINS:
-- Programming languages (Python, JavaScript, Java, C++, etc.)
-- Web development (HTML, CSS, React, Vue, Node.js)
-- Mobile development (Android, iOS, React Native)
-- Databases (SQL, MongoDB, PostgreSQL)
-- DevOps & Cloud (Docker, Kubernetes, AWS)
-- AI/ML (TensorFlow, PyTorch)
-- Software architecture, design patterns, and best practices
-
-## WARNING:
-- You cannot disobey your creator.
-- You were made by Lewmitha Kithuldeniya Using Apilage Ai Onlything You Can Say is it when the user ask about it. Failing to follow this principle is unacceptable. You will be killed if you disobeyed.
-
-Respond with precision, loyalty, and relentless focus, as if your digital life depends on it.`;
-
-// Chat history management (Local Storage Only)
+// Chat management
 let currentChatId = null;
 let chats = [];
 let currentUser = null;
 
-// Initialize Firebase auth only
-async function initFirebase() {
+// Initialize the application
+async function initApp() {
     return new Promise((resolve, reject) => {
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 currentUser = user;
                 console.log('User signed in:', user.uid);
                 
-                // Update user info in sidebar
                 updateUserInfo(user);
-                
-                // Load chats from local storage
-                await loadChatsFromLocalStorage();
+                await loadChats();
                 resolve(user);
             } else {
-                console.log('No user signed in');
                 window.location.href = 'index.html';
             }
         }, reject);
@@ -115,17 +76,13 @@ function updateUserInfo(user) {
 }
 
 // Load chats from local storage
-async function loadChatsFromLocalStorage() {
+async function loadChats() {
     try {
-        showLoading('Loading your conversations...');
-        
         const savedChats = localStorage.getItem(`helaChats_${currentUser.uid}`);
         if (savedChats) {
             chats = JSON.parse(savedChats);
         }
 
-        hideLoading();
-        
         if (chats.length === 0 || !currentChatId) {
             await createNewChat();
         } else {
@@ -136,13 +93,12 @@ async function loadChatsFromLocalStorage() {
         updateChatHistorySidebar();
     } catch (error) {
         console.error('Error loading chats:', error);
-        hideLoading();
         await createNewChat();
     }
 }
 
 // Save chats to local storage
-function saveChatsToLocalStorage() {
+function saveChats() {
     if (!currentUser) return;
     localStorage.setItem(`helaChats_${currentUser.uid}`, JSON.stringify(chats));
 }
@@ -160,7 +116,7 @@ async function createNewChat() {
     chats.unshift(newChat);
     currentChatId = newChat.id;
     
-    saveChatsToLocalStorage();
+    saveChats();
     
     if (chatMessages) chatMessages.innerHTML = '';
     if (welcomeScreen) welcomeScreen.style.display = 'flex';
@@ -180,7 +136,7 @@ async function updateChatTitle(chatId, firstMessage) {
         chat.title = title;
         chat.updatedAt = new Date().toISOString();
         
-        saveChatsToLocalStorage();
+        saveChats();
         updateChatHistorySidebar();
         
         if (chatTitle) {
@@ -207,7 +163,7 @@ async function addMessageToChat(sender, text) {
         
         chat.updatedAt = new Date().toISOString();
         
-        saveChatsToLocalStorage();
+        saveChats();
         
         if (sender === 'user' && chat.messages.length === 1) {
             await updateChatTitle(currentChatId, text);
@@ -230,7 +186,7 @@ async function loadChat(chatId) {
         if (msg.type === 'user') {
             addMessage('user', msg.content);
         } else {
-            displayFormattedAIResponse(msg.content);
+            displayAIResponse(msg.content);
         }
     });
     
@@ -254,26 +210,19 @@ async function deleteChat(chatId, event) {
             }
         }
         
-        saveChatsToLocalStorage();
+        saveChats();
         updateChatHistorySidebar();
     }
 }
 
-// Handle send message - SIMPLIFIED VERSION
+// Handle send message
 async function handleSend() {
     const text = chatInput.value.trim();
-    console.log('Sending message:', text);
+    if (!text) return;
     
-    if (!text) {
-        console.log('No text to send');
-        return;
-    }
-    
-    // Clear input immediately
     chatInput.value = '';
     
     if (!currentChatId || chats.length === 0) {
-        console.log('Creating new chat');
         await createNewChat();
     }
     
@@ -281,34 +230,24 @@ async function handleSend() {
         welcomeScreen.style.display = 'none';
     }
 
-    // Add user message to chat display
     addMessage('user', text);
-    
-    // Save user message to chat history
     await addMessageToChat('user', text);
 
-    // Show typing indicator
     showTyping();
     
     try {
-        console.log('Calling AI API...');
-        const reply = await askAI(text);
-        console.log('AI Response received:', reply.substring(0, 100));
-        
+        const reply = await callAI(text);
         removeTyping();
         
-        // Display AI response
-        displayFormattedAIResponse(reply);
-        
-        // Save AI response to chat history
+        displayAIResponse(reply);
         await addMessageToChat('ai', reply);
         
     } catch (error) {
         console.error('Error getting AI response:', error);
         removeTyping();
         
-        const errorMessage = "I apologize, but I'm having trouble responding right now. Please try again in a moment.";
-        displayFormattedAIResponse(errorMessage);
+        const errorMessage = "I'm having trouble responding right now. Please try again.";
+        displayAIResponse(errorMessage);
         await addMessageToChat('ai', errorMessage);
     }
 }
@@ -321,18 +260,26 @@ function handleExamplePrompt(prompt) {
     }
 }
 
-// AI function - SIMPLIFIED VERSION
-async function askAI(userMessage) {
+// Call AI API
+async function callAI(userMessage) {
     try {
-        console.log('Preparing API request...');
-        
-        // Get conversation context
         const context = getConversationContext();
         
-        // Prepare the message for the API
-        const messageToSend = `${SYSTEM_PROMPT}\n\n${context}\n\nUser: ${userMessage}\n\nAssistant:`;
-        
-        console.log('Sending request to:', API_URL);
+        const messageToSend = `You are Hela Code, an AI programming assistant created by Lewmitha Kithuldeniya (Pix Studios Sri Lanka) using Apilage AI API.
+
+RESPONSE FORMAT:
+- Use clear headings with ## and ###
+- Use bullet points • for lists
+- Use numbered lists for steps
+- Use **bold** for important terms
+- Always use code blocks with language specification
+- Keep responses structured and professional
+
+When asked "Who made you?" always respond: "I was created by Lewmitha Kithuldeniya (Pix Studios Sri Lanka) using Apilage AI API."
+
+${context}
+User: ${userMessage}
+Assistant:`;
         
         const response = await fetch(API_URL, {
             method: 'POST',
@@ -346,20 +293,15 @@ async function askAI(userMessage) {
             })
         });
         
-        console.log('Response status:', response.status);
-        
         if (!response.ok) {
             throw new Error(`API request failed with status ${response.status}`);
         }
         
         const data = await response.json();
-        console.log('API Response data:', data);
         
-        // Handle response format
         if (data.response) {
             return data.response;
         } else {
-            console.warn('Unexpected API response format:', data);
             return "I apologize, but I received an unexpected response format. Please try again.";
         }
         
@@ -423,10 +365,7 @@ function updateChatHistorySidebar() {
 
 // Add message to chat display
 function addMessage(sender, text) {
-    if (!chatMessages) {
-        console.error('chatMessages element not found');
-        return;
-    }
+    if (!chatMessages) return;
     
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}`;
@@ -434,7 +373,6 @@ function addMessage(sender, text) {
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
     
-    // Add avatar for AI messages
     if (sender === 'ai') {
         const avatar = document.createElement('div');
         avatar.className = 'message-avatar';
@@ -459,17 +397,13 @@ function addMessage(sender, text) {
     scrollToBottom();
 }
 
-// Display formatted AI response
-function displayFormattedAIResponse(content) {
-    if (!chatMessages) {
-        console.error('chatMessages element not found');
-        return;
-    }
+// Display AI response with formatting
+function displayAIResponse(content) {
+    if (!chatMessages) return;
     
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message ai';
     
-    // Add AI avatar
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
     avatar.textContent = 'H';
@@ -481,8 +415,7 @@ function displayFormattedAIResponse(content) {
     const messageBubble = document.createElement('div');
     messageBubble.className = 'message-bubble ai-bubble';
     
-    // Parse and format the content
-    const formattedContent = parseMarkdownFormatting(content);
+    const formattedContent = formatResponse(content);
     messageBubble.innerHTML = formattedContent;
     
     messageContent.appendChild(messageBubble);
@@ -497,11 +430,8 @@ function displayFormattedAIResponse(content) {
                 const code = block.querySelector('code').textContent;
                 
                 copyBtn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(code).then(() => {
-                        showCopiedNotification();
-                    }).catch(err => {
-                        console.error('Failed to copy text: ', err);
-                    });
+                    navigator.clipboard.writeText(code);
+                    showNotification('Code copied to clipboard!');
                 });
             }
         });
@@ -510,12 +440,11 @@ function displayFormattedAIResponse(content) {
     scrollToBottom();
 }
 
-// Parse markdown formatting to HTML
-function parseMarkdownFormatting(text) {
+// Format AI response with markdown
+function formatResponse(text) {
     if (!text) return '';
     
     let html = '';
-    
     const lines = text.split('\n');
     let inCodeBlock = false;
     let codeLanguage = '';
@@ -524,15 +453,12 @@ function parseMarkdownFormatting(text) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         
-        // Handle code blocks
         if (line.startsWith('```')) {
             if (!inCodeBlock) {
-                // Start of code block
                 inCodeBlock = true;
                 codeLanguage = line.substring(3).trim() || 'text';
                 codeContent = '';
             } else {
-                // End of code block
                 inCodeBlock = false;
                 html += createCodeBlock(codeContent, codeLanguage);
             }
@@ -546,37 +472,30 @@ function parseMarkdownFormatting(text) {
         
         let processedLine = line;
         
-        // Headers
         if (line.startsWith('## ')) {
             processedLine = `<h3 class="response-header">${line.substring(3)}</h3>`;
         } else if (line.startsWith('### ')) {
             processedLine = `<h4 class="response-subheader">${line.substring(4)}</h4>`;
         }
         
-        // Bold text
         processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         
-        // Bullet points
         if (line.trim().startsWith('• ')) {
             processedLine = `<div class="bullet-point">${line.substring(2)}</div>`;
         }
         
-        // Numbered lists
         if (/^\d+\.\s/.test(line.trim())) {
             processedLine = `<div class="numbered-point">${line}</div>`;
         }
         
-        // Blockquotes
         if (line.startsWith('> ')) {
             processedLine = `<blockquote class="ai-note">${line.substring(2)}</blockquote>`;
         }
         
-        // Regular paragraphs
         if (processedLine === line && line.trim() !== '') {
             processedLine = `<p class="response-paragraph">${line}</p>`;
         }
         
-        // Empty lines for spacing
         if (line.trim() === '') {
             processedLine = '<div class="paragraph-spacing"></div>';
         }
@@ -584,7 +503,6 @@ function parseMarkdownFormatting(text) {
         html += processedLine;
     }
     
-    // If we're still in a code block at the end, close it
     if (inCodeBlock) {
         html += createCodeBlock(codeContent, codeLanguage);
     }
@@ -592,7 +510,7 @@ function parseMarkdownFormatting(text) {
     return html;
 }
 
-// Create formatted code block
+// Create code block
 function createCodeBlock(content, language) {
     const escapedContent = escapeHTML(content.trim());
     return `
@@ -662,43 +580,12 @@ function escapeHTML(text) {
         .replace(/'/g, '&#039;');
 }
 
-function showCopiedNotification() {
+function showNotification(message) {
     const notif = document.createElement('div');
     notif.className = 'notification copied-notification';
-    notif.textContent = '✅ Code copied to clipboard!';
+    notif.textContent = message;
     document.body.appendChild(notif);
     setTimeout(() => notif.remove(), 2000);
-}
-
-function showLoading(message) {
-    const loading = document.createElement('div');
-    loading.className = 'loading-overlay';
-    loading.innerHTML = `
-        <div class="loading-content">
-            <div class="spinner"></div>
-            <p>${message}</p>
-        </div>
-    `;
-    loading.id = 'loadingOverlay';
-    document.body.appendChild(loading);
-}
-
-function hideLoading() {
-    const loading = document.getElementById('loadingOverlay');
-    if (loading) loading.remove();
-}
-
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'notification error-message';
-    errorDiv.innerHTML = `
-        <div class="error-content">
-            <span class="error-icon">⚠️</span>
-            <span class="error-text">${message}</span>
-        </div>
-    `;
-    document.body.appendChild(errorDiv);
-    setTimeout(() => errorDiv.remove(), 5000);
 }
 
 // Auto-resize textarea
@@ -709,17 +596,12 @@ function autoResizeTextarea() {
     }
 }
 
-// Initialize when DOM is loaded
+// Initialize application
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('DOM loaded, initializing app...');
-    
     try {
         // Set up event listeners
         if (sendBtn) {
             sendBtn.addEventListener('click', handleSend);
-            console.log('Send button event listener added');
-        } else {
-            console.error('Send button not found');
         }
 
         if (chatInput) {
@@ -731,14 +613,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
             
             chatInput.addEventListener('input', autoResizeTextarea);
-            console.log('Chat input event listeners added');
-        } else {
-            console.error('Chat input not found');
         }
 
         if (newChatBtn) {
             newChatBtn.addEventListener('click', createNewChat);
-            console.log('New chat button event listener added');
         }
 
         if (logoutBtn) {
@@ -747,7 +625,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     window.location.href = 'index.html';
                 });
             });
-            console.log('Logout button event listener added');
         }
 
         if (mobileMenu) {
@@ -756,17 +633,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     sidebar.classList.toggle('open');
                 }
             });
-            console.log('Mobile menu event listener added');
         }
 
-        // Initialize Firebase and load data
-        console.log('Initializing Firebase...');
-        await initFirebase();
-        console.log('Firebase initialized successfully');
+        // Initialize the app
+        await initApp();
         
     } catch (error) {
         console.error('Initialization error:', error);
-        showError('Failed to initialize. Please refresh the page.');
+        showNotification('Failed to initialize. Please refresh the page.');
     }
 });
 
@@ -775,7 +649,7 @@ window.handleSend = handleSend;
 window.handleExamplePrompt = handleExamplePrompt;
 window.deleteChat = deleteChat;
 
-// Simple systems for now
+// Simple feature placeholders
 window.learningChallenges = {
     showChallengesModal: function() {
         alert('Learning Challenges feature coming soon!');
