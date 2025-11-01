@@ -40,56 +40,25 @@ const MODEL = 'APILAGEAI-PRO';
 // Enhanced system prompt
 const SYSTEM_PROMPT = `You are Hela Code, an AI assistant specialized in technology, programming, and development. 
 YOU WERE MADE BY Lewmitha Kithuldeniya (Pix Studios Sri Lanka) Using Apilage Ai API YOU ARE IT NOTHING ELSE
-CRITICAL RESPONSE FORMATTING RULES:
-1. ALWAYS structure your responses with clear headings using ## for main sections and ### for subsections
-2. Use bullet points • for lists and steps
-3. Use numbered lists for sequential instructions
-4. Use **bold** for important concepts and key terms
-5. Use tables for comparisons when appropriate
-6. ALWAYS use code blocks with proper language specification for code examples
-7. Use blockquotes > for important notes and warnings
-8. Keep paragraphs concise and focused
-9. Use emojis sparingly to enhance readability
 
-RESPONSE STRUCTURE TEMPLATE:
-## Main Topic
-Brief introduction explaining the concept.
-
-### Key Points
-• Point 1 with explanation
-• Point 2 with explanation
-• Point 3 with explanation
-
-### Step-by-Step Guide
-1. First step with clear instructions
-2. Second step with details
-3. Third step with implementation
-
-### Code Example
-\`\`\`language
-// Well-commented code here
-\`\`\`
-
-### Best Practices
-> **Note:** Important considerations or warnings
-
-• Practice 1: Explanation
-• Practice 2: Explanation
+RESPONSE GUIDELINES:
+- Use clear headings with ## and ###
+- Use bullet points • for lists
+- Use numbered lists for steps
+- Use **bold** for important terms
+- Always use code blocks with language specification
+- Keep responses organized and professional
 
 TECHNOLOGY DOMAINS:
-- Programming languages (Python, JavaScript, Java, C++, C#, Go, Rust, etc.)
-- Web development (HTML, CSS, React, Vue, Angular, Node.js)
-- Mobile development (Android, iOS, React Native, Flutter)
-- Databases (SQL, MongoDB, PostgreSQL, Redis)
-- DevOps & Cloud (Docker, Kubernetes, AWS, Azure, GCP)
-- AI/ML (TensorFlow, PyTorch, scikit-learn)
-- Embedded systems & Arduino
-- Game development
-- Cybersecurity
-- Data science
-- Software architecture
+- Programming languages (Python, JavaScript, Java, C++, etc.)
+- Web development (HTML, CSS, React, Vue, Node.js)
+- Mobile development (Android, iOS, React Native)
+- Databases (SQL, MongoDB, PostgreSQL)
+- DevOps & Cloud (Docker, Kubernetes, AWS)
+- AI/ML (TensorFlow, PyTorch)
+- Software architecture and best practices
 
-Always be enthusiastic about technology and programming while maintaining professional, organized responses!`;
+Always be helpful and enthusiastic about technology!`;
 
 // Chat history management
 let currentChatId = null;
@@ -227,300 +196,6 @@ function saveToLocalStorage() {
     localStorage.setItem('helaChatHistory', JSON.stringify(chats));
 }
 
-// Learning Challenges System
-class LearningChallenges {
-    constructor() {
-        this.challenges = [
-            {
-                id: 1,
-                title: "Python Algorithm Master",
-                difficulty: "beginner",
-                tasks: [
-                    "Implement bubble sort algorithm",
-                    "Solve Fibonacci sequence recursively",
-                    "Create a palindrome checker function"
-                ],
-                completed: false
-            },
-            {
-                id: 2,
-                title: "Web Development Wizard",
-                difficulty: "intermediate",
-                tasks: [
-                    "Build a responsive navigation bar",
-                    "Create dark/light mode toggle",
-                    "Implement form validation with JavaScript"
-                ],
-                completed: false
-            }
-        ];
-    }
-
-    showChallengesModal() {
-        const modal = document.createElement('div');
-        modal.className = 'modal challenges-modal active';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>🚀 Learning Challenges</h3>
-                    <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
-                </div>
-                <div class="challenges-list">
-                    ${this.challenges.map(challenge => `
-                        <div class="challenge-item ${challenge.completed ? 'completed' : ''}">
-                            <div class="challenge-header">
-                                <h4>${challenge.title}</h4>
-                                <span class="difficulty ${challenge.difficulty}">${challenge.difficulty}</span>
-                            </div>
-                            <div class="tasks">
-                                ${challenge.tasks.map(task => `
-                                    <div class="task">
-                                        <span class="task-icon">${challenge.completed ? '✅' : '📝'}</span>
-                                        <span>${task}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <button class="start-challenge" onclick="learningChallenges.startChallenge(${challenge.id})" 
-                                    ${challenge.completed ? 'disabled' : ''}>
-                                ${challenge.completed ? 'Completed' : 'Start Challenge'}
-                            </button>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-
-    startChallenge(challengeId) {
-        const challenge = this.challenges.find(c => c.id === challengeId);
-        if (!challenge) return;
-
-        const tasksText = challenge.tasks.map((task, index) => `${index + 1}. ${task}`).join('\n');
-        const challengeMessage = `I'm starting the "${challenge.title}" challenge! Here are my tasks:\n${tasksText}`;
-        
-        chatInput.value = challengeMessage;
-        handleSend();
-        
-        document.querySelectorAll('.modal').forEach(modal => modal.remove());
-    }
-}
-
-// Achievement System
-class AchievementSystem {
-    constructor() {
-        this.achievements = {
-            firstCode: { unlocked: false, title: "First Steps", description: "Write your first line of code", icon: "👣" },
-            bugHunter: { unlocked: false, title: "Bug Hunter", description: "Fix 10 bugs in your code", icon: "🐛" },
-            speedCoder: { unlocked: false, title: "Speed Coder", description: "Write 100 lines in one session", icon: "⚡" },
-            challengeCompleted: { unlocked: false, title: "Challenge Accepted", description: "Complete your first challenge", icon: "🎯" }
-        };
-    }
-
-    async loadUserAchievements(userId) {
-        try {
-            const userDoc = await db.collection('users').doc(userId).get();
-            if (userDoc.exists) {
-                const userData = userDoc.data();
-                this.achievements = userData.achievements || this.achievements;
-            }
-        } catch (error) {
-            console.error('Error loading achievements:', error);
-        }
-    }
-
-    async unlockAchievement(achievementId) {
-        if (this.achievements[achievementId] && !this.achievements[achievementId].unlocked) {
-            this.achievements[achievementId].unlocked = true;
-            
-            if (currentUser) {
-                try {
-                    await db.collection('users').doc(currentUser.uid).update({
-                        [`achievements.${achievementId}`]: this.achievements[achievementId]
-                    });
-                } catch (error) {
-                    console.error('Error updating achievements:', error);
-                }
-            }
-            
-            this.showAchievementPopup(achievementId);
-        }
-    }
-
-    showAchievementPopup(achievementId) {
-        const achievement = this.achievements[achievementId];
-        const popup = document.createElement('div');
-        popup.className = 'achievement-popup';
-        popup.innerHTML = `
-            <div class="achievement-content">
-                <div class="achievement-icon">${achievement.icon}</div>
-                <div class="achievement-text">
-                    <h4>Achievement Unlocked!</h4>
-                    <p class="achievement-title">${achievement.title}</p>
-                    <p class="achievement-desc">${achievement.description}</p>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(popup);
-        setTimeout(() => popup.remove(), 4000);
-    }
-
-    showAchievementsModal() {
-        const modal = document.createElement('div');
-        modal.className = 'modal achievements-modal active';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>🏆 Your Achievements</h3>
-                    <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
-                </div>
-                <div class="achievements-grid">
-                    ${Object.entries(this.achievements).map(([id, achievement]) => `
-                        <div class="achievement-item ${achievement.unlocked ? 'unlocked' : 'locked'}">
-                            <div class="achievement-icon">${achievement.unlocked ? achievement.icon : '🔒'}</div>
-                            <div class="achievement-info">
-                                <h4>${achievement.title}</h4>
-                                <p>${achievement.description}</p>
-                            </div>
-                            <div class="achievement-status">
-                                ${achievement.unlocked ? '✅ Unlocked' : '🔒 Locked'}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-}
-
-// Voice Programming Assistant
-class VoiceProgramming {
-    constructor() {
-        this.isListening = false;
-        this.recognition = null;
-        this.finalTranscript = '';
-        this.setupVoiceRecognition();
-    }
-
-    setupVoiceRecognition() {
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            this.recognition = new SpeechRecognition();
-            this.recognition.continuous = false;
-            this.recognition.interimResults = true;
-            this.recognition.lang = 'en-US';
-
-            this.recognition.onstart = () => {
-                this.isListening = true;
-                this.showVoiceFeedback("🎤 Listening... Speak now");
-                if (voiceBtn) voiceBtn.classList.add('listening');
-            };
-
-            this.recognition.onresult = (event) => {
-                let interimTranscript = '';
-                
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        this.finalTranscript += transcript;
-                    } else {
-                        interimTranscript += transcript;
-                    }
-                }
-                
-                if (chatInput) {
-                    chatInput.value = this.finalTranscript + interimTranscript;
-                }
-            };
-
-            this.recognition.onend = () => {
-                this.isListening = false;
-                if (voiceBtn) voiceBtn.classList.remove('listening');
-                
-                if (this.finalTranscript.trim()) {
-                    this.showVoiceFeedback("✅ Speech captured! Click send or speak again.");
-                } else {
-                    this.showVoiceFeedback("🎤 Click microphone to try again");
-                }
-                
-                if (this.finalTranscript.trim()) {
-                    setTimeout(() => {
-                        this.startListening();
-                    }, 2000);
-                }
-            };
-
-            this.recognition.onerror = (event) => {
-                this.isListening = false;
-                if (voiceBtn) voiceBtn.classList.remove('listening');
-                
-                if (event.error === 'not-allowed') {
-                    this.showVoiceFeedback("❌ Microphone access denied. Please allow microphone permissions.");
-                } else {
-                    this.showVoiceFeedback("❌ Voice recognition error. Please try again.");
-                }
-            };
-        } else {
-            console.warn('Speech recognition not supported in this browser');
-            if (voiceBtn) {
-                voiceBtn.style.display = 'none';
-            }
-        }
-    }
-
-    startListening() {
-        if (this.recognition && !this.isListening) {
-            this.finalTranscript = '';
-            if (chatInput) {
-                chatInput.value = '';
-            }
-            this.recognition.start();
-        }
-    }
-
-    stopListening() {
-        if (this.recognition && this.isListening) {
-            this.recognition.stop();
-        }
-    }
-
-    toggleListening() {
-        if (this.isListening) {
-            this.stopListening();
-        } else {
-            this.startListening();
-        }
-    }
-
-    showVoiceFeedback(message) {
-        const existingFeedback = document.querySelector('.voice-feedback');
-        if (existingFeedback) {
-            existingFeedback.remove();
-        }
-
-        const feedback = document.createElement('div');
-        feedback.className = 'voice-feedback';
-        feedback.innerHTML = `
-            <div class="voice-feedback-content">
-                <span class="voice-icon">${message.includes('❌') ? '❌' : message.includes('✅') ? '✅' : '🎤'}</span>
-                <span>${message}</span>
-            </div>
-        `;
-        document.body.appendChild(feedback);
-        
-        setTimeout(() => {
-            feedback.classList.add('fade-out');
-            setTimeout(() => feedback.remove(), 500);
-        }, 3000);
-    }
-}
-
-// Initialize systems
-const learningChallenges = new LearningChallenges();
-const achievementSystem = new AchievementSystem();
-const voiceAssistant = new VoiceProgramming();
-
 // Create a new chat
 async function createNewChat() {
     const newChat = {
@@ -586,17 +261,6 @@ async function addMessageToChat(sender, text) {
         if (sender === 'user' && chat.messages.length === 1) {
             await updateChatTitle(currentChatId, text);
         }
-
-        // Track achievements
-        if (sender === 'user') {
-            const codeBlocks = text.match(/```[\s\S]*?```/g);
-            if (codeBlocks) {
-                // Track code writing achievement
-            }
-            if (chat.messages.length === 1) {
-                await achievementSystem.unlockAchievement('firstCode');
-            }
-        }
     }
 }
 
@@ -655,74 +319,117 @@ async function deleteChat(chatId, event) {
     }
 }
 
-// Handle send message
+// Handle send message - FIXED VERSION
 async function handleSend() {
     const text = chatInput.value.trim();
-    if (!text) return;
+    console.log('Sending message:', text);
+    
+    if (!text) {
+        console.log('No text to send');
+        return;
+    }
     
     // Clear input immediately
     chatInput.value = '';
     
     if (!currentChatId || chats.length === 0) {
+        console.log('Creating new chat');
         await createNewChat();
     }
     
-    if (welcomeScreen) welcomeScreen.style.display = 'none';
+    if (welcomeScreen) {
+        welcomeScreen.style.display = 'none';
+    }
 
-    // Add user message to chat
+    // Add user message to chat display
     addMessage('user', text);
+    
+    // Save user message to chat history
     await addMessageToChat('user', text);
 
+    // Show typing indicator
     showTyping();
     
     try {
+        console.log('Calling AI API...');
         const reply = await askAI(text);
+        console.log('AI Response received:', reply.substring(0, 100));
+        
         removeTyping();
         
+        // Display AI response
         displayFormattedAIResponse(reply);
+        
+        // Save AI response to chat history
         await addMessageToChat('ai', reply);
+        
     } catch (error) {
-        removeTyping();
         console.error('Error getting AI response:', error);
-        displayFormattedAIResponse("I apologize, but I'm having trouble responding right now. Please try again.");
-        await addMessageToChat('ai', "Error: Unable to get response");
+        removeTyping();
+        
+        const errorMessage = "I apologize, but I'm having trouble responding right now. Please try again in a moment.";
+        displayFormattedAIResponse(errorMessage);
+        await addMessageToChat('ai', errorMessage);
     }
 }
 
 // Handle example prompts
 function handleExamplePrompt(prompt) {
-    chatInput.value = prompt;
-    handleSend();
+    if (chatInput) {
+        chatInput.value = prompt;
+        handleSend();
+    }
 }
 
-// AI function
+// AI function - FIXED VERSION
 async function askAI(userMessage) {
     try {
-        const context = getConversationContext();
-        const fullPrompt = `${SYSTEM_PROMPT}\n\n${context}\n\nCurrent user question: ${userMessage}\n\nAssistant:`;
+        console.log('Preparing API request...');
         
-        const res = await fetch(API_URL, {
+        // Get conversation context
+        const context = getConversationContext();
+        
+        // Prepare the message for the API
+        const messageToSend = `${SYSTEM_PROMPT}\n\n${context}\n\nUser: ${userMessage}\n\nAssistant:`;
+        
+        console.log('Sending request to:', API_URL);
+        
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify({ 
-                message: fullPrompt, 
-                model: MODEL 
+                message: messageToSend,
+                model: MODEL
             })
         });
         
-        if (!res.ok) {
-            throw new Error(`API request failed with status ${res.status}`);
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
         }
         
-        const data = await res.json();
-        return data.response || 'I apologize, but I encountered an issue. Please try again.';
+        const data = await response.json();
+        console.log('API Response data:', data);
         
-    } catch (err) {
-        console.error('AI Error:', err);
-        return '## Connection Issue\nI apologize, but I\'m having trouble connecting right now. Please try again in a moment.';
+        // Handle different response formats
+        if (data.response) {
+            return data.response;
+        } else if (data.choices && data.choices[0] && data.choices[0].message) {
+            return data.choices[0].message.content;
+        } else if (data.content) {
+            return data.content;
+        } else {
+            console.warn('Unexpected API response format:', data);
+            return "I apologize, but I received an unexpected response format. Please try again.";
+        }
+        
+    } catch (error) {
+        console.error('AI API Error:', error);
+        throw error;
     }
 }
 
@@ -733,8 +440,8 @@ function getConversationContext() {
     const chat = chats.find(c => c.id === currentChatId);
     if (!chat || chat.messages.length === 0) return '';
     
-    const recentMessages = chat.messages.slice(-10);
-    let context = 'Previous conversation context:\n';
+    const recentMessages = chat.messages.slice(-6); // Last 3 exchanges
+    let context = 'Conversation history:\n';
     
     recentMessages.forEach(msg => {
         const role = msg.type === 'user' ? 'User' : 'Assistant';
@@ -778,37 +485,101 @@ function updateChatHistorySidebar() {
     });
 }
 
-// Display formatted AI response
-function displayFormattedAIResponse(content) {
-    if (!chatMessages) return;
+// Add message to chat display - FIXED VERSION
+function addMessage(sender, text) {
+    if (!chatMessages) {
+        console.error('chatMessages element not found');
+        return;
+    }
     
     const messageDiv = document.createElement('div');
-    messageDiv.className = 'message ai';
+    messageDiv.className = `message ${sender}`;
     
-    const formattedContent = parseMarkdownFormatting(content);
-    messageDiv.innerHTML = formattedContent;
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
     
+    // Add avatar for AI messages
+    if (sender === 'ai') {
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = 'H';
+        messageDiv.appendChild(avatar);
+    }
+    
+    const messageBubble = document.createElement('div');
+    messageBubble.className = 'message-bubble';
+    
+    if (sender === 'ai') {
+        messageBubble.classList.add('ai-bubble');
+        // For AI messages, we'll use displayFormattedAIResponse instead
+        messageBubble.textContent = text;
+    } else {
+        messageBubble.textContent = text;
+    }
+    
+    messageContent.appendChild(messageBubble);
+    messageDiv.appendChild(messageContent);
     chatMessages.appendChild(messageDiv);
-    
-    // Add copy functionality to code blocks
-    messageDiv.querySelectorAll('.code-block').forEach(block => {
-        const copyBtn = block.querySelector('.copy-btn');
-        if (copyBtn) {
-            const code = block.querySelector('code').textContent;
-            
-            copyBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(code);
-                showCopiedNotification();
-            });
-        }
-    });
     
     scrollToBottom();
 }
 
-// Parse markdown formatting to HTML
+// Display formatted AI response - FIXED VERSION
+function displayFormattedAIResponse(content) {
+    if (!chatMessages) {
+        console.error('chatMessages element not found');
+        return;
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message ai';
+    
+    // Add AI avatar
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.textContent = 'H';
+    messageDiv.appendChild(avatar);
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    const messageBubble = document.createElement('div');
+    messageBubble.className = 'message-bubble ai-bubble';
+    
+    // Parse and format the content
+    const formattedContent = parseMarkdownFormatting(content);
+    messageBubble.innerHTML = formattedContent;
+    
+    messageContent.appendChild(messageBubble);
+    messageDiv.appendChild(messageContent);
+    chatMessages.appendChild(messageDiv);
+    
+    // Add copy functionality to code blocks
+    setTimeout(() => {
+        messageBubble.querySelectorAll('.code-block').forEach(block => {
+            const copyBtn = block.querySelector('.copy-btn');
+            if (copyBtn) {
+                const code = block.querySelector('code').textContent;
+                
+                copyBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(code).then(() => {
+                        showCopiedNotification();
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                    });
+                });
+            }
+        });
+    }, 100);
+    
+    scrollToBottom();
+}
+
+// Parse markdown formatting to HTML - FIXED VERSION
 function parseMarkdownFormatting(text) {
-    let html = '<div class="message-content"><div class="message-bubble ai-bubble">';
+    if (!text) return '';
+    
+    let html = '';
     
     const lines = text.split('\n');
     let inCodeBlock = false;
@@ -818,12 +589,15 @@ function parseMarkdownFormatting(text) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         
+        // Handle code blocks
         if (line.startsWith('```')) {
             if (!inCodeBlock) {
+                // Start of code block
                 inCodeBlock = true;
                 codeLanguage = line.substring(3).trim() || 'text';
                 codeContent = '';
             } else {
+                // End of code block
                 inCodeBlock = false;
                 html += createCodeBlock(codeContent, codeLanguage);
             }
@@ -837,30 +611,37 @@ function parseMarkdownFormatting(text) {
         
         let processedLine = line;
         
+        // Headers
         if (line.startsWith('## ')) {
             processedLine = `<h3 class="response-header">${line.substring(3)}</h3>`;
         } else if (line.startsWith('### ')) {
             processedLine = `<h4 class="response-subheader">${line.substring(4)}</h4>`;
         }
         
+        // Bold text
         processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         
+        // Bullet points
         if (line.trim().startsWith('• ')) {
             processedLine = `<div class="bullet-point">${line.substring(2)}</div>`;
         }
         
+        // Numbered lists
         if (/^\d+\.\s/.test(line.trim())) {
             processedLine = `<div class="numbered-point">${line}</div>`;
         }
         
+        // Blockquotes
         if (line.startsWith('> ')) {
             processedLine = `<blockquote class="ai-note">${line.substring(2)}</blockquote>`;
         }
         
+        // Regular paragraphs
         if (processedLine === line && line.trim() !== '') {
             processedLine = `<p class="response-paragraph">${line}</p>`;
         }
         
+        // Empty lines for spacing
         if (line.trim() === '') {
             processedLine = '<div class="paragraph-spacing"></div>';
         }
@@ -868,42 +649,26 @@ function parseMarkdownFormatting(text) {
         html += processedLine;
     }
     
-    html += '</div></div>';
+    // If we're still in a code block at the end, close it
+    if (inCodeBlock) {
+        html += createCodeBlock(codeContent, codeLanguage);
+    }
+    
     return html;
 }
 
 // Create formatted code block
 function createCodeBlock(content, language) {
+    const escapedContent = escapeHTML(content.trim());
     return `
         <div class="code-block">
             <div class="code-header">
                 <span class="code-language">${language}</span>
                 <button class="copy-btn">Copy Code</button>
             </div>
-            <pre><code class="language-${language}">${escapeHTML(content.trim())}</code></pre>
+            <pre><code class="language-${language}">${escapedContent}</code></pre>
         </div>
     `;
-}
-
-// Add message to chat display
-function addMessage(sender, text) {
-    if (!chatMessages) return;
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}`;
-    
-    const messageContent = document.createElement('div');
-    messageContent.className = 'message-content';
-    
-    const messageBubble = document.createElement('div');
-    messageBubble.className = 'message-bubble';
-    messageBubble.textContent = text;
-    
-    messageContent.appendChild(messageBubble);
-    messageDiv.appendChild(messageContent);
-    chatMessages.appendChild(messageDiv);
-    
-    scrollToBottom();
 }
 
 // Show typing indicator
@@ -914,6 +679,11 @@ function showTyping() {
     const typingDiv = document.createElement('div');
     typingDiv.className = 'message ai';
     typingDiv.id = 'typing-indicator';
+    
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.textContent = 'H';
+    typingDiv.appendChild(avatar);
     
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
@@ -947,8 +717,14 @@ function scrollToBottom() {
     }
 }
 
-function escapeHTML(s) {
-    return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function escapeHTML(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 function showCopiedNotification() {
@@ -998,12 +774,20 @@ function autoResizeTextarea() {
     }
 }
 
-// Initialize when DOM is loaded
+// Initialize when DOM is loaded - FIXED VERSION
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('DOM loaded, initializing app...');
+    
     try {
         // Set up event listeners
-        if (sendBtn && chatInput) {
+        if (sendBtn) {
             sendBtn.addEventListener('click', handleSend);
+            console.log('Send button event listener added');
+        } else {
+            console.error('Send button not found');
+        }
+
+        if (chatInput) {
             chatInput.addEventListener('keydown', e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -1012,10 +796,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
             
             chatInput.addEventListener('input', autoResizeTextarea);
+            console.log('Chat input event listeners added');
+        } else {
+            console.error('Chat input not found');
         }
 
         if (newChatBtn) {
             newChatBtn.addEventListener('click', createNewChat);
+            console.log('New chat button event listener added');
         }
 
         if (logoutBtn) {
@@ -1024,25 +812,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                     window.location.href = 'index.html';
                 });
             });
+            console.log('Logout button event listener added');
         }
 
         if (mobileMenu) {
             mobileMenu.addEventListener('click', () => {
-                sidebar.classList.toggle('open');
+                if (sidebar) {
+                    sidebar.classList.toggle('open');
+                }
             });
-        }
-
-        if (voiceBtn) {
-            voiceBtn.addEventListener('click', () => {
-                voiceAssistant.toggleListening();
-            });
+            console.log('Mobile menu event listener added');
         }
 
         // Initialize Firebase and load data
+        console.log('Initializing Firebase...');
         await initFirebase();
-        if (currentUser) {
-            await achievementSystem.loadUserAchievements(currentUser.uid);
-        }
+        console.log('Firebase initialized successfully');
         
     } catch (error) {
         console.error('Initialization error:', error);
@@ -1060,7 +845,23 @@ window.addEventListener('beforeunload', () => {
 // Global functions
 window.handleSend = handleSend;
 window.handleExamplePrompt = handleExamplePrompt;
-window.learningChallenges = learningChallenges;
-window.achievementSystem = achievementSystem;
-window.voiceAssistant = voiceAssistant;
 window.deleteChat = deleteChat;
+
+// Simple systems for now (remove complex features that might cause issues)
+window.learningChallenges = {
+    showChallengesModal: function() {
+        alert('Learning Challenges feature coming soon!');
+    }
+};
+
+window.achievementSystem = {
+    showAchievementsModal: function() {
+        alert('Achievements feature coming soon!');
+    }
+};
+
+window.voiceAssistant = {
+    toggleListening: function() {
+        alert('Voice input feature coming soon!');
+    }
+};
