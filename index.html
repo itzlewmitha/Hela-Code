@@ -2,1025 +2,174 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Hela Code - Where your ideas talk back.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css?family=Segoe+UI:400,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <title>Hela Code — Access Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    /* Enhanced Authentication Styles */
-    .auth-container {
-      min-height: 100vh;
+    /* ========== RESET & BASE ========== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      height: 100vh;
+      background: radial-gradient(circle at 20% 30%, #111425 0%, #0b0c1b 70%);
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #1a1a2e 0%, #23234b 100%);
-      padding: 20px;
     }
 
-    .auth-card {
-      background: rgba(30, 30, 50, 0.95);
-      border-radius: 24px;
-      border: 2px solid #a259ff;
-      box-shadow: 0 20px 60px rgba(162, 89, 255, 0.3);
-      padding: 40px;
+    /* ========== BACKGROUND FX ========== */
+    .neon-grid {
+      position: absolute;
       width: 100%;
-      max-width: 440px;
-      backdrop-filter: blur(20px);
-      animation: slideUp 0.6s ease-out;
+      height: 100%;
+      background: 
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: moveGrid 20s linear infinite;
+      z-index: 0;
+    }
+    @keyframes moveGrid {
+      0% { background-position: 0 0, 0 0; }
+      100% { background-position: 40px 40px, 40px 40px; }
     }
 
-    .auth-header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .auth-logo {
-      font-size: 3.5rem;
-      font-weight: 700;
-      background: linear-gradient(90deg, #fff 60%, #a259ff 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 8px;
-      text-shadow: 0 0 30px #a259ff88;
-    }
-
-    .auth-subtitle {
-      color: #e0e0f0;
-      font-size: 1.1rem;
-      opacity: 0.9;
-    }
-
-    .auth-tabs {
-      display: flex;
-      margin-bottom: 24px;
-      background: rgba(36, 34, 60, 0.6);
-      border-radius: 12px;
-      padding: 4px;
-    }
-
-    .auth-tab {
-      flex: 1;
-      padding: 12px;
-      text-align: center;
-      background: none;
-      border: none;
-      color: #e0e0f0;
-      font-weight: 600;
-      cursor: pointer;
-      border-radius: 8px;
-      transition: all 0.3s ease;
-    }
-
-    .auth-tab.active {
-      background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
-      color: white;
-      box-shadow: 0 4px 16px rgba(162, 89, 255, 0.4);
-    }
-
-    .auth-form {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .form-label {
-      color: #a259ff;
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .form-input {
-      padding: 16px;
-      border-radius: 12px;
-      border: 2px solid #6c2ebf;
-      background: #23234b;
-      color: #fff;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-    }
-
-    .form-input:focus {
-      border-color: #a259ff;
-      background: #2d1b4c;
-      box-shadow: 0 0 0 3px rgba(162, 89, 255, 0.2);
-      outline: none;
-    }
-
-    .auth-btn {
-      padding: 16px;
-      border-radius: 12px;
-      border: none;
-      background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
-      color: white;
-      font-size: 1.1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin-top: 8px;
-    }
-
-    .auth-btn:hover {
-      background: linear-gradient(90deg, #a259ff 0%, #6c2ebf 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(162, 89, 255, 0.4);
-    }
-
-    .auth-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .auth-divider {
-      text-align: center;
-      margin: 20px 0;
-      color: #e0e0f0;
-      position: relative;
-    }
-
-    .auth-divider::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      width: 45%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, #6c2ebf);
-    }
-
-    .auth-divider::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 50%;
-      width: 45%;
-      height: 1px;
-      background: linear-gradient(90deg, #6c2ebf, transparent);
-    }
-
-    .google-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      padding: 14px;
-      border-radius: 12px;
-      border: 2px solid #6c2ebf;
-      background: rgba(36, 34, 60, 0.8);
-      color: #e0e0f0;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .google-btn:hover {
-      border-color: #a259ff;
-      background: rgba(42, 39, 70, 0.9);
-      transform: translateY(-1px);
-    }
-
-    .google-icon {
-      width: 20px;
-      height: 20px;
-      background: url('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg') no-repeat center;
-      background-size: contain;
-    }
-
-    .auth-footer {
-      text-align: center;
-      margin-top: 24px;
-      color: #e0e0f0;
-    }
-
-    .auth-link {
-      color: #a259ff;
-      text-decoration: none;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .auth-link:hover {
-      text-decoration: underline;
-    }
-
-    .error-message {
-      background: rgba(255, 107, 107, 0.1);
-      border: 1px solid #ff6b6b;
-      border-radius: 8px;
-      padding: 12px;
-      color: #ff6b6b;
-      font-size: 0.9rem;
-      text-align: center;
-      margin-bottom: 16px;
-    }
-
-    .success-message {
-      background: rgba(0, 210, 106, 0.1);
-      border: 1px solid #00d26a;
-      border-radius: 8px;
-      padding: 12px;
-      color: #00d26a;
-      font-size: 0.9rem;
-      text-align: center;
-      margin-bottom: 16px;
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* Responsive Design */
-    @media (max-width: 480px) {
-      .auth-card {
-        padding: 30px 20px;
-        margin: 10px;
-      }
-
-      .auth-logo {
-        font-size: 2.8rem;
-      }
-    }
-  </style>
-</head>
-<body>
-  <!-- Authentication Page -->
-  <div class="auth-container">
-    <div class="auth-card">
-      <div class="auth-header">
-        <div class="auth-logo">Hela Code</div>
-        <div class="auth-subtitle">Where your ideas talk back</div>
-      </div>
-
-      <div class="auth-tabs">
-        <button class="auth-tab active" id="loginTab">Login</button>
-        <button class="auth-tab" id="signupTab">Sign Up</button>
-      </div>
-
-      <!-- Login Form -->
-      <form class="auth-form" id="loginForm" style="display: block;">
-        <div id="loginError" class="error-message" style="display: none;"></div>
-        
-        <div class="form-group">
-          <label class="form-label" for="loginEmail">Email</label>
-          <input type="email" id="loginEmail" class="form-input" placeholder="Enter your email" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="loginPassword">Password</label>
-          <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required>
-        </div>
-
-        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
-          <input type="checkbox" id="rememberMe" style="width: 18px; height: 18px;">
-          <label for="rememberMe" style="color: #e0e0f0; font-size: 0.9rem;">Remember me</label>
-        </div>
-
-        <button type="submit" class="auth-btn" id="loginBtn">
-          Sign In to Hela Code
-        </button>
-
-        <div class="auth-divider">or continue with</div>
-
-        <button type="button" class="google-btn" id="googleLoginBtn">
-          <span class="google-icon"></span>
-          Sign in with Google
-        </button>
-
-        <div class="auth-footer">
-          <a class="auth-link" id="forgotPasswordLink">Forgot your password?</a>
-        </div>
-      </form>
-
-      <!-- Sign Up Form -->
-      <form class="auth-form" id="signupForm" style="display: none;">
-        <div id="signupError" class="error-message" style="display: none;"></div>
-        
-        <div class="form-group">
-          <label class="form-label" for="signupName">Full Name</label>
-          <input type="text" id="signupName" class="form-input" placeholder="Enter your full name" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="signupEmail">Email</label>
-          <input type="email" id="signupEmail" class="form-input" placeholder="Enter your email" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="signupPassword">Password</label>
-          <input type="password" id="signupPassword" class="form-input" placeholder="Create a password (min. 6 characters)" required>
-        </div>
-
-        <button type="submit" class="auth-btn" id="signupBtn">
-          Create Account
-        </button>
-
-        <div class="auth-divider">or continue with</div>
-
-        <button type="button" class="google-btn" id="googleSignupBtn">
-          <span class="google-icon"></span>
-          Sign up with Google
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script>
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
-      authDomain: "hela-code.firebaseapp.com",
-      projectId: "hela-code",
-      appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
-    };
-
-    // Initialize Firebase
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-
-    // Tab switching functionality
-    document.getElementById('loginTab').addEventListener('click', function() {
-      switchToTab('login');
-    });
-
-    document.getElementById('signupTab').addEventListener('click', function() {
-      switchToTab('signup');
-    });
-
-    function switchToTab(tab) {
-      // Update tabs
-      document.getElementById('loginTab').classList.toggle('active', tab === 'login');
-      document.getElementById('signupTab').classList.toggle('active', tab === 'signup');
-      
-      // Update forms
-      document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
-      document.getElementById('signupForm').style.display = tab === 'signup' ? 'block' : 'none';
-      
-      // Clear errors
-      hideErrors();
-    }
-
-    function showError(form, message) {
-      const errorDiv = document.getElementById(form + 'Error');
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-    }
-
-    function hideErrors() {
-      document.getElementById('loginError').style.display = 'none';
-      document.getElementById('signupError').style.display = 'none';
-    }
-
-    function showLoading(button) {
-      button.disabled = true;
-      button.innerHTML = '⏳ Processing...';
-    }
-
-    function hideLoading(button, text) {
-      button.disabled = false;
-      button.innerHTML = text;
-    }
-
-    // Save user info and redirect
-    function saveUserAndRedirect(user) {
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        name: user.displayName || user.email.split('@')[0],
-        photoURL: user.photoURL
-      };
-      
-      localStorage.setItem('helaUser', JSON.stringify(userData));
-      window.location.href = "chat.html";
-    }
-
-    // Login form handler
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-      const rememberMe = document.getElementById('rememberMe').checked;
-      const loginBtn = document.getElementById('loginBtn');
-      
-      if (!email || !password) {
-        showError('login', 'Please fill in all fields');
-        return;
-      }
-
-      showLoading(loginBtn);
-
-      try {
-        // Set persistence
-        await firebase.auth().setPersistence(
-          rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION
-        );
-        
-        // Sign in
-        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-        saveUserAndRedirect(userCredential.user);
-      } catch (error) {
-        hideLoading(loginBtn, 'Sign In to Hela Code');
-        showError('login', error.message.replace('Firebase:', '').trim());
-      }
-    });
-
-    // Sign up form handler
-    document.getElementById('signupForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const name = document.getElementById('signupName').value.trim();
-      const email = document.getElementById('signupEmail').value.trim();
-      const password = document.getElementById('signupPassword').value;
-      const signupBtn = document.getElementById('signupBtn');
-      
-      if (!name || !email || !password) {
-        showError('signup', 'Please fill in all fields');
-        return;
-      }
-
-      if (password.length < 6) {
-        showError('signup', 'Password should be at least 6 characters');
-        return;
-      }
-
-      showLoading(signupBtn);
-
-      try {
-        // Create user
-        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-        
-        // Update profile with display name
-        await userCredential.user.updateProfile({
-          displayName: name
-        });
-        
-        saveUserAndRedirect(userCredential.user);
-      } catch (error) {
-        hideLoading(signupBtn, 'Create Account');
-        showError('signup', error.message.replace('Firebase:', '').trim());
-      }
-    });
-
-    // Google authentication
-    document.getElementById('googleLoginBtn').addEventListener('click', handleGoogleAuth);
-    document.getElementById('googleSignupBtn').addEventListener('click', handleGoogleAuth);
-
-    async function handleGoogleAuth() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      
-      try {
-        const userCredential = await firebase.auth().signInWithPopup(provider);
-        saveUserAndRedirect(userCredential.user);
-      } catch (error) {
-        showError('login', error.message.replace('Firebase:', '').trim());
-      }
-    }
-
-    // Forgot password
-    document.getElementById('forgotPasswordLink').addEventListener('click', function() {
-      const email = document.getElementById('loginEmail').value.trim();
-      if (!email) {
-        showError('login', 'Please enter your email first');
-        return;
-      }
-      
-      firebase.auth().sendPasswordResetEmail(email)
-        .then(() => {
-          const errorDiv = document.getElementById('loginError');
-          errorDiv.style.background = 'rgba(0, 210, 106, 0.1)';
-          errorDiv.style.borderColor = '#00d26a';
-          errorDiv.style.color = '#00d26a';
-          errorDiv.textContent = 'Password reset email sent! Check your inbox.';
-          errorDiv.style.display = 'block';
-        })
-        .catch(error => {
-          showError('login', error.message.replace('Firebase:', '').trim());
-        });
-    });
-
-    // Check if user is already logged in
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        saveUserAndRedirect(user);
-      }
-    });
-  </script>
-</body>
-</html>      letter-spacing: 0.04em;
-      color: #fff;
-      text-shadow: 0 0 24px #a259ff, 0 0 8px #fff2;
-      margin-bottom: 18px;
-      background: linear-gradient(90deg, #fff 60%, #a259ff 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 0 16px #6c2ebf88);
-      animation: neonGlow 2.5s infinite alternate;
-    }
-    @keyframes neonGlow {
-      0% { text-shadow: 0 0 24px #a259ff, 0 0 8px #fff2; }
-      100% { text-shadow: 0 0 40px #a259ff, 0 0 16px #fff4; }
-    }
-    .nf-hero-tagline {
-      font-size: 1.35rem;
-      color: #e0e0f0;
-      margin-bottom: 36px;
-      letter-spacing: 0.01em;
-      opacity: 0.92;
-      font-weight: 400;
-    }
-    .nf-start-btn {
-      padding: 18px 54px;
-      font-size: 1.18rem;
-      font-weight: 700;
-      border: none;
-      border-radius: 14px;
-      background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
-      color: #fff;
-      box-shadow: 0 4px 24px #a259ff44, 0 1.5px 6px 0 #6c2ebf44;
-      cursor: pointer;
-      transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
-      margin-bottom: 56px;
-      letter-spacing: 0.04em;
-      outline: none;
-      animation: fadeInUp 1.2s;
-    }
-    .nf-start-btn:hover, .nf-start-btn:focus {
-      background: linear-gradient(90deg, #a259ff 0%, #6c2ebf 100%);
-      transform: translateY(-2px) scale(1.04);
-      box-shadow: 0 8px 32px #a259ff66;
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(40px);}
-      to { opacity: 1; transform: translateY(0);}
-    }
-    .nf-features {
-      display: flex;
-      justify-content: center;
-      gap: 32px;
-      margin: 0 auto 60px auto;
-      max-width: 1100px;
-      flex-wrap: wrap;
-    }
-    .nf-feature-card {
-      background: rgba(30, 30, 50, 0.85);
-      border-radius: 18px;
-      border: 1.5px solid #6c2ebf;
-      box-shadow: 0 4px 24px #6c2ebf22;
-      padding: 32px 28px 28px 28px;
-      min-width: 260px;
-      max-width: 320px;
-      flex: 1 1 260px;
-      margin: 12px 0;
-      color: #e0e0f0;
-      text-align: center;
+    /* ========== CONTAINER ========== */
+    .container {
       position: relative;
       z-index: 2;
-      backdrop-filter: blur(8px);
-      transition: box-shadow 0.3s, border 0.3s;
-      animation: fadeIn 1.2s;
-    }
-    .nf-feature-card:hover {
-      box-shadow: 0 8px 32px #a259ff55;
-      border: 1.5px solid #a259ff;
-    }
-    .nf-feature-icon {
-      font-size: 2.2rem;
-      margin-bottom: 16px;
-      color: #a259ff;
-      filter: drop-shadow(0 0 8px #a259ff88);
-    }
-    .nf-feature-title {
-      font-size: 1.18rem;
-      font-weight: 700;
-      margin-bottom: 10px;
-      color: #fff;
-      letter-spacing: 0.01em;
-    }
-    .nf-feature-desc {
-      font-size: 1.01rem;
-      color: #cfcfe6;
-      opacity: 0.92;
-    }
-    .nf-footer {
-      width: 100vw;
-      text-align: center;
-      padding: 32px 0 18px 0;
-      color: #a259ff;
-      font-size: 1.02rem;
-      letter-spacing: 0.01em;
-      background: transparent;
-      margin-top: 40px;
-      z-index: 2;
-      position: relative;
-    }
-    .nf-footer .nf-socials {
-      margin-bottom: 10px;
-    }
-    .nf-footer .nf-socials a {
-      color: #a259ff;
-      margin: 0 10px;
-      font-size: 1.5rem;
-      transition: color 0.2s;
-      text-decoration: none;
-      vertical-align: middle;
-    }
-    .nf-footer .nf-socials a:hover {
-      color: #fff;
-      text-shadow: 0 0 8px #a259ff;
-    }
-    /* Glassy login box */
-    .nf-login-bg {
-      min-height: 100vh;
-      width: 100vw;
-      background: linear-gradient(135deg, #1a1a2e 0%, #23234b 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      z-index: 10;
-      animation: fadeIn 1.2s;
-    }
-    .nf-login-box {
-      background: rgba(30, 30, 50, 0.92);
-      border-radius: 22px;
-      border: 2px solid #a259ff;
-      box-shadow: 0 8px 32px #a259ff33, 0 1.5px 6px 0 #6c2ebf44;
-      padding: 48px 38px 36px 38px;
-      min-width: 320px;
-      max-width: 98vw;
       width: 370px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      background: rgba(15, 15, 35, 0.9);
+      border: 1px solid rgba(162, 89, 255, 0.2);
+      box-shadow: 0 0 25px rgba(162, 89, 255, 0.3);
+      border-radius: 16px;
+      padding: 40px;
       backdrop-filter: blur(12px);
-      position: relative;
-      z-index: 11;
-      animation: fadeInUp 1.2s;
+      text-align: center;
+      animation: fadeIn 1.2s ease-in-out;
     }
-    .nf-login-title {
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========== LOGO / TITLE ========== */
+    h1 {
       font-size: 2rem;
       font-weight: 700;
-      color: #fff;
-      margin-bottom: 18px;
-      letter-spacing: 0.04em;
-      text-shadow: 0 0 16px #a259ff88;
+      background: linear-gradient(90deg, #a259ff, #00e6ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
     }
-    .nf-login-form {
+    p {
+      font-size: 0.9rem;
+      color: #ccc;
+      margin-bottom: 25px;
+    }
+
+    /* ========== INPUTS ========== */
+    input {
       width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-    .nf-login-form input[type="email"],
-    .nf-login-form input[type="password"],
-    .nf-login-form input[type="text"] {
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: 10px;
-      border: 1.5px solid #6c2ebf;
-      background: #23234b;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 15px;
       color: #fff;
-      font-size: 1.08rem;
-      outline: none;
-      margin-bottom: 4px;
-      transition: border 0.3s, background 0.3s;
-      box-shadow: 0 2px 8px #6c2ebf22 inset;
-    }
-    .nf-login-form input[type="email"]:focus,
-    .nf-login-form input[type="password"]:focus,
-    .nf-login-form input[type="text"]:focus {
-      border: 1.5px solid #a259ff;
-      background: #2d1b4c;
-    }
-    .nf-login-form label {
-      color: #a259ff;
-      font-size: 1.01rem;
-      margin-bottom: 2px;
-      font-weight: 500;
-      letter-spacing: 0.01em;
-    }
-    .nf-login-form .nf-remember {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .nf-login-form input[type="checkbox"] {
-      accent-color: #a259ff;
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
-      border: 1.5px solid #6c2ebf;
-      margin-right: 6px;
-    }
-    .nf-login-btn {
-      width: 100%;
-      padding: 14px 0;
-      border-radius: 10px;
-      border: none;
-      background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
-      color: #fff;
-      font-size: 1.12rem;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      box-shadow: 0 2px 12px #a259ff44;
-      cursor: pointer;
-      margin-top: 8px;
-      margin-bottom: 8px;
-      transition: background 0.3s, box-shadow 0.3s;
-    }
-    .nf-login-btn:hover, .nf-login-btn:focus {
-      background: linear-gradient(90deg, #a259ff 0%, #6c2ebf 100%);
-      box-shadow: 0 4px 24px #a259ff66;
-    }
-    .nf-google-btn {
-      width: 100%;
-      margin-top: 8px;
-      margin-bottom: 8px;
-      padding: 13px 0 13px 0;
-      border: none;
-      border-radius: 10px;
-      background: linear-gradient(90deg, #23234b 0%, #6c2ebf 60%, #a259ff 100%);
-      color: #fff;
-      font-size: 1.08rem;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      box-shadow: 0 2px 12px #a259ff44;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      transition: background 0.3s, box-shadow 0.3s;
-      position: relative;
-      outline: none;
-    }
-    .nf-google-btn:hover, .nf-google-btn:focus {
-      background: linear-gradient(90deg, #a259ff 0%, #6c2ebf 100%);
-      box-shadow: 0 4px 24px #a259ff66;
-      color: #fff;
-    }
-    .nf-google-icon {
-      display: inline-block;
-      width: 22px;
-      height: 22px;
-      background: url('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg') no-repeat center/contain;
-      filter: drop-shadow(0 0 4px #a259ff88);
-      border-radius: 50%;
-      background-color: #fff;
-      margin-right: 4px;
-    }
-    .nf-login-links {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      margin-top: 10px;
-    }
-    .nf-login-links a {
-      color: #a259ff;
-      text-decoration: none;
       font-size: 0.95rem;
-      transition: color 0.2s;
+      transition: all 0.25s;
     }
-    .nf-login-links a:hover {
+    input:focus {
+      border-color: #a259ff;
+      outline: none;
+      box-shadow: 0 0 10px rgba(162, 89, 255, 0.4);
+    }
+
+    /* ========== BUTTON ========== */
+    button {
+      width: 100%;
+      background: linear-gradient(90deg, #a259ff, #00e6ff);
       color: #fff;
+      font-weight: 600;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px rgba(162, 89, 255, 0.6);
+    }
+
+    /* ========== SWITCH LINKS ========== */
+    .toggle-link {
+      margin-top: 20px;
+      font-size: 0.9rem;
+      color: #a259ff;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .toggle-link:hover {
       text-decoration: underline;
+      color: #00e6ff;
     }
-    @media (max-width: 900px) {
-      .nf-features { flex-direction: column; gap: 18px; }
-      .nf-feature-card { margin: 0 auto; }
-    }
-    @media (max-width: 600px) {
-      .nf-hero-title { font-size: 2.1rem; }
-      .nf-hero-tagline { font-size: 1.01rem; }
-      .nf-login-box { min-width: 0; width: 98vw; padding: 28px 6vw; }
-      .nf-login-links { flex-direction: column; gap: 8px; align-items: center; }
+
+    /* ========== FOOTER ========== */
+    footer {
+      position: absolute;
+      bottom: 20px;
+      font-size: 0.8rem;
+      color: #555;
+      text-align: center;
+      width: 100%;
     }
   </style>
 </head>
 <body>
-  <!-- Homepage -->
-  <div id="homepage" style="display:block;">
-    <section class="nf-hero">
-      <div class="nf-hero-title">Hela Code</div>
-      <div class="nf-hero-tagline">Where your ideas talk back.</div>
-      <button class="nf-start-btn" id="startBtn">Start Chat</button>
-      <div class="nf-features">
-        <div class="nf-feature-card">
-          <div class="nf-feature-icon">🤖</div>
-          <div class="nf-feature-title">Smart AI</div>
-          <div class="nf-feature-desc">Get instant, context-aware answers and code from a powerful AI trained for developers.</div>
-        </div>
-        <div class="nf-feature-card">
-          <div class="nf-feature-icon">🔒</div>
-          <div class="nf-feature-title">Privacy First</div>
-          <div class="nf-feature-desc">Your conversations are private and encrypted. We never share your data.</div>
-        </div>
-        <div class="nf-feature-card">
-          <div class="nf-feature-icon">⚡</div>
-          <div class="nf-feature-title">Real-time Chat</div>
-          <div class="nf-feature-desc">Enjoy a seamless, live chat experience with smooth animations and instant feedback.</div>
-        </div>
-      </div>
-      <footer class="nf-footer">
-        <div class="nf-socials">
-          <a href="https://twitter.com/" target="_blank" aria-label="Twitter"><span>🐦</span></a>
-          <a href="https://github.com/" target="_blank" aria-label="GitHub"><span>💻</span></a>
-          <a href="mailto:info@pixstudios.com" aria-label="Email"><span>✉️</span></a>
-        </div>
-        © 2025 PIX Studios
-      </footer>
-    </section>
-  </div>
-  <!-- Login Page -->
-  <div id="loginpage" style="display:none;">
-    <div class="nf-login-bg">
-      <form class="nf-login-box" id="loginForm" autocomplete="on">
-        <div class="nf-login-title">Sign in to Hela Code</div>
-        <div class="nf-login-error" id="loginError" style="color: #ff6b6b; margin-bottom: 10px; display: none;"></div>
-        <div class="nf-login-form">
-          <label for="email">Email</label>
-          <input type="email" id="email" required autocomplete="email" spellcheck="false">
-          <label for="password">Password</label>
-          <input type="password" id="password" required autocomplete="current-password">
-          <div class="nf-remember">
-            <input type="checkbox" id="rememberMe">
-            <label for="rememberMe" style="margin:0;">Remember me</label>
-          </div>
-          <button class="nf-login-btn" id="loginBtn" type="submit">Login</button>
-          <button type="button" id="googleLoginBtn" class="nf-google-btn">
-            <span class="nf-google-icon"></span> Sign in with Google
-          </button>
-        </div>
-        <div class="nf-login-links">
-          <a href="#" id="createAccountLink">Create account</a>
-          <a href="#" id="forgotPasswordLink">Forgot password?</a>
-        </div>
-      </form>
-      <!-- Create Account Modal -->
-      <form class="nf-login-box" id="createAccountForm" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:20;">
-        <div class="nf-login-title">Create Account</div>
-        <div class="nf-login-error" id="createError" style="color: #ff6b6b; margin-bottom: 10px; display: none;"></div>
-        <div class="nf-login-form">
-          <label for="displayName">Full Name</label>
-          <input type="text" id="displayName" required autocomplete="name" spellcheck="false">
-          <label for="newEmail">Email</label>
-          <input type="email" id="newEmail" required autocomplete="email" spellcheck="false">
-          <label for="newPassword">Password</label>
-          <input type="password" id="newPassword" required autocomplete="new-password">
-          <button class="nf-login-btn" id="createBtn" type="submit">Create Account</button>
-        </div>
-        <div class="nf-login-links" style="justify-content:center;">
-          <a href="#" id="backToLoginLink">Back to Login</a>
-        </div>
-      </form>
-    </div>
+  <div class="neon-grid"></div>
+
+  <div class="container" id="authBox">
+    <h1>Hela Code</h1>
+    <p id="formTitle">Sign In to Your Account</p>
+
+    <input type="email" id="email" placeholder="Email Address">
+    <input type="password" id="password" placeholder="Password">
+    <button id="authBtn">Sign In</button>
+
+    <div class="toggle-link" id="switchForm">Don’t have an account? Create one</div>
   </div>
 
-  <!-- Firebase App (the core Firebase SDK) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <footer>Made with ⚡ by Lewmitha — Pix Studios Sri Lanka</footer>
   <script>
-    // Toggle between homepage and login page
-    document.getElementById('startBtn').addEventListener('click', showLogin);
-    document.getElementById('createAccountLink').addEventListener('click', showCreateAccount);
-    document.getElementById('backToLoginLink').addEventListener('click', hideCreateAccount);
-    document.getElementById('forgotPasswordLink').addEventListener('click', showForgotPassword);
-    
-    function showLogin() {
-      document.getElementById('homepage').style.display = 'none';
-      document.getElementById('loginpage').style.display = 'block';
-      document.getElementById('loginForm').style.display = '';
-      document.getElementById('createAccountForm').style.display = 'none';
-    }
-    
-    function showCreateAccount(e) {
-      e.preventDefault();
-      document.getElementById('loginForm').style.display = 'none';
-      document.getElementById('createAccountForm').style.display = '';
-      document.getElementById('createError').style.display = 'none';
-    }
-    
-    function hideCreateAccount(e) {
-      e.preventDefault();
-      document.getElementById('loginForm').style.display = '';
-      document.getElementById('createAccountForm').style.display = 'none';
-    }
-    
-    function showForgotPassword(e) {
-      e.preventDefault();
-      const email = document.getElementById('email').value.trim();
-      if (!email) {
-        alert('Please enter your email in the login form first.');
-        return;
-      }
-      firebase.auth().sendPasswordResetEmail(email)
-        .then(() => alert('Password reset email sent!'))
-        .catch(err => alert(err.message.replace("Firebase:", "")));
-    }
+    // toggle between sign in / sign up
+    const switchForm = document.getElementById('switchForm');
+    const formTitle = document.getElementById('formTitle');
+    const authBtn = document.getElementById('authBtn');
+    let isSignUp = false;
 
-    // Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
-      authDomain: "hela-code.firebaseapp.com",
-      projectId: "hela-code",
-      appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
-    };
-    firebase.initializeApp(firebaseConfig);
+    switchForm.addEventListener('click', () => {
+      isSignUp = !isSignUp;
+      formTitle.textContent = isSignUp ? 'Create Your Account' : 'Sign In to Your Account';
+      authBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+      switchForm.textContent = isSignUp ? 'Already have an account? Sign In' : 'Don’t have an account? Create one';
+    });
 
-    // Save user info to localStorage and redirect
-    function saveUserAndRedirect(user) {
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        name: user.displayName || user.email.split('@')[0] // Use displayName or extract from email
-      };
-      
-      localStorage.setItem('helaUser', JSON.stringify(userData));
-      window.location.href = "chat.html";
-    }
-
-    // Login logic
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const email = document.getElementById('email').value.trim();
+    // firebase logic placeholder
+    authBtn.addEventListener('click', () => {
+      const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      const rememberMe = document.getElementById('rememberMe').checked;
-      const errorDiv = document.getElementById('loginError');
-      errorDiv.style.display = 'none';
-      document.getElementById('loginBtn').disabled = true;
-
-      try {
-        await firebase.auth().setPersistence(
-          rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION
-        );
-        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-        saveUserAndRedirect(userCredential.user);
-      } catch (err) {
-        errorDiv.textContent = err.message.replace("Firebase:", "");
-        errorDiv.style.display = 'block';
-        document.getElementById('loginBtn').disabled = false;
-      }
-    });
-
-    // Create account logic
-    document.getElementById('createAccountForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const name = document.getElementById('displayName').value.trim();
-      const email = document.getElementById('newEmail').value.trim();
-      const password = document.getElementById('newPassword').value;
-      const errorDiv = document.getElementById('createError');
-      errorDiv.style.display = 'none';
-      document.getElementById('createBtn').disabled = true;
-
-      try {
-        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-        
-        // Update profile with display name
-        await userCredential.user.updateProfile({
-          displayName: name
-        });
-        
-        saveUserAndRedirect(userCredential.user);
-      } catch (err) {
-        errorDiv.textContent = err.message.replace("Firebase:", "");
-        errorDiv.style.display = 'block';
-        document.getElementById('createBtn').disabled = false;
-      }
-    });
-
-    // Google login logic
-    document.getElementById('googleLoginBtn').addEventListener('click', async function() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      try {
-        const userCredential = await firebase.auth().signInWithPopup(provider);
-        saveUserAndRedirect(userCredential.user);
-      } catch (err) {
-        const errorDiv = document.getElementById('loginError');
-        errorDiv.textContent = err.message.replace("Firebase:", "");
-        errorDiv.style.display = 'block';
-      }
+      console.log(isSignUp ? 'Register:' : 'Login:', email, password);
+      // TODO: Connect Firebase Auth Here
     });
   </script>
 </body>
 </html>
-
