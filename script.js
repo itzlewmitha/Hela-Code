@@ -37,6 +37,7 @@ const userName = document.getElementById('userName');
 const chatTitle = document.getElementById('chatTitle');
 const fileBtn = document.getElementById('fileBtn');
 const fileInput = document.getElementById('fileInput');
+const shareChatBtn = document.getElementById('shareChatBtn');
 
 // API Configuration
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
@@ -81,6 +82,37 @@ function autoResizeTextarea() {
     }
 }
 
+// URL Routing Functions
+function getChatIdFromURL() {
+    const path = window.location.pathname;
+    const parts = path.split('/');
+    return parts[parts.length - 1] || null;
+}
+
+function updateURL(chatId) {
+    const newUrl = `${window.location.origin}${window.location.pathname.split('/').slice(0, -1).join('/')}/${chatId}`;
+    window.history.pushState({ chatId }, '', newUrl);
+    updateShareButton(chatId);
+}
+
+function updateShareButton(chatId) {
+    if (shareChatBtn && chatId && chatId !== 'chat.html') {
+        shareChatBtn.style.display = 'flex';
+        shareChatBtn.onclick = () => shareChat(chatId);
+    } else {
+        shareChatBtn.style.display = 'none';
+    }
+}
+
+function shareChat(chatId) {
+    const shareUrl = `${window.location.origin}${window.location.pathname.split('/').slice(0, -1).join('/')}/${chatId}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        showNotification('Chat link copied to clipboard!');
+    }).catch(() => {
+        prompt('Share this chat link:', shareUrl);
+    });
+}
+
 // Initialize the application
 async function initApp() {
     return new Promise((resolve, reject) => {
@@ -115,7 +147,7 @@ function updateUserInfo(user) {
 
 // Generate unique chat ID
 function generateChatId() {
-    return Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9);
+    return Date.now().toString();
 }
 
 // Save chats to local storage
@@ -164,6 +196,9 @@ async function deleteChatFromFirestore(chatId) {
 // Load chats from Firestore
 async function loadChats() {
     try {
+        const urlChatId = getChatIdFromURL();
+        console.log('URL Chat ID:', urlChatId);
+        
         const snapshot = await db.collection('users')
             .doc(currentUser.uid)
             .collection('chats')
@@ -181,19 +216,31 @@ async function loadChats() {
                     updatedAt: data.updatedAt ? data.updatedAt.toDate().toISOString() : new Date().toISOString()
                 };
             });
+            console.log('Loaded', chats.length, 'chats from Firestore');
         } else {
             chats = [];
+            console.log('No chats found in Firestore');
         }
 
-        if (chats.length === 0) {
-            await loadChatsFromLocalStorage();
-        }
-
-        if (chats.length === 0 || !currentChatId) {
-            await createNewChat();
-        } else {
+        // Handle URL routing
+        if (urlChatId && urlChatId !== 'chat.html') {
+            const urlChat = chats.find(chat => chat.id === urlChatId);
+            if (urlChat) {
+                currentChatId = urlChatId;
+                await loadChat(currentChatId);
+                updateURL(currentChatId);
+            } else {
+                // Create new chat with the URL ID
+                await createNewChat(urlChatId);
+            }
+        } else if (chats.length > 0) {
+            // Load most recent chat
             currentChatId = chats[0].id;
             await loadChat(currentChatId);
+            updateURL(currentChatId);
+        } else {
+            // Create first chat
+            await createNewChat();
         }
         
         updateChatHistorySidebar();
@@ -220,9 +267,9 @@ async function loadChatsFromLocalStorage() {
 }
 
 // Create a new chat
-async function createNewChat() {
+async function createNewChat(specificId = null) {
     const newChat = {
-        id: generateChatId(),
+        id: specificId || generateChatId(),
         title: 'New Chat',
         messages: [],
         createdAt: new Date().toISOString(),
@@ -242,6 +289,7 @@ async function createNewChat() {
     if (welcomeScreen) welcomeScreen.style.display = 'flex';
     if (chatTitle) chatTitle.textContent = 'New Chat';
     
+    updateURL(currentChatId);
     updateChatHistorySidebar();
     return newChat.id;
 }
@@ -303,7 +351,10 @@ async function addMessageToChat(sender, text) {
 // Load a specific chat
 async function loadChat(chatId) {
     const chat = chats.find(c => c.id === chatId);
-    if (!chat) return;
+    if (!chat) {
+        console.log('Chat not found:', chatId);
+        return;
+    }
     
     currentChatId = chatId;
     
@@ -321,6 +372,7 @@ async function loadChat(chatId) {
     
     scrollToBottom();
     updateChatHistorySidebar();
+    updateURL(currentChatId);
 }
 
 // Delete a chat
@@ -809,9 +861,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             chatInput.addEventListener('input', autoResizeTextarea);
         }
 
-        initFileUpload();
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', async () => {
+                await createNewChat();
+            });
+        }
 
-        if (newChatBtn) newChatBtn.addEventListener('click', createNewChat);
+        initFileUpload();
 
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
@@ -827,6 +883,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.chatId) {
+                loadChat(event.state.chatId);
+            }
+        });
+
         // Initialize the app
         await initApp();
         
@@ -841,6 +904,7 @@ window.handleSend = handleSend;
 window.handleExamplePrompt = handleExamplePrompt;
 window.deleteChat = deleteChat;
 window.removeFile = removeFile;
+window.shareChat = shareChat;
 
 // Feature placeholders
 window.learningChallenges = {
