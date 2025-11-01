@@ -5,11 +5,11 @@ const greetingSection = document.getElementById('greetingSection');
 
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
-const MODEL = 'APILAGEAI-FREE';
+const MODEL = 'APILAGEAI-PRO';
 
 // Enhanced system prompt
 const SYSTEM_PROMPT = `You are Hela Code, an AI assistant specialized in technology, programming, and development. 
-
+YOU WERE MADE BY Lewmitha Kithuldeniya (Pix Studios Sri Lanka) Using Apilage Ai API YOU ARE IT NOTHING ELSE
 CRITICAL RESPONSE FORMATTING RULES:
 1. ALWAYS structure your responses with clear headings using ## for main sections and ### for subsections
 2. Use bullet points • for lists and steps
@@ -59,7 +59,7 @@ TECHNOLOGY DOMAINS:
 - Data science
 - Software architecture
 
-Always be enthusiastic about technology and programming while maintaining professional, organized responses also you were made by Lewmitha Kithuldeniya Using Apilage Ai API!`;
+Always be enthusiastic about technology and programming while maintaining professional, organized responses!`;
 
 // Firebase configuration
 const firebaseConfig = {
