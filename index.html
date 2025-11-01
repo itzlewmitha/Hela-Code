@@ -1,267 +1,272 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hela Code - Login</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hela Code — Access Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      height:100vh;
+      background:radial-gradient(circle at 20% 30%,#111425 0%,#0b0c1b 70%);
+      font-family:'Inter',sans-serif;color:#fff;
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
+    }
+    .neon-grid{
+      position:absolute;inset:0;
+      background:
+        linear-gradient(90deg,rgba(255,255,255,0.05)1px,transparent 1px),
+        linear-gradient(rgba(255,255,255,0.05)1px,transparent 1px);
+      background-size:40px 40px;
+      animation:moveGrid 20s linear infinite;
+      z-index:0;
+    }
+    @keyframes moveGrid{
+      0%{background-position:0 0,0 0;}
+      100%{background-position:40px 40px,40px 40px;}
+    }
+    .container{
+      position:relative;z-index:2;width:370px;
+      background:rgba(15,15,35,.9);
+      border:1px solid rgba(162,89,255,.2);
+      box-shadow:0 0 25px rgba(162,89,255,.3);
+      border-radius:16px;padding:40px;
+      text-align:center;backdrop-filter:blur(12px);
+      animation:fadeIn 1.2s ease-in-out;
+    }
+    @keyframes fadeIn{
+      from{opacity:0;transform:translateY(30px);}
+      to{opacity:1;transform:translateY(0);}
+    }
+    h1{
+      font-size:2rem;font-weight:700;
+      background:linear-gradient(90deg,#a259ff,#00e6ff);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      margin-bottom:10px;letter-spacing:1px;
+    }
+    p{font-size:.9rem;color:#ccc;margin-bottom:25px}
+    input{
+      width:100%;background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.15);
+      border-radius:8px;padding:12px;margin-bottom:15px;
+      color:#fff;font-size:.95rem;transition:.25s;
+    }
+    input:focus{
+      border-color:#a259ff;outline:none;
+      box-shadow:0 0 10px rgba(162,89,255,.4);
+    }
+    button{
+      width:100%;
+      background:linear-gradient(90deg,#a259ff,#00e6ff);
+      color:#fff;font-weight:600;padding:12px;
+      border:none;border-radius:8px;cursor:pointer;
+      transition:.3s ease;
+    }
+    button:hover{transform:translateY(-2px);
+      box-shadow:0 0 15px rgba(162,89,255,.6);}
+    .google-btn{
+      background:#fff;color:#000;
+      display:flex;align-items:center;justify-content:center;
+      gap:8px;font-weight:600;margin-top:10px;
+      transition:.3s;
+    }
+    .google-btn:hover{
+      background:#f5f5f5;transform:translateY(-2px);
+      box-shadow:0 0 10px rgba(255,255,255,.2);
+    }
+    .google-icon {
+      width: 20px;
+      height: 20px;
+      background: url('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg') no-repeat center;
+      background-size: contain;
+    }
+    .toggle-link{
+      margin-top:20px;font-size:.9rem;
+      color:#a259ff;cursor:pointer;transition:.3s;
+    }
+    .toggle-link:hover{text-decoration:underline;color:#00e6ff}
+    .error-message {
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid #ff6b6b;
+      border-radius: 8px;
+      padding: 12px;
+      color: #ff6b6b;
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+    footer{
+      position:absolute;bottom:20px;font-size:.8rem;
+      color:#555;text-align:center;width:100%;
+    }
+  </style>
 </head>
-<body class="auth-page">
-    <div class="auth-container">
-        <div class="auth-header">
-            <h1>🚀 Hela Code</h1>
-            <p>Your AI Programming Assistant</p>
-        </div>
-        
-        <div class="auth-card">
-            <h2>Welcome Back</h2>
-            <p class="auth-subtitle">Sign in to continue your coding journey</p>
-            
-            <form id="loginForm" class="auth-form">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required placeholder="Enter your email">
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required placeholder="Enter your password">
-                </div>
-                
-                <button type="submit" class="auth-btn">
-                    <span class="btn-text">Sign In</span>
-                    <span class="btn-loading" style="display: none;">Signing in...</span>
-                </button>
-            </form>
-            
-            <div class="auth-footer">
-                <p>Don't have an account? <a href="#" id="showRegister">Sign up</a></p>
-            </div>
-        </div>
+<body>
+  <div class="neon-grid"></div>
 
-        <div class="auth-card" id="registerCard" style="display: none;">
-            <h2>Create Account</h2>
-            <p class="auth-subtitle">Join Hela Code today</p>
-            
-            <form id="registerForm" class="auth-form">
-                <div class="form-group">
-                    <label for="regName">Full Name</label>
-                    <input type="text" id="regName" name="name" required placeholder="Enter your full name">
-                </div>
-                
-                <div class="form-group">
-                    <label for="regEmail">Email</label>
-                    <input type="email" id="regEmail" name="email" required placeholder="Enter your email">
-                </div>
-                
-                <div class="form-group">
-                    <label for="regPassword">Password</label>
-                    <input type="password" id="regPassword" name="password" required placeholder="Create a password" minlength="6">
-                </div>
-                
-                <button type="submit" class="auth-btn">
-                    <span class="btn-text">Create Account</span>
-                    <span class="btn-loading" style="display: none;">Creating account...</span>
-                </button>
-            </form>
-            
-            <div class="auth-footer">
-                <p>Already have an account? <a href="#" id="showLogin">Sign in</a></p>
-            </div>
-        </div>
+  <div class="container">
+    <h1>Hela Code</h1>
+    <p id="formTitle">Sign In to Your Account</p>
 
-        <div class="auth-features">
-            <div class="feature">
-                <div class="feature-icon">💬</div>
-                <h3>AI-Powered Chat</h3>
-                <p>Get instant help with programming questions</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🚀</div>
-                <h3>Learning Challenges</h3>
-                <p>Complete coding challenges to level up</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🎯</div>
-                <h3>Voice Programming</h3>
-                <p>Use voice commands for hands-free coding</p>
-            </div>
-        </div>
-    </div>
+    <div class="error-message" id="errorMessage"></div>
 
-    <div id="notification" class="notification" style="display: none;"></div>
+    <!-- Full name visible only during sign up -->
+    <input type="text" id="nameField" placeholder="Full Name" style="display:none;">
+    <input type="email" id="email" placeholder="Email Address">
+    <input type="password" id="password" placeholder="Password">
 
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
-            authDomain: "hela-code.firebaseapp.com",
-            projectId: "hela-code",
-            storageBucket: "hela-code.appspot.com",
-            messagingSenderId: "813299203715",
-            appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
-        };
+    <button id="authBtn">Sign In</button>
+    <button class="google-btn" id="googleBtn">
+      <span class="google-icon"></span>
+      Continue with Google
+    </button>
 
-        // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+    <div class="toggle-link" id="switchForm">Don't have an account? Create one</div>
+  </div>
+
+  <footer>Made with ⚡ by Lewmitha — Pix Studios Sri Lanka</footer>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
+      authDomain: "hela-code.firebaseapp.com",
+      projectId: "hela-code",
+      appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    // DOM Elements
+    const switchForm = document.getElementById('switchForm');
+    const formTitle = document.getElementById('formTitle');
+    const authBtn = document.getElementById('authBtn');
+    const nameField = document.getElementById('nameField');
+    const emailField = document.getElementById('email');
+    const passwordField = document.getElementById('password');
+    const googleBtn = document.getElementById('googleBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    let isSignUp = false;
+
+    // Form switching
+    switchForm.addEventListener('click', () => {
+      isSignUp = !isSignUp;
+      formTitle.textContent = isSignUp ? 'Create Your Account' : 'Sign In to Your Account';
+      authBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+      switchForm.textContent = isSignUp ? 'Already have an account? Sign In' : 'Don\'t have an account? Create one';
+      nameField.style.display = isSignUp ? 'block' : 'none';
+      hideError();
+    });
+
+    // Show error message
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+    }
+
+    // Hide error message
+    function hideError() {
+      errorMessage.style.display = 'none';
+    }
+
+    // Save user and redirect
+    function saveUserAndRedirect(user) {
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        name: user.displayName || user.email.split('@')[0],
+        photoURL: user.photoURL
+      };
+      
+      localStorage.setItem('helaUser', JSON.stringify(userData));
+      window.location.href = "chat.html";
+    }
+
+    // Email/password authentication
+    authBtn.addEventListener('click', async () => {
+      const email = emailField.value.trim();
+      const password = passwordField.value;
+      const name = nameField.value.trim();
+
+      if (!email || !password) {
+        showError('Please fill in all fields');
+        return;
+      }
+
+      if (isSignUp && !name) {
+        showError('Please enter your full name');
+        return;
+      }
+
+      if (isSignUp && password.length < 6) {
+        showError('Password must be at least 6 characters');
+        return;
+      }
+
+      authBtn.disabled = true;
+      authBtn.textContent = 'Processing...';
+
+      try {
+        if (isSignUp) {
+          // Create new account
+          const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+          
+          // Update profile with display name
+          await userCredential.user.updateProfile({
+            displayName: name
+          });
+          
+          saveUserAndRedirect(userCredential.user);
+        } else {
+          // Sign in
+          const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+          saveUserAndRedirect(userCredential.user);
         }
+      } catch (error) {
+        showError(error.message.replace('Firebase:', '').trim());
+        authBtn.disabled = false;
+        authBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+      }
+    });
 
-        const auth = firebase.auth();
+    // Google authentication
+    googleBtn.addEventListener('click', async () => {
+      googleBtn.disabled = true;
+      googleBtn.innerHTML = '<span class="google-icon"></span> Connecting...';
 
-        // DOM Elements
-        const loginForm = document.getElementById('loginForm');
-        const registerForm = document.getElementById('registerForm');
-        const loginCard = document.querySelector('.auth-card');
-        const registerCard = document.getElementById('registerCard');
-        const showRegister = document.getElementById('showRegister');
-        const showLogin = document.getElementById('showLogin');
-        const notification = document.getElementById('notification');
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const userCredential = await firebase.auth().signInWithPopup(provider);
+        saveUserAndRedirect(userCredential.user);
+      } catch (error) {
+        showError(error.message.replace('Firebase:', '').trim());
+        googleBtn.disabled = false;
+        googleBtn.innerHTML = '<span class="google-icon"></span> Continue with Google';
+      }
+    });
 
-        // Toggle between login and register
-        showRegister.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginCard.style.display = 'none';
-            registerCard.style.display = 'block';
-        });
+    // Enter key support
+    passwordField.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        authBtn.click();
+      }
+    });
 
-        showLogin.addEventListener('click', (e) => {
-            e.preventDefault();
-            registerCard.style.display = 'none';
-            loginCard.style.display = 'block';
-        });
-
-        // Show notification
-        function showNotification(message, type = 'error') {
-            notification.textContent = message;
-            notification.className = `notification ${type}`;
-            notification.style.display = 'block';
-            
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 5000);
-        }
-
-        // Show loading state
-        function setLoading(button, isLoading) {
-            const btnText = button.querySelector('.btn-text');
-            const btnLoading = button.querySelector('.btn-loading');
-            
-            if (isLoading) {
-                btnText.style.display = 'none';
-                btnLoading.style.display = 'inline';
-                button.disabled = true;
-            } else {
-                btnText.style.display = 'inline';
-                btnLoading.style.display = 'none';
-                button.disabled = false;
-            }
-        }
-
-        // Handle login
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const button = e.target.querySelector('button[type="submit"]');
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            setLoading(button, true);
-            
-            try {
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                console.log('User signed in:', userCredential.user);
-                
-                // Redirect to chat page
-                window.location.href = 'chat.html';
-            } catch (error) {
-                console.error('Login error:', error);
-                let errorMessage = 'Failed to sign in. Please try again.';
-                
-                switch (error.code) {
-                    case 'auth/invalid-email':
-                        errorMessage = 'Invalid email address.';
-                        break;
-                    case 'auth/user-disabled':
-                        errorMessage = 'This account has been disabled.';
-                        break;
-                    case 'auth/user-not-found':
-                        errorMessage = 'No account found with this email.';
-                        break;
-                    case 'auth/wrong-password':
-                        errorMessage = 'Incorrect password.';
-                        break;
-                    default:
-                        errorMessage = error.message;
-                }
-                
-                showNotification(errorMessage, 'error');
-            } finally {
-                setLoading(button, false);
-            }
-        });
-
-        // Handle registration
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const button = e.target.querySelector('button[type="submit"]');
-            
-            const name = document.getElementById('regName').value;
-            const email = document.getElementById('regEmail').value;
-            const password = document.getElementById('regPassword').value;
-            
-            setLoading(button, true);
-            
-            try {
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                
-                // Update user profile
-                await userCredential.user.updateProfile({
-                    displayName: name
-                });
-                
-                console.log('User created:', userCredential.user);
-                showNotification('Account created successfully!', 'success');
-                
-                // Redirect to chat page after a brief delay
-                setTimeout(() => {
-                    window.location.href = 'chat.html';
-                }, 1500);
-                
-            } catch (error) {
-                console.error('Registration error:', error);
-                let errorMessage = 'Failed to create account. Please try again.';
-                
-                switch (error.code) {
-                    case 'auth/email-already-in-use':
-                        errorMessage = 'An account with this email already exists.';
-                        break;
-                    case 'auth/invalid-email':
-                        errorMessage = 'Invalid email address.';
-                        break;
-                    case 'auth/weak-password':
-                        errorMessage = 'Password should be at least 6 characters.';
-                        break;
-                    default:
-                        errorMessage = error.message;
-                }
-                
-                showNotification(errorMessage, 'error');
-            } finally {
-                setLoading(button, false);
-            }
-        });
-
-        // Check if user is already logged in
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                console.log('User already logged in, redirecting...');
-                window.location.href = 'chat.html';
-            }
-        });
-    </script>
+    // Check if user is already logged in
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        saveUserAndRedirect(user);
+      }
+    });
+  </script>
 </body>
 </html>
