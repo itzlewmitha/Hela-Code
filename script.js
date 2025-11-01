@@ -17,11 +17,10 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Enable offline persistence for better cross-device experience
-db.enablePersistence()
-  .catch((err) => {
-      console.log('Persistence failed: ', err);
-  });
+// Enable offline persistence
+db.enablePersistence().catch((err) => {
+    console.log('Persistence failed: ', err);
+});
 
 // DOM Elements
 const chatMessages = document.getElementById('chatMessages');
@@ -50,14 +49,44 @@ let chats = [];
 let currentUser = null;
 let uploadedFiles = [];
 
+// Utility Functions
+function showNotification(message) {
+    const notif = document.createElement('div');
+    notif.className = 'notification copied-notification';
+    notif.textContent = message;
+    document.body.appendChild(notif);
+    setTimeout(() => notif.remove(), 2000);
+}
+
+function escapeHTML(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function scrollToBottom() {
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+function autoResizeTextarea() {
+    if (chatInput) {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    }
+}
+
 // Initialize the application
 async function initApp() {
     return new Promise((resolve, reject) => {
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 currentUser = user;
-                console.log('User signed in:', user.uid);
-                
                 updateUserInfo(user);
                 await loadChats();
                 resolve(user);
@@ -76,7 +105,6 @@ function updateUserInfo(user) {
     
     if (userAvatar) {
         userAvatar.textContent = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-        
         if (user.photoURL) {
             userAvatar.style.backgroundImage = `url(${user.photoURL})`;
             userAvatar.style.backgroundSize = 'cover';
@@ -85,39 +113,38 @@ function updateUserInfo(user) {
     }
 }
 
-// Save chat to Firestore with retry logic
+// Generate unique chat ID
+function generateChatId() {
+    return Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Save chats to local storage
+function saveChatsToLocalStorage() {
+    if (!currentUser) return;
+    try {
+        localStorage.setItem(`helaChats_${currentUser.uid}`, JSON.stringify(chats));
+    } catch (error) {
+        console.error('Error saving to local storage:', error);
+    }
+}
+
+// Save chat to Firestore
 async function saveChatToFirestore(chat) {
-    const maxRetries = 3;
-    let retries = 0;
-    
-    while (retries < maxRetries) {
-        try {
-            await db.collection('users')
-                .doc(currentUser.uid)
-                .collection('chats')
-                .doc(chat.id)
-                .set({
-                    title: chat.title,
-                    messages: chat.messages,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-            
-            console.log('Chat saved to Firestore:', chat.id);
-            return;
-        } catch (error) {
-            retries++;
-            console.error(`Attempt ${retries} failed to save chat:`, error);
-            
-            if (retries === maxRetries) {
-                console.error('All retries failed, saving to local storage');
-                saveChatsToLocalStorage();
-                throw error;
-            }
-            
-            // Wait before retrying
-            await new Promise(resolve => setTimeout(resolve, 1000 * retries));
-        }
+    try {
+        await db.collection('users')
+            .doc(currentUser.uid)
+            .collection('chats')
+            .doc(chat.id)
+            .set({
+                title: chat.title,
+                messages: chat.messages,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+    } catch (error) {
+        console.error('Error saving chat to Firestore:', error);
+        saveChatsToLocalStorage();
+        throw error;
     }
 }
 
@@ -129,18 +156,14 @@ async function deleteChatFromFirestore(chatId) {
             .collection('chats')
             .doc(chatId)
             .delete();
-        console.log('Chat deleted from Firestore:', chatId);
     } catch (error) {
         console.error('Error deleting chat from Firestore:', error);
-        // Don't throw error for delete operations
     }
 }
 
-// Load chats from Firestore with fallback
+// Load chats from Firestore
 async function loadChats() {
     try {
-        console.log('Loading chats from Firestore for user:', currentUser.uid);
-        
         const snapshot = await db.collection('users')
             .doc(currentUser.uid)
             .collection('chats')
@@ -158,14 +181,10 @@ async function loadChats() {
                     updatedAt: data.updatedAt ? data.updatedAt.toDate().toISOString() : new Date().toISOString()
                 };
             });
-            
-            console.log('Loaded', chats.length, 'chats from Firestore');
         } else {
             chats = [];
-            console.log('No chats found in Firestore');
         }
 
-        // If no chats in Firestore, try local storage
         if (chats.length === 0) {
             await loadChatsFromLocalStorage();
         }
@@ -181,7 +200,6 @@ async function loadChats() {
         
     } catch (error) {
         console.error('Error loading chats from Firestore:', error);
-        // Fallback to local storage
         await loadChatsFromLocalStorage();
     }
 }
@@ -192,31 +210,12 @@ async function loadChatsFromLocalStorage() {
         const savedChats = localStorage.getItem(`helaChats_${currentUser.uid}`);
         if (savedChats) {
             chats = JSON.parse(savedChats);
-            console.log('Loaded', chats.length, 'chats from local storage');
         } else {
             chats = [];
         }
-
-        if (chats.length === 0) {
-            await createNewChat();
-        } else {
-            currentChatId = chats[0].id;
-            await loadChat(currentChatId);
-        }
     } catch (error) {
         console.error('Error loading chats from local storage:', error);
-        await createNewChat();
-    }
-}
-
-// Save chats to local storage
-function saveChatsToLocalStorage() {
-    if (!currentUser) return;
-    try {
-        localStorage.setItem(`helaChats_${currentUser.uid}`, JSON.stringify(chats));
-        console.log('Chats saved to local storage');
-    } catch (error) {
-        console.error('Error saving to local storage:', error);
+        chats = [];
     }
 }
 
@@ -233,11 +232,9 @@ async function createNewChat() {
     chats.unshift(newChat);
     currentChatId = newChat.id;
     
-    // Save to Firestore
     try {
         await saveChatToFirestore(newChat);
     } catch (error) {
-        console.error('Failed to save to Firestore, using local storage only');
         saveChatsToLocalStorage();
     }
     
@@ -247,11 +244,6 @@ async function createNewChat() {
     
     updateChatHistorySidebar();
     return newChat.id;
-}
-
-// Generate unique chat ID
-function generateChatId() {
-    return Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
 // Update chat title
@@ -264,11 +256,9 @@ async function updateChatTitle(chatId, firstMessage) {
         chat.title = title;
         chat.updatedAt = new Date().toISOString();
         
-        // Update in Firestore
         try {
             await saveChatToFirestore(chat);
         } catch (error) {
-            console.error('Failed to update chat title in Firestore:', error);
             saveChatsToLocalStorage();
         }
         
@@ -292,18 +282,15 @@ async function addMessageToChat(sender, text) {
             timestamp: new Date().toISOString()
         });
         
-        // Keep only last 50 messages to prevent large documents
         if (chat.messages.length > 50) {
             chat.messages = chat.messages.slice(-50);
         }
         
         chat.updatedAt = new Date().toISOString();
         
-        // Save to Firestore
         try {
             await saveChatToFirestore(chat);
         } catch (error) {
-            console.error('Failed to save message to Firestore:', error);
             saveChatsToLocalStorage();
         }
         
@@ -343,14 +330,7 @@ async function deleteChat(chatId, event) {
     if (confirm('Are you sure you want to delete this chat?')) {
         chats = chats.filter(chat => chat.id !== chatId);
         
-        // Delete from Firestore
-        try {
-            await deleteChatFromFirestore(chatId);
-        } catch (error) {
-            console.error('Failed to delete from Firestore:', error);
-        }
-        
-        // Always update local storage
+        await deleteChatFromFirestore(chatId);
         saveChatsToLocalStorage();
         
         if (currentChatId === chatId) {
@@ -366,13 +346,77 @@ async function deleteChat(chatId, event) {
     }
 }
 
+// Update chat history sidebar
+function updateChatHistorySidebar() {
+    if (!chatHistory) return;
+    
+    chatHistory.innerHTML = '';
+    
+    if (chats.length === 0) {
+        chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
+        return;
+    }
+    
+    chats.forEach(chat => {
+        const chatItem = document.createElement('div');
+        chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
+        chatItem.innerHTML = `
+            <span class="chat-item-icon">💬</span>
+            <span class="chat-item-title">${chat.title}</span>
+            <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
+        `;
+        
+        chatItem.addEventListener('click', function(e) {
+            if (!e.target.classList.contains('delete-chat')) {
+                loadChat(chat.id);
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        });
+        
+        chatHistory.appendChild(chatItem);
+    });
+}
+
+// Add message to chat display
+function addMessage(sender, text) {
+    if (!chatMessages) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    if (sender === 'ai') {
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = 'H';
+        messageDiv.appendChild(avatar);
+    }
+    
+    const messageBubble = document.createElement('div');
+    messageBubble.className = 'message-bubble';
+    
+    if (sender === 'ai') {
+        messageBubble.classList.add('ai-bubble');
+        messageBubble.textContent = text;
+    } else {
+        messageBubble.textContent = text;
+    }
+    
+    messageContent.appendChild(messageBubble);
+    messageDiv.appendChild(messageContent);
+    chatMessages.appendChild(messageDiv);
+    
+    scrollToBottom();
+}
+
 // FILE UPLOAD FUNCTIONS
 function initFileUpload() {
     if (fileBtn && fileInput) {
-        fileBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-
+        fileBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', handleFileSelect);
     }
 }
@@ -381,10 +425,7 @@ function handleFileSelect(event) {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-    files.forEach(file => {
-        readFileContent(file);
-    });
-
+    files.forEach(file => readFileContent(file));
     fileInput.value = '';
 }
 
@@ -413,7 +454,6 @@ function readFileContent(file) {
             showNotification(`File "${file.name}" uploaded successfully`);
 
         } catch (error) {
-            console.error('Error reading file:', error);
             showFileError(file, 'Unable to read file content');
         }
     };
@@ -423,6 +463,14 @@ function readFileContent(file) {
     };
 
     reader.readAsText(file);
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 function displayFilePreview(fileData) {
@@ -464,19 +512,9 @@ function showFileError(file, message) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'file-error';
     errorDiv.textContent = `${file.name}: ${message}`;
-
     chatMessages.appendChild(errorDiv);
     scrollToBottom();
-    
     setTimeout(() => errorDiv.remove(), 5000);
-}
-
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 function getFileLanguage(filename) {
@@ -526,7 +564,6 @@ async function handleSend() {
 
     addMessage('user', text);
     await addMessageToChat('user', messageContent);
-
     clearUploadedFiles();
 
     showTyping();
@@ -534,23 +571,227 @@ async function handleSend() {
     try {
         const reply = await callAI(messageContent);
         removeTyping();
-        
         displayAIResponse(reply);
         await addMessageToChat('ai', reply);
-        
     } catch (error) {
-        console.error('Error getting AI response:', error);
         removeTyping();
-        
         const errorMessage = "I'm having trouble responding right now. Please try again.";
         displayAIResponse(errorMessage);
         await addMessageToChat('ai', errorMessage);
     }
 }
 
-// [Rest of the functions remain the same - handleExamplePrompt, callAI, getConversationContext, updateChatHistorySidebar, addMessage, displayAIResponse, formatResponse, createCodeBlock, showTyping, removeTyping, scrollToBottom, escapeHTML, showNotification, autoResizeTextarea]
+// Handle example prompts
+function handleExamplePrompt(prompt) {
+    if (chatInput) {
+        chatInput.value = prompt;
+        handleSend();
+    }
+}
 
-// ... [Include all the remaining functions from the previous script.js exactly as they were] ...
+// Call AI API
+async function callAI(userMessage) {
+    try {
+        const context = getConversationContext();
+        
+        const messageToSend = `You are Hela Code, an AI programming assistant. Be helpful and enthusiastic about technology!
+
+${context}
+User: ${userMessage}
+Assistant:`;
+        
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({ 
+                message: messageToSend,
+                model: MODEL
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.response || "I apologize, but I received an unexpected response format.";
+        
+    } catch (error) {
+        console.error('AI API Error:', error);
+        throw error;
+    }
+}
+
+// Get conversation context
+function getConversationContext() {
+    if (!currentChatId) return '';
+    
+    const chat = chats.find(c => c.id === currentChatId);
+    if (!chat || chat.messages.length === 0) return '';
+    
+    const recentMessages = chat.messages.slice(-6);
+    let context = 'Conversation history:\n';
+    
+    recentMessages.forEach(msg => {
+        const role = msg.type === 'user' ? 'User' : 'Assistant';
+        context += `${role}: ${msg.content}\n`;
+    });
+    
+    return context;
+}
+
+// Display AI response with formatting
+function displayAIResponse(content) {
+    if (!chatMessages) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message ai';
+    
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.textContent = 'H';
+    messageDiv.appendChild(avatar);
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    const messageBubble = document.createElement('div');
+    messageBubble.className = 'message-bubble ai-bubble';
+    messageBubble.innerHTML = formatResponse(content);
+    
+    messageContent.appendChild(messageBubble);
+    messageDiv.appendChild(messageContent);
+    chatMessages.appendChild(messageDiv);
+    
+    scrollToBottom();
+}
+
+// Format AI response with markdown
+function formatResponse(text) {
+    if (!text) return '';
+    
+    let html = '';
+    const lines = text.split('\n');
+    let inCodeBlock = false;
+    let codeLanguage = '';
+    let codeContent = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        if (line.startsWith('```')) {
+            if (!inCodeBlock) {
+                inCodeBlock = true;
+                codeLanguage = line.substring(3).trim() || 'text';
+                codeContent = '';
+            } else {
+                inCodeBlock = false;
+                html += createCodeBlock(codeContent, codeLanguage);
+            }
+            continue;
+        }
+        
+        if (inCodeBlock) {
+            codeContent += line + '\n';
+            continue;
+        }
+        
+        let processedLine = line;
+        
+        if (line.startsWith('## ')) {
+            processedLine = `<h3 class="response-header">${line.substring(3)}</h3>`;
+        } else if (line.startsWith('### ')) {
+            processedLine = `<h4 class="response-subheader">${line.substring(4)}</h4>`;
+        }
+        
+        processedLine = processedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        if (line.trim().startsWith('• ')) {
+            processedLine = `<div class="bullet-point">${line.substring(2)}</div>`;
+        }
+        
+        if (/^\d+\.\s/.test(line.trim())) {
+            processedLine = `<div class="numbered-point">${line}</div>`;
+        }
+        
+        if (line.startsWith('> ')) {
+            processedLine = `<blockquote class="ai-note">${line.substring(2)}</blockquote>`;
+        }
+        
+        if (processedLine === line && line.trim() !== '') {
+            processedLine = `<p class="response-paragraph">${line}</p>`;
+        }
+        
+        if (line.trim() === '') {
+            processedLine = '<div class="paragraph-spacing"></div>';
+        }
+        
+        html += processedLine;
+    }
+    
+    if (inCodeBlock) {
+        html += createCodeBlock(codeContent, codeLanguage);
+    }
+    
+    return html;
+}
+
+// Create code block
+function createCodeBlock(content, language) {
+    const escapedContent = escapeHTML(content.trim());
+    return `
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-language">${language}</span>
+                <button class="copy-btn">Copy Code</button>
+            </div>
+            <pre><code class="language-${language}">${escapedContent}</code></pre>
+        </div>
+    `;
+}
+
+// Show typing indicator
+function showTyping() {
+    removeTyping();
+    if (!chatMessages) return;
+    
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message ai';
+    typingDiv.id = 'typing-indicator';
+    
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.textContent = 'H';
+    typingDiv.appendChild(avatar);
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    const messageBubble = document.createElement('div');
+    messageBubble.className = 'message-bubble ai-bubble typing-indicator';
+    messageBubble.innerHTML = `
+        <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        </div>
+        <span>Hela Code is thinking...</span>
+    `;
+    
+    messageContent.appendChild(messageBubble);
+    typingDiv.appendChild(messageContent);
+    chatMessages.appendChild(typingDiv);
+    
+    scrollToBottom();
+}
+
+function removeTyping() {
+    const typing = document.getElementById('typing-indicator');
+    if (typing) typing.remove();
+}
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', async function() {
