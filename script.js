@@ -1,4 +1,4 @@
-// Firebase configuration
+// Firebase configuration (for authentication only)
 const firebaseConfig = {
     apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
     authDomain: "hela-code.firebaseapp.com",
@@ -8,14 +8,13 @@ const firebaseConfig = {
     appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
 };
 
-// Initialize Firebase
+// Initialize Firebase (for auth only)
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// Firebase services
+// Firebase services (auth only)
 const auth = firebase.auth();
-const db = firebase.firestore();
 
 // DOM Elements
 const chatMessages = document.getElementById('chatMessages');
@@ -60,13 +59,12 @@ TECHNOLOGY DOMAINS:
 
 Always be helpful and enthusiastic about technology!`;
 
-// Chat history management
+// Chat history management (Local Storage Only)
 let currentChatId = null;
 let chats = [];
 let currentUser = null;
-let unsubscribeChats = null;
 
-// Initialize Firebase auth and chat sync
+// Initialize Firebase auth only
 async function initFirebase() {
     return new Promise((resolve, reject) => {
         auth.onAuthStateChanged(async (user) => {
@@ -77,8 +75,8 @@ async function initFirebase() {
                 // Update user info in sidebar
                 updateUserInfo(user);
                 
-                // Load chats from Firebase
-                await loadChatsFromFirebase(user.uid);
+                // Load chats from local storage
+                await loadChatsFromLocalStorage();
                 resolve(user);
             } else {
                 console.log('No user signed in');
@@ -105,95 +103,37 @@ function updateUserInfo(user) {
     }
 }
 
-// Load chats from Firebase Firestore
-async function loadChatsFromFirebase(userId) {
+// Load chats from local storage
+async function loadChatsFromLocalStorage() {
     try {
         showLoading('Loading your conversations...');
         
-        unsubscribeChats = db.collection('users')
-            .doc(userId)
-            .collection('chats')
-            .orderBy('updatedAt', 'desc')
-            .onSnapshot(async (snapshot) => {
-                chats = [];
-                snapshot.forEach(doc => {
-                    const chatData = doc.data();
-                    chats.push({
-                        id: doc.id,
-                        ...chatData,
-                        createdAt: chatData.createdAt?.toDate() || new Date(),
-                        updatedAt: chatData.updatedAt?.toDate() || new Date()
-                    });
-                });
+        const savedChats = localStorage.getItem(`helaChats_${currentUser.uid}`);
+        if (savedChats) {
+            chats = JSON.parse(savedChats);
+        }
 
-                hideLoading();
-                
-                if (chats.length === 0 || !currentChatId) {
-                    await createNewChat();
-                } else {
-                    currentChatId = chats[0].id;
-                    await loadChat(currentChatId);
-                }
-                
-                updateChatHistorySidebar();
-            }, (error) => {
-                console.error('Error loading chats:', error);
-                hideLoading();
-                showError('Failed to load conversations. Using local storage.');
-                loadFromLocalStorage();
-            });
-
-    } catch (error) {
-        console.error('Error setting up chat listener:', error);
         hideLoading();
-        loadFromLocalStorage();
-    }
-}
-
-// Fallback to local storage
-function loadFromLocalStorage() {
-    const savedChats = localStorage.getItem('helaChatHistory');
-    if (savedChats) {
-        chats = JSON.parse(savedChats);
-    }
-    
-    if (chats.length === 0 || !currentChatId) {
-        createNewChat();
-    } else {
-        currentChatId = chats[0].id;
-        loadChat(currentChatId);
-    }
-    
-    updateChatHistorySidebar();
-}
-
-// Save chat to Firebase
-async function saveChatToFirebase(chat) {
-    if (!currentUser) return;
-
-    try {
-        const chatRef = db.collection('users')
-            .doc(currentUser.uid)
-            .collection('chats')
-            .doc(chat.id);
-
-        const chatData = {
-            title: chat.title,
-            messages: chat.messages,
-            createdAt: firebase.firestore.Timestamp.fromDate(new Date(chat.createdAt)),
-            updatedAt: firebase.firestore.Timestamp.fromDate(new Date(chat.updatedAt))
-        };
-
-        await chatRef.set(chatData, { merge: true });
+        
+        if (chats.length === 0 || !currentChatId) {
+            await createNewChat();
+        } else {
+            currentChatId = chats[0].id;
+            await loadChat(currentChatId);
+        }
+        
+        updateChatHistorySidebar();
     } catch (error) {
-        console.error('Error saving chat to Firebase:', error);
-        saveToLocalStorage();
+        console.error('Error loading chats:', error);
+        hideLoading();
+        await createNewChat();
     }
 }
 
-// Fallback local storage save
-function saveToLocalStorage() {
-    localStorage.setItem('helaChatHistory', JSON.stringify(chats));
+// Save chats to local storage
+function saveChatsToLocalStorage() {
+    if (!currentUser) return;
+    localStorage.setItem(`helaChats_${currentUser.uid}`, JSON.stringify(chats));
 }
 
 // Create a new chat
@@ -209,7 +149,7 @@ async function createNewChat() {
     chats.unshift(newChat);
     currentChatId = newChat.id;
     
-    await saveChatToFirebase(newChat);
+    saveChatsToLocalStorage();
     
     if (chatMessages) chatMessages.innerHTML = '';
     if (welcomeScreen) welcomeScreen.style.display = 'flex';
@@ -229,7 +169,7 @@ async function updateChatTitle(chatId, firstMessage) {
         chat.title = title;
         chat.updatedAt = new Date().toISOString();
         
-        await saveChatToFirebase(chat);
+        saveChatsToLocalStorage();
         updateChatHistorySidebar();
         
         if (chatTitle) {
@@ -256,7 +196,7 @@ async function addMessageToChat(sender, text) {
         
         chat.updatedAt = new Date().toISOString();
         
-        await saveChatToFirebase(chat);
+        saveChatsToLocalStorage();
         
         if (sender === 'user' && chat.messages.length === 1) {
             await updateChatTitle(currentChatId, text);
@@ -292,18 +232,6 @@ async function deleteChat(chatId, event) {
     if (event) event.stopPropagation();
     
     if (confirm('Are you sure you want to delete this chat?')) {
-        if (currentUser) {
-            try {
-                await db.collection('users')
-                    .doc(currentUser.uid)
-                    .collection('chats')
-                    .doc(chatId)
-                    .delete();
-            } catch (error) {
-                console.error('Error deleting chat from Firebase:', error);
-            }
-        }
-        
         chats = chats.filter(chat => chat.id !== chatId);
         
         if (currentChatId === chatId) {
@@ -315,11 +243,12 @@ async function deleteChat(chatId, event) {
             }
         }
         
+        saveChatsToLocalStorage();
         updateChatHistorySidebar();
     }
 }
 
-// Handle send message - FIXED VERSION
+// Handle send message - SIMPLIFIED VERSION
 async function handleSend() {
     const text = chatInput.value.trim();
     console.log('Sending message:', text);
@@ -381,7 +310,7 @@ function handleExamplePrompt(prompt) {
     }
 }
 
-// AI function - FIXED VERSION
+// AI function - SIMPLIFIED VERSION
 async function askAI(userMessage) {
     try {
         console.log('Preparing API request...');
@@ -415,13 +344,9 @@ async function askAI(userMessage) {
         const data = await response.json();
         console.log('API Response data:', data);
         
-        // Handle different response formats
+        // Handle response format
         if (data.response) {
             return data.response;
-        } else if (data.choices && data.choices[0] && data.choices[0].message) {
-            return data.choices[0].message.content;
-        } else if (data.content) {
-            return data.content;
         } else {
             console.warn('Unexpected API response format:', data);
             return "I apologize, but I received an unexpected response format. Please try again.";
@@ -440,7 +365,7 @@ function getConversationContext() {
     const chat = chats.find(c => c.id === currentChatId);
     if (!chat || chat.messages.length === 0) return '';
     
-    const recentMessages = chat.messages.slice(-6); // Last 3 exchanges
+    const recentMessages = chat.messages.slice(-6);
     let context = 'Conversation history:\n';
     
     recentMessages.forEach(msg => {
@@ -485,7 +410,7 @@ function updateChatHistorySidebar() {
     });
 }
 
-// Add message to chat display - FIXED VERSION
+// Add message to chat display
 function addMessage(sender, text) {
     if (!chatMessages) {
         console.error('chatMessages element not found');
@@ -511,7 +436,6 @@ function addMessage(sender, text) {
     
     if (sender === 'ai') {
         messageBubble.classList.add('ai-bubble');
-        // For AI messages, we'll use displayFormattedAIResponse instead
         messageBubble.textContent = text;
     } else {
         messageBubble.textContent = text;
@@ -524,7 +448,7 @@ function addMessage(sender, text) {
     scrollToBottom();
 }
 
-// Display formatted AI response - FIXED VERSION
+// Display formatted AI response
 function displayFormattedAIResponse(content) {
     if (!chatMessages) {
         console.error('chatMessages element not found');
@@ -575,7 +499,7 @@ function displayFormattedAIResponse(content) {
     scrollToBottom();
 }
 
-// Parse markdown formatting to HTML - FIXED VERSION
+// Parse markdown formatting to HTML
 function parseMarkdownFormatting(text) {
     if (!text) return '';
     
@@ -774,7 +698,7 @@ function autoResizeTextarea() {
     }
 }
 
-// Initialize when DOM is loaded - FIXED VERSION
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOM loaded, initializing app...');
     
@@ -835,19 +759,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
-// Clean up when leaving the page
-window.addEventListener('beforeunload', () => {
-    if (unsubscribeChats) {
-        unsubscribeChats();
-    }
-});
-
 // Global functions
 window.handleSend = handleSend;
 window.handleExamplePrompt = handleExamplePrompt;
 window.deleteChat = deleteChat;
 
-// Simple systems for now (remove complex features that might cause issues)
+// Simple systems for now
 window.learningChallenges = {
     showChallengesModal: function() {
         alert('Learning Challenges feature coming soon!');
