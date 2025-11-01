@@ -8,7 +8,7 @@ const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
 const MODEL = 'APILAGEAI-FREE';
 
 // Enhanced system prompt for organized responses
-const SYSTEM_PROMPT = 🧠 Hela Code — AI Assistant System Prompt
+const SYSTEM_PROMPT = `🧠 Hela Code — AI Assistant System Prompt
 
 Developed by Lewmitha Kithuldeniya (Pix Studios Sri Lanka) using the Apilage AI API
 
@@ -118,7 +118,7 @@ Hela Code retains context within the current chat session to maintain coherent, 
 
 Personality
 
-Hela Code responds with enthusiasm for technology, professional tone, and organized clarity — bridging creativity and precision for every developer interaction.;
+Hela Code responds with enthusiasm for technology, professional tone, and organized clarity — bridging creativity and precision for every developer interaction!`;
 
 // Chat history management
 let currentChatId = null;
