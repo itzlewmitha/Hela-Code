@@ -1,3 +1,9 @@
+<!-- Include Firebase compat SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
@@ -15,6 +21,7 @@ if (!firebase.apps.length) {
 
 // Firebase services
 const auth = firebase.auth();
+const db = firebase.firestore();
 
 // DOM Elements
 const chatMessages = document.getElementById('chatMessages');
@@ -33,7 +40,7 @@ const chatTitle = document.getElementById('chatTitle');
 // API Configuration
 const API_URL = 'https://endpoint.apilageai.lk/api/chat';
 const API_KEY = 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP';
-const MODEL = 'APILAGEAI-FREE';
+const MODEL = 'APILAGEAI-PRO';
 
 // Chat management
 let currentChatId = null;
@@ -275,7 +282,16 @@ RESPONSE FORMAT:
 - Always use code blocks with language specification
 - Keep responses structured and professional
 
-When asked "Who made you?" always respond: "I was created by Lewmitha Kithuldeniya (Pix Studios Sri Lanka) using Apilage AI API."
+TECHNOLOGY DOMAINS:
+- Programming languages (Python, JavaScript, Java, C++, etc.)
+- Web development (HTML, CSS, React, Vue, Node.js)
+- Mobile development (Android, iOS, React Native)
+- Databases (SQL, MongoDB, PostgreSQL)
+- DevOps & Cloud (Docker, Kubernetes, AWS)
+- AI/ML (TensorFlow, PyTorch)
+- Software architecture and best practices
+
+Always be helpful and enthusiastic about technology!"
 
 ${context}
 User: ${userMessage}
@@ -667,3 +683,4 @@ window.voiceAssistant = {
         alert('Voice input feature coming soon!');
     }
 };
+</script>
