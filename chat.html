@@ -5,149 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hela Code Playground</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    /* Authentication required message */
-    .auth-required {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, #1a1a2e 0%, #23234b 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      color: white;
-      text-align: center;
-      padding: 20px;
-    }
-    
-    .auth-required h2 {
-      font-size: 2rem;
-      margin-bottom: 20px;
-      color: #a259ff;
-    }
-    
-    .auth-required p {
-      font-size: 1.2rem;
-      margin-bottom: 30px;
-      max-width: 500px;
-    }
-    
-    .auth-btn {
-      padding: 14px 28px;
-      background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
-      border: none;
-      border-radius: 10px;
-      color: white;
-      font-size: 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    
-    .auth-btn:hover {
-      background: linear-gradient(90deg, #a259ff 0%, #6c2ebf 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(162, 89, 255, 0.4);
-    }
-
-    /* Scroll to top button */
-    .scroll-to-top {
-      position: fixed;
-      bottom: 100px;
-      right: 30px;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: linear-gradient(90deg, #6c2ebf 0%, #a259ff 100%);
-      border: none;
-      color: white;
-      font-size: 1.5rem;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(162, 89, 255, 0.4);
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s;
-      opacity: 0;
-      visibility: hidden;
-    }
-    
-    .scroll-to-top.visible {
-      opacity: 1;
-      visibility: visible;
-    }
-    
-    .scroll-to-top:hover {
-      background: linear-gradient(90deg, #a259ff 0%, #6c2ebf 100%);
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(162, 89, 255, 0.6);
-    }
-
-    /* Delete chat button */
-    .delete-chat {
-      background: none;
-      border: none;
-      color: #ff6b6b;
-      cursor: pointer;
-      font-size: 0.9rem;
-      opacity: 0;
-      transition: opacity 0.2s;
-      padding: 4px;
-      border-radius: 4px;
-    }
-
-    .chat-item:hover .delete-chat {
-      opacity: 1;
-    }
-
-    .delete-chat:hover {
-      background: rgba(255, 107, 107, 0.1);
-    }
-
-    /* Chat container improvements */
-    .chat-container.with-sidebar {
-      margin-left: 260px;
-      width: calc(100% - 260px);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .chat-box {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 0 160px 0;
-      height: calc(100vh - 160px);
-    }
-
-    /* Ensure messages are properly aligned */
-    .message {
-      max-width: 100%;
-    }
-  </style>
+  <!-- Add Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <!-- Authentication required message (shown if not logged in) -->
+  <!-- Authentication required message -->
   <div id="authRequired" class="auth-required" style="display: none;">
     <h2>Authentication Required</h2>
     <p>You need to log in to access Hela Code. Please sign in to continue using our AI coding assistant.</p>
     <button class="auth-btn" id="goToLoginBtn">Go to Login</button>
   </div>
 
-  <!-- Main chat interface (shown if logged in) -->
+  <!-- Main chat interface -->
   <div id="chatInterface" style="display: none;">
     <!-- Sidebar for chat history -->
     <div class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-title">Hela Code</div>
+        
+        <!-- Credit System Display -->
+        <div class="credit-system">
+          <div class="credit-balance">
+            <span class="credit-amount" id="creditAmount">₹100</span>
+            <span class="credit-label">Available Credits</span>
+          </div>
+          <div class="credit-features">
+            <div class="feature-locked" data-feature="code-download">
+              🔒 Code Download (₹50+ required)
+            </div>
+            <div class="feature-locked" data-feature="code-execution">
+              🔒 Code Execution (₹50+ required)
+            </div>
+          </div>
+          <button class="top-up-btn" onclick="showTopUpModal()">
+            💰 Top Up Credits
+          </button>
+        </div>
+
         <button class="new-chat-btn" id="newChatBtn">
           + New Chat
         </button>
+
+        <!-- Feature Buttons -->
+        <div class="feature-buttons">
+          <button class="feature-btn" onclick="learningChallenges.showChallengesModal()">
+            🚀 Challenges
+          </button>
+          <button class="feature-btn" onclick="achievementSystem.showAchievementsModal()">
+            🏆 Achievements
+          </button>
+          <button class="feature-btn" onclick="voiceAssistant.toggleListening()">
+            🎤 Voice
+          </button>
+        </div>
       </div>
       
       <div class="chat-history" id="chatHistory">
@@ -175,9 +87,21 @@
       <div id="greetingSection" class="center-content">
         <div class="greeting-message">Welcome to <span style="color:#a259ff">Hela Code</span></div>
         <div class="example-prompts">
-          <div class="example-prompt">💡 Debug my Python code</div>
-          <div class="example-prompt">🧠 Explain this JavaScript function</div>
-          <div class="example-prompt">⚙️ Generate a simple HTML layout</div>
+          <div class="example-prompt" onclick="handleExamplePrompt('How do I create a REST API with Node.js and Express?')">
+            <div class="prompt-icon">🌐</div>
+            <div class="prompt-title">Build a REST API</div>
+            <div class="prompt-desc">Learn to create APIs with Node.js, Express, and best practices</div>
+          </div>
+          <div class="example-prompt" onclick="handleExamplePrompt('Can you help me debug this Python function that processes data?')">
+            <div class="prompt-icon">🐛</div>
+            <div class="prompt-title">Debug Python Code</div>
+            <div class="prompt-desc">Get help identifying and fixing bugs in your Python code</div>
+          </div>
+          <div class="example-prompt" onclick="handleExamplePrompt('Explain how to use React hooks with practical examples')">
+            <div class="prompt-icon">⚛️</div>
+            <div class="prompt-title">React Hooks Guide</div>
+            <div class="prompt-desc">Understand useState, useEffect, and custom hooks with examples</div>
+          </div>
         </div>
       </div>
 
@@ -187,7 +111,7 @@
       <!-- input area -->
       <div class="chat-input-bar">
         <div class="chat-input-inner">
-          <textarea id="input" placeholder="Ask me to write or fix code..." rows="1"></textarea>
+          <textarea id="input" placeholder="Ask me anything about technology, programming, or development..." rows="1"></textarea>
           <button id="send" class="send-btn">➤</button>
         </div>
       </div>
@@ -196,7 +120,13 @@
 
   <script src="script.js"></script>
   <script>
-    // Check if user is logged in
+    // Handle example prompt clicks
+    function handleExamplePrompt(promptText) {
+      document.getElementById('input').value = promptText;
+      document.getElementById('send').click();
+    }
+
+    // Check if user is logged in (now handled by Firebase auth state)
     const user = JSON.parse(localStorage.getItem('helaUser'));
     
     if (!user) {
@@ -209,28 +139,9 @@
         window.location.href = 'index.html';
       });
     } else {
-      // Show chat interface
+      // Show chat interface - Firebase will handle the actual authentication
       document.getElementById('authRequired').style.display = 'none';
       document.getElementById('chatInterface').style.display = 'block';
-      
-      // Update user info in sidebar
-      document.getElementById('userName').textContent = user.name || user.email;
-      document.getElementById('userAvatar').textContent = (user.name || user.email).charAt(0).toUpperCase();
-      
-      // Initialize chat history
-      if (typeof initChatHistory === 'function') {
-        initChatHistory();
-      }
-      
-      // Show personalized welcome message
-      setTimeout(() => {
-        if (typeof liveTypeAI === 'function') {
-          liveTypeAI(`Welcome back, ${user.name || user.email} 👋 Let's code together.`);
-        }
-      }, 800);
-      
-      // Initialize scroll to top functionality
-      initScrollToTop();
     }
     
     // Mobile menu toggle
@@ -247,20 +158,18 @@
     
     // Logout functionality
     document.getElementById('logoutBtn').addEventListener('click', function() {
-      localStorage.removeItem('helaUser');
-      localStorage.removeItem('helaChatHistory');
-      window.location.href = 'index.html';
+      firebase.auth().signOut().then(() => {
+        localStorage.removeItem('helaUser');
+        localStorage.removeItem('helaChatHistory');
+        localStorage.removeItem('helaCredits');
+        window.location.href = 'index.html';
+      });
     });
     
     // New chat button
     document.getElementById('newChatBtn').addEventListener('click', function() {
       if (typeof createNewChat === 'function') {
         createNewChat();
-        
-        // Show welcome message
-        if (typeof liveTypeAI === 'function') {
-          liveTypeAI(`Hi ${user.name || user.email}! What would you like to code today?`);
-        }
       }
     });
     
@@ -299,6 +208,9 @@
         });
       }
     }
+
+    // Initialize scroll to top
+    initScrollToTop();
   </script>
 </body>
 </html>
