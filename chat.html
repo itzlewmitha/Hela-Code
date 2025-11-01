@@ -94,25 +94,22 @@
       </div>
 
       <!-- Input Area -->
-      <div class="input-container">
-        <div class="input-wrapper">
-          <textarea 
-            class="chat-input" 
-            id="chatInput"
-            placeholder="Message Hela Code..." 
-            rows="1"
-          ></textarea>
-          <div class="input-actions">
-            <button class="voice-btn" id="voiceBtn" title="Voice input">
-              🎤
-            </button>
-            <button class="send-btn" id="sendBtn" title="Send message">
-              ➤
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <div class="input-actions">
+  <button class="file-btn" id="fileBtn" title="Upload files">
+    📎
+  </button>
+  <button class="send-btn" id="sendBtn" title="Send message">
+    ➤
+  </button>
+</div>
+
+<!-- Add file input (hidden) -->
+<input 
+  type="file" 
+  id="fileInput" 
+  style="display: none;" 
+  multiple
+>
 
     <!-- Mobile Menu Button -->
     <button class="mobile-menu" id="mobileMenu">
