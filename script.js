@@ -16,161 +16,88 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ==================== CRASH RECOVERY SYSTEM ====================
-let crashRecovery = {
-    crashCount: 0,
-    maxCrashes: 3,
-    lastCrashTime: 0,
-    isRecovering: false
-};
-
-function setupCrashRecovery() {
-    // Handle uncaught errors
-    window.addEventListener('error', (event) => {
-        console.error('Global error caught:', event.error);
-        handleCrash('Global error: ' + event.error.message);
-    });
-
-    // Handle unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
-        console.error('Unhandled promise rejection:', event.reason);
-        handleCrash('Promise rejection: ' + event.reason);
-    });
-
-    // Monitor for frozen UI
-    let lastActivity = Date.now();
-    const activityMonitor = setInterval(() => {
-        const now = Date.now();
-        if (now - lastActivity > 30000 && !crashRecovery.isRecovering) { // 30 seconds no activity
-            console.warn('UI appears frozen, triggering recovery');
-            handleCrash('UI frozen - no activity for 30 seconds');
-        }
-    }, 10000);
-
-    // Update activity on user interaction
-    ['click', 'keydown', 'mousemove', 'scroll'].forEach(event => {
-        document.addEventListener(event, () => {
-            lastActivity = Date.now();
-        });
-    });
-}
-
-function handleCrash(reason) {
-    if (crashRecovery.isRecovering) return;
-    
-    crashRecovery.isRecovering = true;
-    crashRecovery.crashCount++;
-    crashRecovery.lastCrashTime = Date.now();
-    
-    console.error(`Crash detected (${crashRecovery.crashCount}/3):`, reason);
-    
-    // Save crash info to localStorage for debugging
-    const crashInfo = {
-        reason: reason,
-        timestamp: new Date().toISOString(),
-        url: window.location.href,
-        user: state.currentUser?.uid || 'unknown'
-    };
-    localStorage.setItem('helacode_last_crash', JSON.stringify(crashInfo));
-    
-    if (crashRecovery.crashCount >= crashRecovery.maxCrashes) {
-        // Too many crashes, force hard reload
-        showNotification('Multiple errors detected. Reloading app...', 'error');
-        setTimeout(() => {
-            window.location.reload(true); // Force reload from server
-        }, 2000);
-        return;
-    }
-    
-    // Try soft recovery first
-    showNotification('Recovering from error...', 'error');
-    attemptRecovery();
-}
-
-function attemptRecovery() {
-    try {
-        console.log('Attempting application recovery...');
-        
-        // Clear any stuck states
-        state.uploadedFiles = [];
-        removeTypingIndicator();
-        
-        // Re-initialize critical components
-        if (state.currentUser) {
-            // Re-load current chat
-            if (state.currentChatId) {
-                loadChat(state.currentChatId).catch(() => {
-                    // If that fails, load most recent chat
-                    if (state.chats.length > 0) {
-                        loadChat(state.chats[0].id);
-                    } else {
-                        createNewChat();
-                    }
-                });
-            } else if (state.chats.length > 0) {
-                loadChat(state.chats[0].id);
-            } else {
-                createNewChat();
-            }
-        }
-        
-        // Reset recovery state after successful recovery
-        setTimeout(() => {
-            crashRecovery.isRecovering = false;
-            showNotification('Application recovered successfully');
-        }, 1000);
-        
-    } catch (recoveryError) {
-        console.error('Recovery failed:', recoveryError);
-        // Recovery failed, force reload
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000);
-    }
-}
-
-// DOM Elements
-const elements = {
-    chatMessages: document.getElementById('chatMessages'),
-    chatInput: document.getElementById('chatInput'),
-    sendBtn: document.getElementById('sendBtn'),
-    welcomeScreen: document.getElementById('welcomeScreen'),
-    newChatBtn: document.getElementById('newChatBtn'),
-    logoutBtn: document.getElementById('logoutBtn'),
-    mobileMenu: document.getElementById('mobileMenu'),
-    sidebar: document.getElementById('sidebar'),
-    chatHistory: document.getElementById('chatHistory'),
-    userAvatar: document.getElementById('userAvatar'),
-    userName: document.getElementById('userName'),
-    chatTitle: document.getElementById('chatTitle'),
-    fileBtn: document.getElementById('fileBtn'),
-    fileInput: document.getElementById('fileInput'),
-    shareChatBtn: document.getElementById('shareChatBtn')
-};
-
-// API Configuration
-const API_CONFIG = {
-    URL: 'https://endpoint.apilageai.lk/api/chat',
-    KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
-    MODEL: 'APILAGEAI-FREE'
-};
-
 // Global State
 let state = {
     currentChatId: null,
     chats: [],
     currentUser: null,
     uploadedFiles: [],
-    isOnline: true
+    isInitialized: false
 };
+
+// DOM Elements cache
+let elements = {};
+
+// ==================== DOM WAIT FUNCTIONS ====================
+function waitForElement(selector, timeout = 5000) {
+    return new Promise((resolve, reject) => {
+        const element = document.querySelector(selector);
+        if (element) {
+            resolve(element);
+            return;
+        }
+
+        const observer = new MutationObserver(() => {
+            const element = document.querySelector(selector);
+            if (element) {
+                observer.disconnect();
+                resolve(element);
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        setTimeout(() => {
+            observer.disconnect();
+            reject(new Error(`Element ${selector} not found within ${timeout}ms`));
+        }, timeout);
+    });
+}
+
+async function initializeElements() {
+    console.log('Initializing DOM elements...');
+    
+    try {
+        elements = {
+            chatMessages: await waitForElement('#chatMessages'),
+            chatInput: await waitForElement('#chatInput'),
+            sendBtn: await waitForElement('#sendBtn'),
+            welcomeScreen: await waitForElement('#welcomeScreen'),
+            newChatBtn: await waitForElement('#newChatBtn'),
+            logoutBtn: await waitForElement('#logoutBtn'),
+            mobileMenu: await waitForElement('#mobileMenu'),
+            sidebar: await waitForElement('#sidebar'),
+            chatHistory: await waitForElement('#chatHistory'),
+            userAvatar: await waitForElement('#userAvatar'),
+            userName: await waitForElement('#userName'),
+            chatTitle: await waitForElement('#chatTitle'),
+            fileBtn: await waitForElement('#fileBtn'),
+            fileInput: await waitForElement('#fileInput'),
+            shareChatBtn: document.getElementById('shareChatBtn')
+        };
+        
+        console.log('All DOM elements initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('Failed to initialize DOM elements:', error);
+        return false;
+    }
+}
 
 // ==================== UTILITY FUNCTIONS ====================
 function showNotification(message, type = 'success') {
     try {
+        // Remove existing notifications
+        document.querySelectorAll('.notification').forEach(notif => notif.remove());
+        
         const notif = document.createElement('div');
         notif.className = `notification ${type === 'error' ? 'error-message' : 'copied-notification'}`;
         notif.textContent = message;
         document.body.appendChild(notif);
+        
         setTimeout(() => {
             if (notif.parentNode) {
                 notif.parentNode.removeChild(notif);
@@ -189,13 +116,15 @@ function escapeHTML(text) {
 }
 
 function scrollToBottom() {
-    try {
-        if (elements.chatMessages) {
-            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    setTimeout(() => {
+        try {
+            if (elements.chatMessages) {
+                elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+            }
+        } catch (error) {
+            console.error('Error scrolling:', error);
         }
-    } catch (error) {
-        console.error('Error scrolling:', error);
-    }
+    }, 100);
 }
 
 function autoResizeTextarea() {
@@ -322,6 +251,7 @@ async function loadChatsFromFirestore() {
             };
         });
         
+        console.log(`Loaded ${state.chats.length} chats from Firestore`);
         return true;
     } catch (error) {
         console.error('Firestore load error:', error);
@@ -345,6 +275,7 @@ function loadChatsFromLocalStorage() {
         const saved = localStorage.getItem(`helaChats_${state.currentUser.uid}`);
         if (saved) {
             state.chats = JSON.parse(saved);
+            console.log(`Loaded ${state.chats.length} chats from local storage`);
             return true;
         }
         return false;
@@ -371,44 +302,64 @@ async function createNewChat(specificId = null) {
         await saveChatToFirestore(newChat);
         saveChatsToLocalStorage();
         
-        if (elements.chatMessages) elements.chatMessages.innerHTML = '';
-        if (elements.welcomeScreen) elements.welcomeScreen.style.display = 'flex';
-        if (elements.chatTitle) elements.chatTitle.textContent = 'New Chat';
+        // Update UI
+        if (elements.chatMessages) {
+            elements.chatMessages.innerHTML = '';
+        }
+        if (elements.welcomeScreen) {
+            elements.welcomeScreen.style.display = 'flex';
+        }
+        if (elements.chatTitle) {
+            elements.chatTitle.textContent = 'New Chat';
+        }
         
         updateURL(state.currentChatId);
         updateChatHistorySidebar();
         
+        console.log('Created new chat:', newChat.id);
         return newChat.id;
     } catch (error) {
         console.error('Error creating new chat:', error);
-        handleCrash('Failed to create new chat');
+        showNotification('Error creating chat', 'error');
         return null;
     }
 }
 
 async function loadChat(chatId) {
     try {
+        console.log('Loading chat:', chatId);
+        
         const chat = state.chats.find(c => c.id === chatId);
         if (!chat) {
-            console.log('Chat not found:', chatId);
+            console.error('Chat not found:', chatId);
+            showNotification('Chat not found', 'error');
             return false;
         }
         
         state.currentChatId = chatId;
         
+        // Clear chat area
         if (elements.chatMessages) {
             elements.chatMessages.innerHTML = '';
         }
         
-        if (elements.welcomeScreen) {
-            elements.welcomeScreen.style.display = 'none';
-        }
-        
+        // Update title
         if (elements.chatTitle) {
             elements.chatTitle.textContent = chat.title;
         }
         
+        // Show/hide welcome screen based on messages
+        if (elements.welcomeScreen) {
+            if (chat.messages && chat.messages.length > 0) {
+                elements.welcomeScreen.style.display = 'none';
+            } else {
+                elements.welcomeScreen.style.display = 'flex';
+            }
+        }
+        
+        // Rebuild messages
         if (chat.messages && chat.messages.length > 0) {
+            console.log(`Rebuilding ${chat.messages.length} messages`);
             chat.messages.forEach(msg => {
                 if (msg.type === 'user') {
                     addMessageToUI('user', msg.content);
@@ -416,16 +367,13 @@ async function loadChat(chatId) {
                     displayAIResponse(msg.content);
                 }
             });
-        } else {
-            if (elements.welcomeScreen) {
-                elements.welcomeScreen.style.display = 'flex';
-            }
         }
         
         updateURL(state.currentChatId);
         updateChatHistorySidebar();
         scrollToBottom();
         
+        console.log('Chat loaded successfully:', chatId);
         return true;
     } catch (error) {
         console.error('Error loading chat:', error);
@@ -457,6 +405,7 @@ async function deleteChat(chatId, event) {
         }
         
         updateChatHistorySidebar();
+        showNotification('Chat deleted');
     } catch (error) {
         console.error('Error deleting chat:', error);
         showNotification('Error deleting chat', 'error');
@@ -516,7 +465,7 @@ async function addMessageToChat(sender, content) {
         updateChatHistorySidebar();
     } catch (error) {
         console.error('Error adding message to chat:', error);
-        handleCrash('Failed to save message');
+        showNotification('Error saving message', 'error');
     }
 }
 
@@ -543,7 +492,7 @@ function updateChatHistorySidebar() {
             chatItem.addEventListener('click', function(e) {
                 if (!e.target.classList.contains('delete-chat')) {
                     loadChat(chat.id);
-                    if (window.innerWidth <= 768) {
+                    if (window.innerWidth <= 768 && elements.sidebar) {
                         elements.sidebar.classList.remove('open');
                     }
                 }
@@ -662,7 +611,9 @@ function showTypingIndicator() {
 function removeTypingIndicator() {
     try {
         const typing = document.getElementById('typing-indicator');
-        if (typing) typing.remove();
+        if (typing && typing.parentNode) {
+            typing.parentNode.removeChild(typing);
+        }
     } catch (error) {
         console.error('Error removing typing indicator:', error);
     }
@@ -788,7 +739,11 @@ function showFileError(file, message) {
 function clearUploadedFiles() {
     try {
         const previews = document.querySelectorAll('.file-preview');
-        previews.forEach(preview => preview.remove());
+        previews.forEach(preview => {
+            if (preview.parentNode) {
+                preview.parentNode.removeChild(preview);
+            }
+        });
         state.uploadedFiles = [];
     } catch (error) {
         console.error('Error clearing uploaded files:', error);
@@ -877,7 +832,7 @@ async function handleSend() {
         }
     } catch (error) {
         console.error('Error in handleSend:', error);
-        handleCrash('Send message failed');
+        showNotification('Error sending message', 'error');
     }
 }
 
@@ -922,6 +877,7 @@ async function initializeApp() {
                     state.currentUser = user;
                     updateUserInfo(user);
                     
+                    console.log('Loading user data...');
                     const firestoreSuccess = await loadChatsFromFirestore();
                     if (!firestoreSuccess) {
                         await loadChatsFromLocalStorage();
@@ -949,6 +905,8 @@ async function initializeApp() {
                         await loadChat(chatToLoad);
                     }
                     
+                    state.isInitialized = true;
+                    console.log('App initialized successfully');
                     resolve(user);
                     
                 } else {
@@ -962,9 +920,11 @@ async function initializeApp() {
     });
 }
 
-// ==================== EVENT LISTENERS & INIT ====================
+// ==================== EVENT LISTENERS ====================
 function setupEventListeners() {
     try {
+        console.log('Setting up event listeners...');
+        
         if (elements.sendBtn) {
             elements.sendBtn.addEventListener('click', handleSend);
         }
@@ -1008,38 +968,51 @@ function setupEventListeners() {
             }
         });
 
-        // Setup crash recovery system
-        setupCrashRecovery();
-        
+        console.log('Event listeners setup complete');
     } catch (error) {
         console.error('Error setting up event listeners:', error);
-        handleCrash('Event listener setup failed');
     }
 }
 
 // ==================== START APPLICATION ====================
-document.addEventListener('DOMContentLoaded', async function() {
+async function startApplication() {
     try {
-        console.log('Hela Code starting...');
-        setupEventListeners();
-        await initializeApp();
-        showNotification('Hela Code loaded successfully!');
+        console.log('Starting Hela Code application...');
         
-        // Check for previous crashes
-        const lastCrash = localStorage.getItem('helacode_last_crash');
-        if (lastCrash) {
-            console.log('Previous crash detected:', JSON.parse(lastCrash));
-            localStorage.removeItem('helacode_last_crash');
+        // Step 1: Wait for DOM elements
+        const elementsReady = await initializeElements();
+        if (!elementsReady) {
+            throw new Error('Failed to initialize DOM elements');
         }
         
+        // Step 2: Setup event listeners
+        setupEventListeners();
+        
+        // Step 3: Initialize app with authentication
+        await initializeApp();
+        
+        // Step 4: Show success message
+        showNotification('Hela Code loaded successfully!');
+        
+        console.log('Hela Code application started successfully');
+        
     } catch (error) {
-        console.error('App initialization failed:', error);
-        showNotification('Failed to load app. Reloading...', 'error');
+        console.error('Failed to start application:', error);
+        showNotification('Failed to load app. Please refresh the page.', 'error');
+        
+        // Try to recover after 3 seconds
         setTimeout(() => {
             window.location.reload();
         }, 3000);
     }
-});
+}
+
+// Start the application when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApplication);
+} else {
+    startApplication();
+}
 
 // Global functions for HTML onclick
 window.handleSend = handleSend;
@@ -1048,17 +1021,17 @@ window.deleteChat = deleteChat;
 window.removeFile = removeFile;
 window.shareChat = shareChat;
 
+// Manual recovery function
+window.reloadApp = () => {
+    showNotification('Reloading app...');
+    window.location.reload();
+};
+
 // Feature placeholders
 window.learningChallenges = {
-    showChallengesModal: () => alert('Challenges coming soon!')
+    showChallengesModal: () => alert('Challenges are only for pro users!')
 };
 
 window.achievementSystem = {
-    showAchievementsModal: () => alert('Achievements coming soon!')
-};
-
-// Manual recovery function
-window.recoverApp = () => {
-    showNotification('Manual recovery triggered...');
-    attemptRecovery();
+    showAchievementsModal: () => alert('Achievements are only for pro users!')
 };
