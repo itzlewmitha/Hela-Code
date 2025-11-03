@@ -162,43 +162,57 @@ async function deleteChatFromFirestore(chatId) {
     }
 }
 
-async function loadChatsFromFirestore() {
-    try {
-        console.log('Loading chats from Firestore for user:', state.currentUser.uid);
-        
-        const snapshot = await db.collection('users')
-            .doc(state.currentUser.uid)
-            .collection('chats')
-            .orderBy('updatedAt', 'desc')
-            .get();
-
-        if (snapshot.empty) {
-            console.log('No chats found in Firestore');
-            state.chats = [];
-            return true; // Return true even if empty - that's fine
-        }
-
-        state.chats = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                title: data.title || 'New Chat',
-                messages: data.messages || [],
-                createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-                updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
-            };
-        });
-        
-        console.log(`Loaded ${state.chats.length} chats from Firestore`);
-        return true;
-        
-    } catch (error) {
-        console.error('Firestore load error:', error);
-        // Don't show error to user, just fall back to local storage
+async function loadChat(chatId) {
+    console.log('Loading chat:', chatId);
+    
+    const chat = state.chats.find(c => c.id === chatId);
+    if (!chat) {
+        console.error('Chat not found in state:', chatId);
+        showNotification('Chat not found', 'error');
         return false;
     }
+    
+    state.currentChatId = chatId;
+    
+    // CLEAR and REBUILD the UI properly
+    if (elements.chatMessages) {
+        elements.chatMessages.innerHTML = '';
+    }
+    
+    // Hide welcome screen
+    if (elements.welcomeScreen) {
+        elements.welcomeScreen.style.display = 'none';
+    }
+    
+    // Update title
+    if (elements.chatTitle) {
+        elements.chatTitle.textContent = chat.title;
+    }
+    
+    // Rebuild all messages
+    if (chat.messages && chat.messages.length > 0) {
+        console.log('Rebuilding', chat.messages.length, 'messages');
+        chat.messages.forEach(msg => {
+            if (msg.type === 'user') {
+                addMessageToUI('user', msg.content);
+            } else {
+                displayAIResponse(msg.content);
+            }
+        });
+    } else {
+        console.log('No messages in this chat, showing welcome screen');
+        if (elements.welcomeScreen) {
+            elements.welcomeScreen.style.display = 'flex';
+        }
+    }
+    
+    updateURL(state.currentChatId);
+    updateChatHistorySidebar();
+    scrollToBottom();
+    
+    console.log('Chat loaded successfully:', chatId);
+    return true;
 }
-
 // ==================== LOCAL STORAGE ====================
 function saveChatsToLocalStorage() {
     if (!state.currentUser) return;
@@ -724,53 +738,64 @@ async function initializeApp() {
                 state.currentUser = user;
                 updateUserInfo(user);
                 
-                console.log('User authenticated:', user.uid);
+                console.log('User authenticated on refresh:', user.uid);
                 
                 try {
-                    // Try to load from Firestore first
+                    // ALWAYS load from Firestore first on refresh
+                    console.log('Loading chats from Firestore...');
                     const firestoreSuccess = await loadChatsFromFirestore();
+                    
                     if (!firestoreSuccess) {
-                        console.log('Falling back to local storage');
+                        console.log('Firestore failed, trying local storage...');
                         await loadChatsFromLocalStorage();
                     }
                     
-                    // Handle URL routing
+                    // Handle URL routing AFTER chats are loaded
                     const urlChatId = getChatIdFromURL();
-                    console.log('URL Chat ID:', urlChatId);
+                    console.log('URL Chat ID from refresh:', urlChatId);
+                    console.log('Available chats:', state.chats.map(c => c.id));
+                    
+                    let chatToLoad = null;
                     
                     if (urlChatId) {
-                        // Check if chat exists
+                        // Check if the URL chat exists
                         const urlChat = state.chats.find(chat => chat.id === urlChatId);
                         if (urlChat) {
                             console.log('Loading URL chat:', urlChatId);
-                            await loadChat(urlChatId);
+                            chatToLoad = urlChatId;
                         } else {
-                            console.log('URL chat not found, creating new one:', urlChatId);
-                            // Create new chat with the URL ID
+                            console.log('URL chat not found, creating new one with URL ID');
                             await createNewChat(urlChatId);
+                            chatToLoad = urlChatId;
                         }
                     } else if (state.chats.length > 0) {
                         // Load most recent chat
-                        console.log('Loading most recent chat');
-                        await loadChat(state.chats[0].id);
+                        console.log('Loading most recent chat:', state.chats[0].id);
+                        chatToLoad = state.chats[0].id;
                     } else {
                         // Create first chat
-                        console.log('Creating first chat');
-                        await createNewChat();
+                        console.log('No chats found, creating first chat');
+                        const newChatId = await createNewChat();
+                        chatToLoad = newChatId;
+                    }
+                    
+                    // Load the chat and update UI
+                    if (chatToLoad) {
+                        await loadChat(chatToLoad);
                     }
                     
                     resolve(user);
                     
                 } catch (error) {
-                    console.error('Initialization error:', error);
-                    showNotification('Error loading chats', 'error');
-                    // Create a default chat anyway
+                    console.error('Initialization error on refresh:', error);
+                    showNotification('Error loading your chats', 'error');
+                    // Create a default chat as fallback
                     await createNewChat();
                     resolve(user);
                 }
                 
             } else {
-                console.log('No user, redirecting to login');
+                console.log('No user found, redirecting to login');
                 window.location.href = 'index.html';
             }
         }, reject);
