@@ -1,23 +1,8 @@
 {
-  "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "*.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/chat/(.*)",
-      "dest": "/chat.html"
-    },
-    {
-      "src": "/chat.html/(.*)", 
-      "dest": "/chat.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/chat/:path*",
+      "destination": "/chat.html"
     }
   ]
 }
