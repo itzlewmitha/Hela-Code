@@ -1,8 +1,14 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    }
+  ],
   "routes": [
     {
-      "src": "/chat.html/(.*)",
+      "src": "/chat/(.*)",
       "dest": "/chat.html"
     },
     {
@@ -14,10 +20,6 @@
     {
       "source": "/chat/:path*",
       "destination": "/chat.html"
-    },
-    {
-      "source": "/",
-      "destination": "/index.html"
     }
   ]
 }
