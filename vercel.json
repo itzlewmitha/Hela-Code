@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/chat.html/(.*)",
+      "dest": "/chat.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/chat/:path*",
+      "destination": "/chat.html"
+    },
+    {
+      "source": "/",
+      "destination": "/index.html"
+    }
+  ]
+}
