@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hela Code — AI-Powered Chat Platform</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Hela Code — Loging Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -14,485 +14,239 @@
       padding: 0;
       box-sizing: border-box;
     }
-
+    
     body {
-      height: 100vh;
-      background: linear-gradient(135deg, #1a0b2e 0%, #0d071a 50%, #0c0821 100%);
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 30%, #111425 0%, #0b0c1b 70%);
       font-family: 'Inter', sans-serif;
       color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-      position: relative;
+      overflow-x: hidden;
+      padding: 20px;
     }
-
-    .background-effects {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+    
+    .neon-grid {
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: moveGrid 20s linear infinite;
       z-index: 0;
-      overflow: hidden;
     }
-
-    .floating-shapes {
-      position: absolute;
-      border-radius: 50%;
-      opacity: 0.1;
-      filter: blur(40px);
+    
+    @keyframes moveGrid {
+      0% { background-position: 0 0, 0 0; }
+      100% { background-position: 40px 40px, 40px 40px; }
     }
-
-    .shape-1 {
-      width: 300px;
-      height: 300px;
-      background: #8b5cf6;
-      top: 10%;
-      left: 10%;
-      animation: float 15s infinite ease-in-out;
-    }
-
-    .shape-2 {
-      width: 200px;
-      height: 200px;
-      background: #a855f7;
-      top: 60%;
-      right: 10%;
-      animation: float 12s infinite ease-in-out reverse;
-    }
-
-    .shape-3 {
-      width: 150px;
-      height: 150px;
-      background: #c084fc;
-      bottom: 20%;
-      left: 20%;
-      animation: float 18s infinite ease-in-out;
-    }
-
-    @keyframes float {
-      0%, 100% {
-        transform: translateY(0) rotate(0deg);
-      }
-      50% {
-        transform: translateY(-20px) rotate(10deg);
-      }
-    }
-
-    .particles {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-    }
-
-    .particle {
-      position: absolute;
-      width: 4px;
-      height: 4px;
-      background: rgba(168, 85, 247, 0.5);
-      border-radius: 50%;
-      animation: particle-float 20s infinite linear;
-    }
-
-    @keyframes particle-float {
-      0% {
-        transform: translateY(100vh) rotate(0deg);
-        opacity: 0;
-      }
-      10% {
-        opacity: 1;
-      }
-      90% {
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-100px) rotate(360deg);
-        opacity: 0;
-      }
-    }
-
+    
     .container {
       position: relative;
       z-index: 2;
-      width: 420px;
-      background: rgba(26, 16, 43, 0.8);
-      border: 1px solid rgba(139, 92, 246, 0.3);
-      box-shadow: 0 10px 40px rgba(139, 92, 246, 0.2);
-      border-radius: 20px;
-      padding: 40px 35px;
+      width: 100%;
+      max-width: 370px;
+      background: rgba(15, 15, 35, 0.95);
+      border: 1px solid rgba(162, 89, 255, 0.2);
+      box-shadow: 0 0 25px rgba(162, 89, 255, 0.3);
+      border-radius: 16px;
+      padding: 30px 25px;
       text-align: center;
-      backdrop-filter: blur(15px);
-      animation: fadeInUp 1s ease-out;
+      backdrop-filter: blur(12px);
+      animation: fadeIn 1.2s ease-in-out;
     }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(40px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 25px;
-    }
-
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #8b5cf6, #c084fc);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 12px;
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-    }
-
-    .logo-icon svg {
-      width: 22px;
-      height: 22px;
-      fill: white;
-    }
-
-    .logo-text {
+    
+    h1 {
       font-size: 1.8rem;
       font-weight: 700;
-      background: linear-gradient(90deg, #a855f7, #8b5cf6);
+      background: linear-gradient(90deg, #a259ff, #00e6ff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
     }
-
-    .tagline {
+    
+    p {
       font-size: 0.9rem;
-      color: #c4b5fd;
-      margin-bottom: 30px;
-      font-weight: 500;
-    }
-
-    .form-title {
-      font-size: 1.4rem;
-      font-weight: 600;
+      color: #ccc;
       margin-bottom: 25px;
-      color: #e9d5ff;
+      line-height: 1.4;
     }
-
-    .input-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    .input-label {
-      display: block;
-      font-size: 0.85rem;
-      color: #c4b5fd;
-      margin-bottom: 8px;
-      font-weight: 500;
-    }
-
+    
     input {
       width: 100%;
-      background: rgba(45, 30, 70, 0.6);
-      border: 1px solid rgba(139, 92, 246, 0.2);
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
       padding: 14px 16px;
+      margin-bottom: 15px;
       color: #fff;
       font-size: 0.95rem;
-      transition: all 0.3s ease;
-      font-family: 'Inter', sans-serif;
+      transition: 0.25s;
+      font-family: inherit;
     }
-
-    input::placeholder {
-      color: #a78bfa;
-    }
-
+    
     input:focus {
-      border-color: #8b5cf6;
+      border-color: #a259ff;
       outline: none;
-      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
-      background: rgba(45, 30, 70, 0.8);
+      box-shadow: 0 0 10px rgba(162, 89, 255, 0.4);
     }
-
-    .password-container {
-      position: relative;
+    
+    input::placeholder {
+      color: #888;
     }
-
-    .toggle-password {
-      position: absolute;
-      right: 15px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: #a78bfa;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-
-    .primary-btn {
+    
+    button {
       width: 100%;
-      background: linear-gradient(135deg, #8b5cf6, #a855f7);
+      background: linear-gradient(90deg, #a259ff, #00e6ff);
       color: #fff;
       font-weight: 600;
       padding: 14px;
       border: none;
-      border-radius: 12px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: 0.3s ease;
+      font-family: inherit;
       font-size: 0.95rem;
-      margin-top: 10px;
-      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
     }
-
-    .primary-btn:hover {
+    
+    button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+      box-shadow: 0 0 15px rgba(162, 89, 255, 0.6);
     }
-
-    .primary-btn:active {
-      transform: translateY(0);
-    }
-
-    .divider {
-      display: flex;
-      align-items: center;
-      margin: 25px 0;
-      color: #6d28d9;
-      font-size: 0.85rem;
-    }
-
-    .divider::before,
-    .divider::after {
-      content: "";
-      flex: 1;
-      height: 1px;
-      background: rgba(139, 92, 246, 0.3);
-    }
-
-    .divider span {
-      padding: 0 15px;
-    }
-
+    
     .google-btn {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.95);
-      color: #333;
-      font-weight: 600;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.3s ease;
+      background: #fff;
+      color: #000;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      font-size: 0.95rem;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      gap: 8px;
+      font-weight: 600;
+      margin-top: 10px;
+      transition: 0.3s;
     }
-
+    
     .google-btn:hover {
-      background: #fff;
+      background: #f5f5f5;
       transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
     }
-
+    
     .google-icon {
       width: 20px;
       height: 20px;
       background: url('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg') no-repeat center;
       background-size: contain;
     }
-
+    
     .toggle-link {
-      margin-top: 25px;
+      margin-top: 20px;
       font-size: 0.9rem;
-      color: #a78bfa;
+      color: #a259ff;
       cursor: pointer;
-      transition: color 0.3s ease;
+      transition: 0.3s;
     }
-
+    
     .toggle-link:hover {
-      color: #c4b5fd;
       text-decoration: underline;
+      color: #00e6ff;
     }
-
+    
     .error-message {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      border-radius: 10px;
-      padding: 12px 16px;
-      color: #fca5a5;
-      font-size: 0.85rem;
-      margin-bottom: 20px;
-      display: none;
-      text-align: left;
-    }
-
-    .success-message {
-      background: rgba(34, 197, 94, 0.1);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      border-radius: 10px;
-      padding: 12px 16px;
-      color: #86efac;
-      font-size: 0.85rem;
-      margin-bottom: 20px;
-      display: none;
-      text-align: left;
-    }
-
-    .features {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin-top: 30px;
-    }
-
-    .feature {
-      flex: 1;
-      min-width: 120px;
-      background: rgba(45, 30, 70, 0.5);
-      border-radius: 10px;
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid #ff6b6b;
+      border-radius: 8px;
       padding: 12px;
-      text-align: center;
-      border: 1px solid rgba(139, 92, 246, 0.1);
+      color: #ff6b6b;
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+      display: none;
+      text-align: left;
+      line-height: 1.4;
     }
-
-    .feature-icon {
-      font-size: 1.2rem;
-      margin-bottom: 5px;
-    }
-
-    .feature-text {
-      font-size: 0.75rem;
-      color: #c4b5fd;
-    }
-
+    
     footer {
-      position: absolute;
+      position: fixed;
       bottom: 20px;
       font-size: 0.8rem;
-      color: #6d28d9;
+      color: #555;
       text-align: center;
       width: 100%;
-      z-index: 2;
+      padding: 0 20px;
     }
 
-    /* Loading animation */
-    .loading {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      border-top-color: #fff;
-      animation: spin 1s ease-in-out infinite;
-      margin-right: 10px;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    /* Responsive design */
+    /* Mobile Responsive */
     @media (max-width: 480px) {
-      .container {
-        width: 90%;
-        padding: 30px 25px;
+      body {
+        padding: 15px;
+        align-items: flex-start;
+        padding-top: 40px;
       }
       
-      .features {
-        flex-direction: column;
+      .container {
+        padding: 25px 20px;
+        max-width: 100%;
+      }
+      
+      h1 {
+        font-size: 1.6rem;
+      }
+      
+      p {
+        font-size: 0.85rem;
+      }
+      
+      input, button {
+        padding: 12px 14px;
+      }
+      
+      footer {
+        position: relative;
+        margin-top: 30px;
+        bottom: auto;
+      }
+    }
+
+    @media (max-width: 320px) {
+      .container {
+        padding: 20px 15px;
+      }
+      
+      h1 {
+        font-size: 1.4rem;
       }
     }
   </style>
 </head>
 <body>
-  <div class="background-effects">
-    <div class="floating-shapes shape-1"></div>
-    <div class="floating-shapes shape-2"></div>
-    <div class="floating-shapes shape-3"></div>
-    <div class="particles" id="particles"></div>
-  </div>
+  <div class="neon-grid"></div>
 
   <div class="container">
-    <div class="logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-        </svg>
-      </div>
-      <div class="logo-text">Hela Code</div>
-    </div>
-
-    <p class="tagline">AI-Powered Chat Platform with Advanced Capabilities</p>
-
-    <h2 class="form-title" id="formTitle">Sign In to Your Account</h2>
+    <h1>Hela Code</h1>
+    <p id="formTitle">Sign In to Your Account</p>
 
     <div class="error-message" id="errorMessage"></div>
-    <div class="success-message" id="successMessage"></div>
 
-    <div class="input-group" id="nameField" style="display:none;">
-      <label class="input-label" for="name">Full Name</label>
-      <input type="text" id="name" placeholder="Enter your full name">
-    </div>
+    <!-- Full name visible only during sign up -->
+    <input type="text" id="nameField" placeholder="Full Name" style="display:none;">
+    <input type="email" id="email" placeholder="Email Address">
+    <input type="password" id="password" placeholder="Password">
 
-    <div class="input-group">
-      <label class="input-label" for="email">Email Address</label>
-      <input type="email" id="email" placeholder="your.email@example.com">
-    </div>
-
-    <div class="input-group">
-      <label class="input-label" for="password">Password</label>
-      <div class="password-container">
-        <input type="password" id="password" placeholder="Enter your password">
-        <button class="toggle-password" id="togglePassword" type="button">Show</button>
-      </div>
-    </div>
-
-    <button class="primary-btn" id="authBtn">
-      <span>Sign In</span>
-    </button>
-
-    <div class="divider">
-      <span>OR</span>
-    </div>
-
+    <button id="authBtn">Sign In</button>
     <button class="google-btn" id="googleBtn">
       <span class="google-icon"></span>
       Continue with Google
     </button>
 
     <div class="toggle-link" id="switchForm">Don't have an account? Create one</div>
-
-    <div class="features">
-      <div class="feature">
-        <div class="feature-icon">🤖</div>
-        <div class="feature-text">AI Models</div>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">💬</div>
-        <div class="feature-text">Real-time Chat</div>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">📁</div>
-        <div class="feature-text">File Upload</div>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">🔍</div>
-        <div class="feature-text">Web Search</div>
-      </div>
-    </div>
   </div>
 
   <footer>Made with ⚡ by Lewmitha — Pix Studios Sri Lanka</footer>
@@ -511,81 +265,37 @@
       firebase.initializeApp(firebaseConfig);
     }
 
-    // Create background particles
-    function createParticles() {
-      const particlesContainer = document.getElementById('particles');
-      const particleCount = 30;
-      
-      for (let i = 0; i < particleCount; i++) {
-        const particle = document.createElement('div');
-        particle.classList.add('particle');
-        
-        // Random position and animation delay
-        const left = Math.random() * 100;
-        const delay = Math.random() * 20;
-        const duration = 15 + Math.random() * 15;
-        
-        particle.style.left = `${left}%`;
-        particle.style.animationDelay = `${delay}s`;
-        particle.style.animationDuration = `${duration}s`;
-        
-        particlesContainer.appendChild(particle);
-      }
-    }
-
     // DOM Elements
     const switchForm = document.getElementById('switchForm');
     const formTitle = document.getElementById('formTitle');
     const authBtn = document.getElementById('authBtn');
     const nameField = document.getElementById('nameField');
-    const nameInput = document.getElementById('name');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const togglePassword = document.getElementById('togglePassword');
+    const emailField = document.getElementById('email');
+    const passwordField = document.getElementById('password');
     const googleBtn = document.getElementById('googleBtn');
     const errorMessage = document.getElementById('errorMessage');
-    const successMessage = document.getElementById('successMessage');
     
     let isSignUp = false;
-
-    // Initialize particles
-    createParticles();
 
     // Form switching
     switchForm.addEventListener('click', () => {
       isSignUp = !isSignUp;
       formTitle.textContent = isSignUp ? 'Create Your Account' : 'Sign In to Your Account';
-      authBtn.innerHTML = isSignUp ? 'Sign Up' : 'Sign In';
+      authBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
       switchForm.textContent = isSignUp ? 'Already have an account? Sign In' : 'Don\'t have an account? Create one';
       nameField.style.display = isSignUp ? 'block' : 'none';
-      hideMessages();
-    });
-
-    // Toggle password visibility
-    togglePassword.addEventListener('click', () => {
-      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-      passwordInput.setAttribute('type', type);
-      togglePassword.textContent = type === 'password' ? 'Show' : 'Hide';
+      hideError();
     });
 
     // Show error message
     function showError(message) {
       errorMessage.textContent = message;
       errorMessage.style.display = 'block';
-      successMessage.style.display = 'none';
     }
 
-    // Show success message
-    function showSuccess(message) {
-      successMessage.textContent = message;
-      successMessage.style.display = 'block';
+    // Hide error message
+    function hideError() {
       errorMessage.style.display = 'none';
-    }
-
-    // Hide all messages
-    function hideMessages() {
-      errorMessage.style.display = 'none';
-      successMessage.style.display = 'none';
     }
 
     // Save user and redirect
@@ -598,19 +308,14 @@
       };
       
       localStorage.setItem('helaUser', JSON.stringify(userData));
-      showSuccess('Authentication successful! Redirecting...');
-      
-      // Redirect after a short delay
-      setTimeout(() => {
-        window.location.href = "chat.html";
-      }, 1000);
+      window.location.href = "chat.html";
     }
 
     // Email/password authentication
     authBtn.addEventListener('click', async () => {
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
-      const name = nameInput.value.trim();
+      const email = emailField.value.trim();
+      const password = passwordField.value;
+      const name = nameField.value.trim();
 
       if (!email || !password) {
         showError('Please fill in all fields');
@@ -627,9 +332,8 @@
         return;
       }
 
-      // Show loading state
       authBtn.disabled = true;
-      authBtn.innerHTML = '<span class="loading"></span> Processing...';
+      authBtn.textContent = 'Processing...';
 
       try {
         if (isSignUp) {
@@ -650,14 +354,14 @@
       } catch (error) {
         showError(error.message.replace('Firebase:', '').trim());
         authBtn.disabled = false;
-        authBtn.innerHTML = isSignUp ? 'Sign Up' : 'Sign In';
+        authBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
       }
     });
 
     // Google authentication
     googleBtn.addEventListener('click', async () => {
       googleBtn.disabled = true;
-      googleBtn.innerHTML = '<span class="loading"></span> Connecting...';
+      googleBtn.innerHTML = '<span class="google-icon"></span> Connecting...';
 
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
@@ -671,7 +375,7 @@
     });
 
     // Enter key support
-    passwordInput.addEventListener('keypress', (e) => {
+    passwordField.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         authBtn.click();
       }
