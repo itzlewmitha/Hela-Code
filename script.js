@@ -16,6 +16,119 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// ==================== CRASH RECOVERY SYSTEM ====================
+let crashRecovery = {
+    crashCount: 0,
+    maxCrashes: 3,
+    lastCrashTime: 0,
+    isRecovering: false
+};
+
+function setupCrashRecovery() {
+    // Handle uncaught errors
+    window.addEventListener('error', (event) => {
+        console.error('Global error caught:', event.error);
+        handleCrash('Global error: ' + event.error.message);
+    });
+
+    // Handle unhandled promise rejections
+    window.addEventListener('unhandledrejection', (event) => {
+        console.error('Unhandled promise rejection:', event.reason);
+        handleCrash('Promise rejection: ' + event.reason);
+    });
+
+    // Monitor for frozen UI
+    let lastActivity = Date.now();
+    const activityMonitor = setInterval(() => {
+        const now = Date.now();
+        if (now - lastActivity > 30000 && !crashRecovery.isRecovering) { // 30 seconds no activity
+            console.warn('UI appears frozen, triggering recovery');
+            handleCrash('UI frozen - no activity for 30 seconds');
+        }
+    }, 10000);
+
+    // Update activity on user interaction
+    ['click', 'keydown', 'mousemove', 'scroll'].forEach(event => {
+        document.addEventListener(event, () => {
+            lastActivity = Date.now();
+        });
+    });
+}
+
+function handleCrash(reason) {
+    if (crashRecovery.isRecovering) return;
+    
+    crashRecovery.isRecovering = true;
+    crashRecovery.crashCount++;
+    crashRecovery.lastCrashTime = Date.now();
+    
+    console.error(`Crash detected (${crashRecovery.crashCount}/3):`, reason);
+    
+    // Save crash info to localStorage for debugging
+    const crashInfo = {
+        reason: reason,
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+        user: state.currentUser?.uid || 'unknown'
+    };
+    localStorage.setItem('helacode_last_crash', JSON.stringify(crashInfo));
+    
+    if (crashRecovery.crashCount >= crashRecovery.maxCrashes) {
+        // Too many crashes, force hard reload
+        showNotification('Multiple errors detected. Reloading app...', 'error');
+        setTimeout(() => {
+            window.location.reload(true); // Force reload from server
+        }, 2000);
+        return;
+    }
+    
+    // Try soft recovery first
+    showNotification('Recovering from error...', 'error');
+    attemptRecovery();
+}
+
+function attemptRecovery() {
+    try {
+        console.log('Attempting application recovery...');
+        
+        // Clear any stuck states
+        state.uploadedFiles = [];
+        removeTypingIndicator();
+        
+        // Re-initialize critical components
+        if (state.currentUser) {
+            // Re-load current chat
+            if (state.currentChatId) {
+                loadChat(state.currentChatId).catch(() => {
+                    // If that fails, load most recent chat
+                    if (state.chats.length > 0) {
+                        loadChat(state.chats[0].id);
+                    } else {
+                        createNewChat();
+                    }
+                });
+            } else if (state.chats.length > 0) {
+                loadChat(state.chats[0].id);
+            } else {
+                createNewChat();
+            }
+        }
+        
+        // Reset recovery state after successful recovery
+        setTimeout(() => {
+            crashRecovery.isRecovering = false;
+            showNotification('Application recovered successfully');
+        }, 1000);
+        
+    } catch (recoveryError) {
+        console.error('Recovery failed:', recoveryError);
+        // Recovery failed, force reload
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }
+}
+
 // DOM Elements
 const elements = {
     chatMessages: document.getElementById('chatMessages'),
@@ -53,29 +166,46 @@ let state = {
 
 // ==================== UTILITY FUNCTIONS ====================
 function showNotification(message, type = 'success') {
-    const notif = document.createElement('div');
-    notif.className = `notification ${type === 'error' ? 'error-message' : 'copied-notification'}`;
-    notif.textContent = message;
-    document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 3000);
+    try {
+        const notif = document.createElement('div');
+        notif.className = `notification ${type === 'error' ? 'error-message' : 'copied-notification'}`;
+        notif.textContent = message;
+        document.body.appendChild(notif);
+        setTimeout(() => {
+            if (notif.parentNode) {
+                notif.parentNode.removeChild(notif);
+            }
+        }, 3000);
+    } catch (error) {
+        console.error('Error showing notification:', error);
+    }
 }
 
 function escapeHTML(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
 function scrollToBottom() {
-    if (elements.chatMessages) {
-        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    try {
+        if (elements.chatMessages) {
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        }
+    } catch (error) {
+        console.error('Error scrolling:', error);
     }
 }
 
 function autoResizeTextarea() {
-    if (elements.chatInput) {
-        elements.chatInput.style.height = 'auto';
-        elements.chatInput.style.height = Math.min(elements.chatInput.scrollHeight, 120) + 'px';
+    try {
+        if (elements.chatInput) {
+            elements.chatInput.style.height = 'auto';
+            elements.chatInput.style.height = Math.min(elements.chatInput.scrollHeight, 120) + 'px';
+        }
+    } catch (error) {
+        console.error('Error resizing textarea:', error);
     }
 }
 
@@ -91,40 +221,46 @@ function generateChatId() {
     return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-// ==================== SIMPLE URL ROUTING ====================
+// ==================== URL ROUTING ====================
 function getChatIdFromURL() {
-    const path = window.location.pathname;
-    console.log('Current path:', path);
-    
-    // Extract chat ID from URL
-    const match = path.match(/\/(chat|chat\.html)\/(.+)/);
-    return match ? match[2] : null;
+    try {
+        const path = window.location.pathname;
+        const match = path.match(/\/(chat|chat\.html)\/(.+)/);
+        return match ? match[2] : null;
+    } catch (error) {
+        console.error('Error getting chat ID from URL:', error);
+        return null;
+    }
 }
 
 function updateURL(chatId) {
-    if (!chatId) return;
-    
-    // Use clean URL format: /chat/chat_id
-    const newPath = `/chat/${chatId}`;
-    
-    // Update URL without page reload
-    window.history.pushState({ chatId }, '', newPath);
-    
-    // Show share button
-    if (elements.shareChatBtn) {
-        elements.shareChatBtn.style.display = 'flex';
-        elements.shareChatBtn.onclick = () => shareChat(chatId);
+    try {
+        if (!chatId) return;
+        
+        const newPath = `/chat/${chatId}`;
+        window.history.pushState({ chatId }, '', newPath);
+        
+        if (elements.shareChatBtn) {
+            elements.shareChatBtn.style.display = 'flex';
+            elements.shareChatBtn.onclick = () => shareChat(chatId);
+        }
+    } catch (error) {
+        console.error('Error updating URL:', error);
     }
 }
 
 function shareChat(chatId) {
-    const shareUrl = `${window.location.origin}/chat/${chatId}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-        showNotification('Chat link copied to clipboard!');
-    }).catch(() => {
-        // Fallback
-        prompt('Copy this chat link:', shareUrl);
-    });
+    try {
+        const shareUrl = `${window.location.origin}/chat/${chatId}`;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            showNotification('Chat link copied to clipboard!');
+        }).catch(() => {
+            prompt('Copy this chat link:', shareUrl);
+        });
+    } catch (error) {
+        console.error('Error sharing chat:', error);
+        showNotification('Error sharing chat', 'error');
+    }
 }
 
 // ==================== FIREBASE OPERATIONS ====================
@@ -162,61 +298,41 @@ async function deleteChatFromFirestore(chatId) {
     }
 }
 
-async function loadChat(chatId) {
-    console.log('Loading chat:', chatId);
-    
-    const chat = state.chats.find(c => c.id === chatId);
-    if (!chat) {
-        console.error('Chat not found in state:', chatId);
-        showNotification('Chat not found', 'error');
+async function loadChatsFromFirestore() {
+    try {
+        const snapshot = await db.collection('users')
+            .doc(state.currentUser.uid)
+            .collection('chats')
+            .orderBy('updatedAt', 'desc')
+            .get();
+
+        if (snapshot.empty) {
+            state.chats = [];
+            return true;
+        }
+
+        state.chats = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                title: data.title || 'New Chat',
+                messages: data.messages || [],
+                createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+                updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+            };
+        });
+        
+        return true;
+    } catch (error) {
+        console.error('Firestore load error:', error);
         return false;
     }
-    
-    state.currentChatId = chatId;
-    
-    // CLEAR and REBUILD the UI properly
-    if (elements.chatMessages) {
-        elements.chatMessages.innerHTML = '';
-    }
-    
-    // Hide welcome screen
-    if (elements.welcomeScreen) {
-        elements.welcomeScreen.style.display = 'none';
-    }
-    
-    // Update title
-    if (elements.chatTitle) {
-        elements.chatTitle.textContent = chat.title;
-    }
-    
-    // Rebuild all messages
-    if (chat.messages && chat.messages.length > 0) {
-        console.log('Rebuilding', chat.messages.length, 'messages');
-        chat.messages.forEach(msg => {
-            if (msg.type === 'user') {
-                addMessageToUI('user', msg.content);
-            } else {
-                displayAIResponse(msg.content);
-            }
-        });
-    } else {
-        console.log('No messages in this chat, showing welcome screen');
-        if (elements.welcomeScreen) {
-            elements.welcomeScreen.style.display = 'flex';
-        }
-    }
-    
-    updateURL(state.currentChatId);
-    updateChatHistorySidebar();
-    scrollToBottom();
-    
-    console.log('Chat loaded successfully:', chatId);
-    return true;
 }
+
 // ==================== LOCAL STORAGE ====================
 function saveChatsToLocalStorage() {
-    if (!state.currentUser) return;
     try {
+        if (!state.currentUser) return;
         localStorage.setItem(`helaChats_${state.currentUser.uid}`, JSON.stringify(state.chats));
     } catch (error) {
         console.error('Local storage save error:', error);
@@ -224,8 +340,8 @@ function saveChatsToLocalStorage() {
 }
 
 function loadChatsFromLocalStorage() {
-    if (!state.currentUser) return false;
     try {
+        if (!state.currentUser) return false;
         const saved = localStorage.getItem(`helaChats_${state.currentUser.uid}`);
         if (saved) {
             state.chats = JSON.parse(saved);
@@ -239,296 +355,342 @@ function loadChatsFromLocalStorage() {
 }
 
 // ==================== CHAT MANAGEMENT ====================
-async function createNewChat() {
-    const newChat = {
-        id: generateChatId(),
-        title: 'New Chat',
-        messages: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-    };
-    
-    state.chats.unshift(newChat);
-    state.currentChatId = newChat.id;
-    
-    await saveChatToFirestore(newChat);
-    saveChatsToLocalStorage();
-    
-    // Update UI
-    if (elements.chatMessages) elements.chatMessages.innerHTML = '';
-    if (elements.welcomeScreen) elements.welcomeScreen.style.display = 'flex';
-    if (elements.chatTitle) elements.chatTitle.textContent = 'New Chat';
-    
-    updateURL(state.currentChatId);
-    updateChatHistorySidebar();
-    
-    return newChat.id;
+async function createNewChat(specificId = null) {
+    try {
+        const newChat = {
+            id: specificId || generateChatId(),
+            title: 'New Chat',
+            messages: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        state.chats.unshift(newChat);
+        state.currentChatId = newChat.id;
+        
+        await saveChatToFirestore(newChat);
+        saveChatsToLocalStorage();
+        
+        if (elements.chatMessages) elements.chatMessages.innerHTML = '';
+        if (elements.welcomeScreen) elements.welcomeScreen.style.display = 'flex';
+        if (elements.chatTitle) elements.chatTitle.textContent = 'New Chat';
+        
+        updateURL(state.currentChatId);
+        updateChatHistorySidebar();
+        
+        return newChat.id;
+    } catch (error) {
+        console.error('Error creating new chat:', error);
+        handleCrash('Failed to create new chat');
+        return null;
+    }
 }
 
 async function loadChat(chatId) {
-    const chat = state.chats.find(c => c.id === chatId);
-    if (!chat) {
-        console.log('Chat not found:', chatId);
+    try {
+        const chat = state.chats.find(c => c.id === chatId);
+        if (!chat) {
+            console.log('Chat not found:', chatId);
+            return false;
+        }
+        
+        state.currentChatId = chatId;
+        
+        if (elements.chatMessages) {
+            elements.chatMessages.innerHTML = '';
+        }
+        
+        if (elements.welcomeScreen) {
+            elements.welcomeScreen.style.display = 'none';
+        }
+        
+        if (elements.chatTitle) {
+            elements.chatTitle.textContent = chat.title;
+        }
+        
+        if (chat.messages && chat.messages.length > 0) {
+            chat.messages.forEach(msg => {
+                if (msg.type === 'user') {
+                    addMessageToUI('user', msg.content);
+                } else {
+                    displayAIResponse(msg.content);
+                }
+            });
+        } else {
+            if (elements.welcomeScreen) {
+                elements.welcomeScreen.style.display = 'flex';
+            }
+        }
+        
+        updateURL(state.currentChatId);
+        updateChatHistorySidebar();
+        scrollToBottom();
+        
+        return true;
+    } catch (error) {
+        console.error('Error loading chat:', error);
+        showNotification('Error loading chat', 'error');
         return false;
     }
-    
-    state.currentChatId = chatId;
-    
-    // Clear chat area
-    if (elements.chatMessages) {
-        elements.chatMessages.innerHTML = '';
-    }
-    
-    // Hide welcome screen
-    if (elements.welcomeScreen) {
-        elements.welcomeScreen.style.display = 'none';
-    }
-    
-    // Update title
-    if (elements.chatTitle) {
-        elements.chatTitle.textContent = chat.title;
-    }
-    
-    // Display messages
-    chat.messages.forEach(msg => {
-        if (msg.type === 'user') {
-            addMessageToUI('user', msg.content);
-        } else {
-            displayAIResponse(msg.content);
-        }
-    });
-    
-    updateURL(state.currentChatId);
-    updateChatHistorySidebar();
-    scrollToBottom();
-    
-    return true;
 }
 
 async function deleteChat(chatId, event) {
-    if (event) event.stopPropagation();
-    
-    if (!confirm('Are you sure you want to delete this chat?')) {
-        return;
-    }
-    
-    // Remove from state
-    state.chats = state.chats.filter(chat => chat.id !== chatId);
-    
-    // Delete from Firestore
-    await deleteChatFromFirestore(chatId);
-    
-    // Update local storage
-    saveChatsToLocalStorage();
-    
-    // Handle current chat deletion
-    if (state.currentChatId === chatId) {
-        if (state.chats.length > 0) {
-            state.currentChatId = state.chats[0].id;
-            await loadChat(state.currentChatId);
-        } else {
-            await createNewChat();
+    try {
+        if (event) event.stopPropagation();
+        
+        if (!confirm('Are you sure you want to delete this chat?')) {
+            return;
         }
+        
+        state.chats = state.chats.filter(chat => chat.id !== chatId);
+        
+        await deleteChatFromFirestore(chatId);
+        saveChatsToLocalStorage();
+        
+        if (state.currentChatId === chatId) {
+            if (state.chats.length > 0) {
+                state.currentChatId = state.chats[0].id;
+                await loadChat(state.currentChatId);
+            } else {
+                await createNewChat();
+            }
+        }
+        
+        updateChatHistorySidebar();
+    } catch (error) {
+        console.error('Error deleting chat:', error);
+        showNotification('Error deleting chat', 'error');
     }
-    
-    updateChatHistorySidebar();
 }
 
 function updateChatTitle(chatId, firstMessage) {
-    const chat = state.chats.find(c => c.id === chatId);
-    if (chat && chat.title === 'New Chat') {
-        const title = firstMessage.length > 30 
-            ? firstMessage.substring(0, 30) + '...' 
-            : firstMessage;
-        chat.title = title;
-        chat.updatedAt = new Date().toISOString();
-        
-        saveChatToFirestore(chat);
-        saveChatsToLocalStorage();
-        
-        updateChatHistorySidebar();
-        
-        if (elements.chatTitle && state.currentChatId === chatId) {
-            elements.chatTitle.textContent = title;
+    try {
+        const chat = state.chats.find(c => c.id === chatId);
+        if (chat && chat.title === 'New Chat') {
+            const title = firstMessage.length > 30 
+                ? firstMessage.substring(0, 30) + '...' 
+                : firstMessage;
+            chat.title = title;
+            chat.updatedAt = new Date().toISOString();
+            
+            saveChatToFirestore(chat);
+            saveChatsToLocalStorage();
+            
+            updateChatHistorySidebar();
+            
+            if (elements.chatTitle && state.currentChatId === chatId) {
+                elements.chatTitle.textContent = title;
+            }
         }
+    } catch (error) {
+        console.error('Error updating chat title:', error);
     }
 }
 
 async function addMessageToChat(sender, content) {
-    if (!state.currentChatId) return;
-    
-    const chat = state.chats.find(c => c.id === state.currentChatId);
-    if (!chat) return;
-    
-    chat.messages.push({
-        type: sender,
-        content: content,
-        timestamp: new Date().toISOString()
-    });
-    
-    // Keep only last 100 messages
-    if (chat.messages.length > 100) {
-        chat.messages = chat.messages.slice(-100);
+    try {
+        if (!state.currentChatId) return;
+        
+        const chat = state.chats.find(c => c.id === state.currentChatId);
+        if (!chat) return;
+        
+        chat.messages.push({
+            type: sender,
+            content: content,
+            timestamp: new Date().toISOString()
+        });
+        
+        if (chat.messages.length > 100) {
+            chat.messages = chat.messages.slice(-100);
+        }
+        
+        chat.updatedAt = new Date().toISOString();
+        
+        if (sender === 'user' && chat.messages.length === 1) {
+            await updateChatTitle(state.currentChatId, content);
+        }
+        
+        await saveChatToFirestore(chat);
+        saveChatsToLocalStorage();
+        
+        updateChatHistorySidebar();
+    } catch (error) {
+        console.error('Error adding message to chat:', error);
+        handleCrash('Failed to save message');
     }
-    
-    chat.updatedAt = new Date().toISOString();
-    
-    // Update title if first user message
-    if (sender === 'user' && chat.messages.length === 1) {
-        await updateChatTitle(state.currentChatId, content);
-    }
-    
-    // Save to both storage
-    await saveChatToFirestore(chat);
-    saveChatsToLocalStorage();
-    
-    // Update sidebar
-    updateChatHistorySidebar();
 }
 
 function updateChatHistorySidebar() {
-    if (!elements.chatHistory) return;
-    
-    elements.chatHistory.innerHTML = '';
-    
-    if (state.chats.length === 0) {
-        elements.chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
-        return;
-    }
-    
-    state.chats.forEach(chat => {
-        const chatItem = document.createElement('div');
-        chatItem.className = `chat-item ${chat.id === state.currentChatId ? 'active' : ''}`;
-        chatItem.innerHTML = `
-            <span class="chat-item-icon">💬</span>
-            <span class="chat-item-title">${escapeHTML(chat.title)}</span>
-            <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
-        `;
+    try {
+        if (!elements.chatHistory) return;
         
-        chatItem.addEventListener('click', function(e) {
-            if (!e.target.classList.contains('delete-chat')) {
-                loadChat(chat.id);
-                if (window.innerWidth <= 768) {
-                    elements.sidebar.classList.remove('open');
+        elements.chatHistory.innerHTML = '';
+        
+        if (state.chats.length === 0) {
+            elements.chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
+            return;
+        }
+        
+        state.chats.forEach(chat => {
+            const chatItem = document.createElement('div');
+            chatItem.className = `chat-item ${chat.id === state.currentChatId ? 'active' : ''}`;
+            chatItem.innerHTML = `
+                <span class="chat-item-icon">💬</span>
+                <span class="chat-item-title">${escapeHTML(chat.title)}</span>
+                <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">🗑️</button>
+            `;
+            
+            chatItem.addEventListener('click', function(e) {
+                if (!e.target.classList.contains('delete-chat')) {
+                    loadChat(chat.id);
+                    if (window.innerWidth <= 768) {
+                        elements.sidebar.classList.remove('open');
+                    }
                 }
-            }
+            });
+            
+            elements.chatHistory.appendChild(chatItem);
         });
-        
-        elements.chatHistory.appendChild(chatItem);
-    });
+    } catch (error) {
+        console.error('Error updating chat history:', error);
+    }
 }
 
 // ==================== UI MESSAGE FUNCTIONS ====================
 function addMessageToUI(sender, text) {
-    if (!elements.chatMessages) return;
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}`;
-    
-    const messageContent = document.createElement('div');
-    messageContent.className = 'message-content';
-    
-    if (sender === 'ai') {
+    try {
+        if (!elements.chatMessages) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        if (sender === 'ai') {
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = 'H';
+            messageDiv.appendChild(avatar);
+        }
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = `message-bubble ${sender === 'ai' ? 'ai-bubble' : ''}`;
+        messageBubble.textContent = text;
+        
+        messageContent.appendChild(messageBubble);
+        messageDiv.appendChild(messageContent);
+        elements.chatMessages.appendChild(messageDiv);
+        
+        scrollToBottom();
+    } catch (error) {
+        console.error('Error adding message to UI:', error);
+    }
+}
+
+function displayAIResponse(content) {
+    try {
+        if (!elements.chatMessages) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ai';
+        
         const avatar = document.createElement('div');
         avatar.className = 'message-avatar';
         avatar.textContent = 'H';
         messageDiv.appendChild(avatar);
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message-bubble ai-bubble';
+        
+        const formattedContent = content
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\`(.*?)\`/g, '<code>$1</code>');
+        
+        messageBubble.innerHTML = formattedContent;
+        
+        messageContent.appendChild(messageBubble);
+        messageDiv.appendChild(messageContent);
+        elements.chatMessages.appendChild(messageDiv);
+        
+        scrollToBottom();
+    } catch (error) {
+        console.error('Error displaying AI response:', error);
     }
-    
-    const messageBubble = document.createElement('div');
-    messageBubble.className = `message-bubble ${sender === 'ai' ? 'ai-bubble' : ''}`;
-    messageBubble.textContent = text;
-    
-    messageContent.appendChild(messageBubble);
-    messageDiv.appendChild(messageContent);
-    elements.chatMessages.appendChild(messageDiv);
-    
-    scrollToBottom();
-}
-
-function displayAIResponse(content) {
-    if (!elements.chatMessages) return;
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message ai';
-    
-    const avatar = document.createElement('div');
-    avatar.className = 'message-avatar';
-    avatar.textContent = 'H';
-    messageDiv.appendChild(avatar);
-    
-    const messageContent = document.createElement('div');
-    messageContent.className = 'message-content';
-    
-    const messageBubble = document.createElement('div');
-    messageBubble.className = 'message-bubble ai-bubble';
-    
-    // Simple formatting - you can enhance this later
-    const formattedContent = content
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\`(.*?)\`/g, '<code>$1</code>');
-    
-    messageBubble.innerHTML = formattedContent;
-    
-    messageContent.appendChild(messageBubble);
-    messageDiv.appendChild(messageContent);
-    elements.chatMessages.appendChild(messageDiv);
-    
-    scrollToBottom();
 }
 
 function showTypingIndicator() {
-    removeTypingIndicator();
-    
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'message ai';
-    typingDiv.id = 'typing-indicator';
-    
-    const avatar = document.createElement('div');
-    avatar.className = 'message-avatar';
-    avatar.textContent = 'H';
-    typingDiv.appendChild(avatar);
-    
-    const messageContent = document.createElement('div');
-    messageContent.className = 'message-content';
-    
-    const messageBubble = document.createElement('div');
-    messageBubble.className = 'message-bubble ai-bubble typing-indicator';
-    messageBubble.innerHTML = `
-        <div class="typing-dots">
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
-        </div>
-        <span>Hela Code is thinking...</span>
-    `;
-    
-    messageContent.appendChild(messageBubble);
-    typingDiv.appendChild(messageContent);
-    elements.chatMessages.appendChild(typingDiv);
-    
-    scrollToBottom();
+    try {
+        removeTypingIndicator();
+        
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message ai';
+        typingDiv.id = 'typing-indicator';
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = 'H';
+        typingDiv.appendChild(avatar);
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message-bubble ai-bubble typing-indicator';
+        messageBubble.innerHTML = `
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+            <span>Hela Code is thinking...</span>
+        `;
+        
+        messageContent.appendChild(messageBubble);
+        typingDiv.appendChild(messageContent);
+        elements.chatMessages.appendChild(typingDiv);
+        
+        scrollToBottom();
+    } catch (error) {
+        console.error('Error showing typing indicator:', error);
+    }
 }
 
 function removeTypingIndicator() {
-    const typing = document.getElementById('typing-indicator');
-    if (typing) typing.remove();
+    try {
+        const typing = document.getElementById('typing-indicator');
+        if (typing) typing.remove();
+    } catch (error) {
+        console.error('Error removing typing indicator:', error);
+    }
 }
 
 // ==================== FILE UPLOAD ====================
 function initFileUpload() {
-    if (elements.fileBtn && elements.fileInput) {
-        elements.fileBtn.addEventListener('click', () => elements.fileInput.click());
-        elements.fileInput.addEventListener('change', handleFileSelect);
+    try {
+        if (elements.fileBtn && elements.fileInput) {
+            elements.fileBtn.addEventListener('click', () => elements.fileInput.click());
+            elements.fileInput.addEventListener('change', handleFileSelect);
+        }
+    } catch (error) {
+        console.error('Error initializing file upload:', error);
     }
 }
 
 function handleFileSelect(event) {
-    const files = Array.from(event.target.files);
-    if (files.length === 0) return;
+    try {
+        const files = Array.from(event.target.files);
+        if (files.length === 0) return;
 
-    files.forEach(file => readFileContent(file));
-    elements.fileInput.value = '';
+        files.forEach(file => readFileContent(file));
+        elements.fileInput.value = '';
+    } catch (error) {
+        console.error('Error handling file select:', error);
+        showNotification('Error uploading file', 'error');
+    }
 }
 
 function readFileContent(file) {
@@ -567,50 +729,70 @@ function readFileContent(file) {
 }
 
 function displayFilePreview(fileData) {
-    if (!elements.chatMessages) return;
+    try {
+        if (!elements.chatMessages) return;
 
-    const previewDiv = document.createElement('div');
-    previewDiv.className = 'file-preview';
-    previewDiv.innerHTML = `
-        <div class="file-preview-header">
-            <div class="file-name">${escapeHTML(fileData.name)}</div>
-            <button class="remove-file" onclick="removeFile('${fileData.name}')">×</button>
-        </div>
-        <div class="file-content">${escapeHTML(fileData.content.substring(0, 500))}${fileData.content.length > 500 ? '...' : ''}</div>
-    `;
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'file-preview';
+        previewDiv.innerHTML = `
+            <div class="file-preview-header">
+                <div class="file-name">${escapeHTML(fileData.name)}</div>
+                <button class="remove-file" onclick="removeFile('${fileData.name}')">×</button>
+            </div>
+            <div class="file-content">${escapeHTML(fileData.content.substring(0, 500))}${fileData.content.length > 500 ? '...' : ''}</div>
+        `;
 
-    elements.chatMessages.appendChild(previewDiv);
-    scrollToBottom();
+        elements.chatMessages.appendChild(previewDiv);
+        scrollToBottom();
+    } catch (error) {
+        console.error('Error displaying file preview:', error);
+    }
 }
 
 function removeFile(fileName) {
-    state.uploadedFiles = state.uploadedFiles.filter(file => file.name !== fileName);
-    
-    const previews = document.querySelectorAll('.file-preview');
-    previews.forEach(preview => {
-        if (preview.querySelector('.file-name').textContent === fileName) {
-            preview.remove();
-        }
-    });
-    
-    showNotification(`"${fileName}" removed`);
+    try {
+        state.uploadedFiles = state.uploadedFiles.filter(file => file.name !== fileName);
+        
+        const previews = document.querySelectorAll('.file-preview');
+        previews.forEach(preview => {
+            if (preview.querySelector('.file-name').textContent === fileName) {
+                preview.remove();
+            }
+        });
+        
+        showNotification(`"${fileName}" removed`);
+    } catch (error) {
+        console.error('Error removing file:', error);
+    }
 }
 
 function showFileError(file, message) {
-    if (!elements.chatMessages) return;
+    try {
+        if (!elements.chatMessages) return;
 
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'file-error';
-    errorDiv.textContent = `${file.name}: ${message}`;
-    elements.chatMessages.appendChild(errorDiv);
-    scrollToBottom();
-    setTimeout(() => errorDiv.remove(), 5000);
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'file-error';
+        errorDiv.textContent = `${file.name}: ${message}`;
+        elements.chatMessages.appendChild(errorDiv);
+        scrollToBottom();
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 5000);
+    } catch (error) {
+        console.error('Error showing file error:', error);
+    }
 }
 
 function clearUploadedFiles() {
-    const previews = document.querySelectorAll('.file-preview');
-    previews.forEach(preview => preview.remove());
-    state.uploadedFiles = [];
+    try {
+        const previews = document.querySelectorAll('.file-preview');
+        previews.forEach(preview => preview.remove());
+        state.uploadedFiles = [];
+    } catch (error) {
+        console.error('Error clearing uploaded files:', error);
+    }
 }
 
 // ==================== AI API ====================
@@ -648,221 +830,214 @@ async function callAI(userMessage) {
 
 // ==================== MAIN CHAT HANDLER ====================
 async function handleSend() {
-    const text = elements.chatInput?.value.trim() || '';
-    const hasFiles = state.uploadedFiles.length > 0;
-    
-    if (!text && !hasFiles) return;
-    
-    // Clear input
-    if (elements.chatInput) {
-        elements.chatInput.value = '';
-        autoResizeTextarea();
-    }
-    
-    // Create new chat if needed
-    if (!state.currentChatId || state.chats.length === 0) {
-        await createNewChat();
-    }
-    
-    // Hide welcome screen
-    if (elements.welcomeScreen) {
-        elements.welcomeScreen.style.display = 'none';
-    }
-
-    // Build message content
-    let messageContent = text;
-    if (hasFiles) {
-        messageContent += '\n\n--- Uploaded Files ---\n';
-        state.uploadedFiles.forEach(file => {
-            messageContent += `\nFile: ${file.name} (${file.size})\nContent:\n${file.content}\n`;
-        });
-    }
-
-    // Add user message to UI and storage
-    addMessageToUI('user', text);
-    await addMessageToChat('user', messageContent);
-
-    // Clear uploaded files
-    clearUploadedFiles();
-
-    // Show typing indicator
-    showTypingIndicator();
-    
     try {
-        // Get AI response
-        const reply = await callAI(messageContent);
-        removeTypingIndicator();
+        const text = elements.chatInput?.value.trim() || '';
+        const hasFiles = state.uploadedFiles.length > 0;
         
-        // Add AI response to UI and storage
-        displayAIResponse(reply);
-        await addMessageToChat('ai', reply);
+        if (!text && !hasFiles) return;
         
+        if (elements.chatInput) {
+            elements.chatInput.value = '';
+            autoResizeTextarea();
+        }
+        
+        if (!state.currentChatId || state.chats.length === 0) {
+            await createNewChat();
+        }
+        
+        if (elements.welcomeScreen) {
+            elements.welcomeScreen.style.display = 'none';
+        }
+
+        let messageContent = text;
+        if (hasFiles) {
+            messageContent += '\n\n--- Uploaded Files ---\n';
+            state.uploadedFiles.forEach(file => {
+                messageContent += `\nFile: ${file.name} (${file.size})\nContent:\n${file.content}\n`;
+            });
+        }
+
+        addMessageToUI('user', text);
+        await addMessageToChat('user', messageContent);
+
+        clearUploadedFiles();
+
+        showTypingIndicator();
+        
+        try {
+            const reply = await callAI(messageContent);
+            removeTypingIndicator();
+            displayAIResponse(reply);
+            await addMessageToChat('ai', reply);
+        } catch (error) {
+            removeTypingIndicator();
+            const errorMessage = "Sorry, I'm having trouble responding. Please try again.";
+            displayAIResponse(errorMessage);
+            await addMessageToChat('ai', errorMessage);
+        }
     } catch (error) {
-        removeTypingIndicator();
-        
-        const errorMessage = "Sorry, I'm having trouble responding. Please try again.";
-        displayAIResponse(errorMessage);
-        await addMessageToChat('ai', errorMessage);
+        console.error('Error in handleSend:', error);
+        handleCrash('Send message failed');
     }
 }
 
 function handleExamplePrompt(prompt) {
-    if (elements.chatInput) {
-        elements.chatInput.value = prompt;
-        handleSend();
+    try {
+        if (elements.chatInput) {
+            elements.chatInput.value = prompt;
+            handleSend();
+        }
+    } catch (error) {
+        console.error('Error handling example prompt:', error);
     }
 }
 
 // ==================== USER AUTH & INIT ====================
 function updateUserInfo(user) {
-    if (elements.userName) {
-        elements.userName.textContent = user.displayName || user.email || 'User';
-    }
-    
-    if (elements.userAvatar) {
-        const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-        elements.userAvatar.textContent = initial;
-        
-        if (user.photoURL) {
-            elements.userAvatar.style.backgroundImage = `url(${user.photoURL})`;
-            elements.userAvatar.style.backgroundSize = 'cover';
-            elements.userAvatar.textContent = '';
+    try {
+        if (elements.userName) {
+            elements.userName.textContent = user.displayName || user.email || 'User';
         }
+        
+        if (elements.userAvatar) {
+            const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+            elements.userAvatar.textContent = initial;
+            
+            if (user.photoURL) {
+                elements.userAvatar.style.backgroundImage = `url(${user.photoURL})`;
+                elements.userAvatar.style.backgroundSize = 'cover';
+                elements.userAvatar.textContent = '';
+            }
+        }
+    } catch (error) {
+        console.error('Error updating user info:', error);
     }
 }
 
 async function initializeApp() {
     return new Promise((resolve, reject) => {
         auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                state.currentUser = user;
-                updateUserInfo(user);
-                
-                console.log('User authenticated on refresh:', user.uid);
-                
-                try {
-                    // ALWAYS load from Firestore first on refresh
-                    console.log('Loading chats from Firestore...');
-                    const firestoreSuccess = await loadChatsFromFirestore();
+            try {
+                if (user) {
+                    state.currentUser = user;
+                    updateUserInfo(user);
                     
+                    const firestoreSuccess = await loadChatsFromFirestore();
                     if (!firestoreSuccess) {
-                        console.log('Firestore failed, trying local storage...');
                         await loadChatsFromLocalStorage();
                     }
                     
-                    // Handle URL routing AFTER chats are loaded
                     const urlChatId = getChatIdFromURL();
-                    console.log('URL Chat ID from refresh:', urlChatId);
-                    console.log('Available chats:', state.chats.map(c => c.id));
-                    
                     let chatToLoad = null;
                     
                     if (urlChatId) {
-                        // Check if the URL chat exists
                         const urlChat = state.chats.find(chat => chat.id === urlChatId);
                         if (urlChat) {
-                            console.log('Loading URL chat:', urlChatId);
                             chatToLoad = urlChatId;
                         } else {
-                            console.log('URL chat not found, creating new one with URL ID');
                             await createNewChat(urlChatId);
                             chatToLoad = urlChatId;
                         }
                     } else if (state.chats.length > 0) {
-                        // Load most recent chat
-                        console.log('Loading most recent chat:', state.chats[0].id);
                         chatToLoad = state.chats[0].id;
                     } else {
-                        // Create first chat
-                        console.log('No chats found, creating first chat');
                         const newChatId = await createNewChat();
                         chatToLoad = newChatId;
                     }
                     
-                    // Load the chat and update UI
                     if (chatToLoad) {
                         await loadChat(chatToLoad);
                     }
                     
                     resolve(user);
                     
-                } catch (error) {
-                    console.error('Initialization error on refresh:', error);
-                    showNotification('Error loading your chats', 'error');
-                    // Create a default chat as fallback
-                    await createNewChat();
-                    resolve(user);
+                } else {
+                    window.location.href = 'index.html';
                 }
-                
-            } else {
-                console.log('No user found, redirecting to login');
-                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Error in auth state change:', error);
+                reject(error);
             }
         }, reject);
     });
 }
+
 // ==================== EVENT LISTENERS & INIT ====================
 function setupEventListeners() {
-    // Send message
-    if (elements.sendBtn) {
-        elements.sendBtn.addEventListener('click', handleSend);
-    }
-
-    // Enter key to send
-    if (elements.chatInput) {
-        elements.chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-            }
-        });
-        
-        elements.chatInput.addEventListener('input', autoResizeTextarea);
-    }
-
-    // New chat
-    if (elements.newChatBtn) {
-        elements.newChatBtn.addEventListener('click', createNewChat);
-    }
-
-    // File upload
-    initFileUpload();
-
-    // Logout
-    if (elements.logoutBtn) {
-        elements.logoutBtn.addEventListener('click', () => {
-            auth.signOut().then(() => {
-                window.location.href = 'index.html';
-            });
-        });
-    }
-
-    // Mobile menu
-    if (elements.mobileMenu) {
-        elements.mobileMenu.addEventListener('click', () => {
-            if (elements.sidebar) {
-                elements.sidebar.classList.toggle('open');
-            }
-        });
-    }
-
-    // Browser back/forward
-    window.addEventListener('popstate', (event) => {
-        if (event.state && event.state.chatId) {
-            loadChat(event.state.chatId);
+    try {
+        if (elements.sendBtn) {
+            elements.sendBtn.addEventListener('click', handleSend);
         }
-    });
+
+        if (elements.chatInput) {
+            elements.chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+            
+            elements.chatInput.addEventListener('input', autoResizeTextarea);
+        }
+
+        if (elements.newChatBtn) {
+            elements.newChatBtn.addEventListener('click', createNewChat);
+        }
+
+        initFileUpload();
+
+        if (elements.logoutBtn) {
+            elements.logoutBtn.addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    window.location.href = 'index.html';
+                });
+            });
+        }
+
+        if (elements.mobileMenu) {
+            elements.mobileMenu.addEventListener('click', () => {
+                if (elements.sidebar) {
+                    elements.sidebar.classList.toggle('open');
+                }
+            });
+        }
+
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.chatId) {
+                loadChat(event.state.chatId);
+            }
+        });
+
+        // Setup crash recovery system
+        setupCrashRecovery();
+        
+    } catch (error) {
+        console.error('Error setting up event listeners:', error);
+        handleCrash('Event listener setup failed');
+    }
 }
 
 // ==================== START APPLICATION ====================
 document.addEventListener('DOMContentLoaded', async function() {
     try {
+        console.log('Hela Code starting...');
         setupEventListeners();
         await initializeApp();
-        showNotification('Welcome to Hela Code!');
+        showNotification('Hela Code loaded successfully!');
+        
+        // Check for previous crashes
+        const lastCrash = localStorage.getItem('helacode_last_crash');
+        if (lastCrash) {
+            console.log('Previous crash detected:', JSON.parse(lastCrash));
+            localStorage.removeItem('helacode_last_crash');
+        }
+        
     } catch (error) {
         console.error('App initialization failed:', error);
-        showNotification('Failed to load. Please refresh.', 'error');
+        showNotification('Failed to load app. Reloading...', 'error');
+        setTimeout(() => {
+            window.location.reload();
+        }, 3000);
     }
 });
 
@@ -880,4 +1055,10 @@ window.learningChallenges = {
 
 window.achievementSystem = {
     showAchievementsModal: () => alert('Achievements coming soon!')
+};
+
+// Manual recovery function
+window.recoverApp = () => {
+    showNotification('Manual recovery triggered...');
+    attemptRecovery();
 };
