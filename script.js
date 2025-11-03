@@ -87,6 +87,50 @@ async function initializeElements() {
     }
 }
 
+// ==================== HASH-BASED URL ROUTING ====================
+function getChatIdFromURL() {
+    try {
+        // Use hash-based routing: /chat.html#chat_id
+        const hash = window.location.hash;
+        return hash ? hash.substring(1) : null;
+    } catch (error) {
+        console.error('Error getting chat ID from URL:', error);
+        return null;
+    }
+}
+
+function updateURL(chatId) {
+    try {
+        if (!chatId) return;
+        
+        // Use hash format: #chat_id (this won't cause 404 errors)
+        window.location.hash = chatId;
+        
+        // Show share button
+        if (elements.shareChatBtn) {
+            elements.shareChatBtn.style.display = 'flex';
+            elements.shareChatBtn.onclick = () => shareChat(chatId);
+        }
+    } catch (error) {
+        console.error('Error updating URL:', error);
+    }
+}
+
+function shareChat(chatId) {
+    try {
+        // Share URL with hash
+        const shareUrl = `${window.location.origin}${window.location.pathname}#${chatId}`;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            showNotification('Chat link copied to clipboard!');
+        }).catch(() => {
+            prompt('Copy this chat link:', shareUrl);
+        });
+    } catch (error) {
+        console.error('Error sharing chat:', error);
+        showNotification('Error sharing chat', 'error');
+    }
+}
+
 // ==================== UTILITY FUNCTIONS ====================
 function showNotification(message, type = 'success') {
     try {
@@ -148,48 +192,6 @@ function formatFileSize(bytes) {
 
 function generateChatId() {
     return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-}
-
-// ==================== URL ROUTING ====================
-function getChatIdFromURL() {
-    try {
-        const path = window.location.pathname;
-        const match = path.match(/\/(chat|chat\.html)\/(.+)/);
-        return match ? match[2] : null;
-    } catch (error) {
-        console.error('Error getting chat ID from URL:', error);
-        return null;
-    }
-}
-
-function updateURL(chatId) {
-    try {
-        if (!chatId) return;
-        
-        const newPath = `/chat/${chatId}`;
-        window.history.pushState({ chatId }, '', newPath);
-        
-        if (elements.shareChatBtn) {
-            elements.shareChatBtn.style.display = 'flex';
-            elements.shareChatBtn.onclick = () => shareChat(chatId);
-        }
-    } catch (error) {
-        console.error('Error updating URL:', error);
-    }
-}
-
-function shareChat(chatId) {
-    try {
-        const shareUrl = `${window.location.origin}/chat/${chatId}`;
-        navigator.clipboard.writeText(shareUrl).then(() => {
-            showNotification('Chat link copied to clipboard!');
-        }).catch(() => {
-            prompt('Copy this chat link:', shareUrl);
-        });
-    } catch (error) {
-        console.error('Error sharing chat:', error);
-        showNotification('Error sharing chat', 'error');
-    }
 }
 
 // ==================== FIREBASE OPERATIONS ====================
@@ -751,6 +753,12 @@ function clearUploadedFiles() {
 }
 
 // ==================== AI API ====================
+const API_CONFIG = {
+    URL: 'https://endpoint.apilageai.lk/api/chat',
+    KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
+    MODEL: 'APILAGEAI-PRO'
+};
+
 async function callAI(userMessage) {
     try {
         const response = await fetch(API_CONFIG.URL, {
@@ -883,6 +891,7 @@ async function initializeApp() {
                         await loadChatsFromLocalStorage();
                     }
                     
+                    // Handle hash-based URL routing
                     const urlChatId = getChatIdFromURL();
                     let chatToLoad = null;
                     
@@ -962,9 +971,11 @@ function setupEventListeners() {
             });
         }
 
-        window.addEventListener('popstate', (event) => {
-            if (event.state && event.state.chatId) {
-                loadChat(event.state.chatId);
+        // Handle hash changes for browser back/forward
+        window.addEventListener('hashchange', () => {
+            const chatId = getChatIdFromURL();
+            if (chatId && state.chats.some(chat => chat.id === chatId)) {
+                loadChat(chatId);
             }
         });
 
@@ -1029,9 +1040,9 @@ window.reloadApp = () => {
 
 // Feature placeholders
 window.learningChallenges = {
-    showChallengesModal: () => alert('Challenges are only for pro users!')
+    showChallengesModal: () => alert('Challenges coming soon!')
 };
 
 window.achievementSystem = {
-    showAchievementsModal: () => alert('Achievements are only for pro users!')
+    showAchievementsModal: () => alert('Achievements coming soon!')
 };
