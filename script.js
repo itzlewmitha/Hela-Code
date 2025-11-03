@@ -92,19 +92,36 @@ function generateChatId() {
 }
 
 // ==================== URL ROUTING ====================
+// ==================== URL ROUTING ====================
 function getChatIdFromURL() {
+    // Handle both formats:
+    // /chat.html/chat_123  and  /chat/chat_123
     const path = window.location.pathname;
-    const parts = path.split('/');
+    
+    // Remove .html extension if present
+    const cleanPath = path.replace('.html', '');
+    const parts = cleanPath.split('/');
     const chatId = parts[parts.length - 1];
-    return chatId && chatId !== 'chat.html' ? chatId : null;
+    
+    // Return null if it's just the base path
+    return chatId && chatId !== 'chat' ? chatId : null;
 }
 
 function updateURL(chatId) {
     if (!chatId) return;
     
+    // Use clean URLs without .html
     const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '';
-    const newUrl = `${window.location.origin}${basePath}/${chatId}`;
-    window.history.pushState({ chatId }, '', newUrl);
+    const newPath = `${basePath}/${chatId}`;
+    
+    // Update URL without page reload
+    window.history.pushState({ chatId }, '', newPath);
+    
+    // Update page title
+    const chat = state.chats.find(c => c.id === chatId);
+    if (chat && chat.title !== 'New Chat') {
+        document.title = `${chat.title} - Hela Code`;
+    }
     
     // Show share button
     if (elements.shareChatBtn) {
@@ -114,11 +131,10 @@ function updateURL(chatId) {
 }
 
 function shareChat(chatId) {
-    const shareUrl = window.location.href;
+    const shareUrl = window.location.origin + '/chat/' + chatId;
     navigator.clipboard.writeText(shareUrl).then(() => {
         showNotification('Chat link copied to clipboard!');
     }).catch(() => {
-        // Fallback
         prompt('Copy this chat link:', shareUrl);
     });
 }
