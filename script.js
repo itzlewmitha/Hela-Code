@@ -176,6 +176,8 @@ async function deleteChatFromFirestore(chatId) {
 
 async function loadChatsFromFirestore() {
     try {
+        console.log('Loading chats from Firestore for user:', state.currentUser.uid);
+        
         const snapshot = await db.collection('users')
             .doc(state.currentUser.uid)
             .collection('chats')
@@ -183,8 +185,9 @@ async function loadChatsFromFirestore() {
             .get();
 
         if (snapshot.empty) {
+            console.log('No chats found in Firestore');
             state.chats = [];
-            return false;
+            return true; // Return true even if empty - that's fine
         }
 
         state.chats = snapshot.docs.map(doc => {
@@ -198,9 +201,12 @@ async function loadChatsFromFirestore() {
             };
         });
         
+        console.log(`Loaded ${state.chats.length} chats from Firestore`);
         return true;
+        
     } catch (error) {
         console.error('Firestore load error:', error);
+        // Don't show error to user, just fall back to local storage
         return false;
     }
 }
