@@ -12,14 +12,12 @@
       "dest": "/chat.html"
     },
     {
+      "src": "/chat.html/(.*)", 
+      "dest": "/chat.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/chat/:path*",
-      "destination": "/chat.html"
     }
   ]
 }
