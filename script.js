@@ -730,30 +730,58 @@ async function initializeApp() {
                 state.currentUser = user;
                 updateUserInfo(user);
                 
-                // Try to load from Firestore first, then localStorage
-                const firestoreSuccess = await loadChatsFromFirestore();
-                if (!firestoreSuccess) {
-                    await loadChatsFromLocalStorage();
-                }
+                console.log('User authenticated:', user.uid);
                 
-                // Handle URL routing
-                const urlChatId = getChatIdFromURL();
-                if (urlChatId && state.chats.some(chat => chat.id === urlChatId)) {
-                    await loadChat(urlChatId);
-                } else if (state.chats.length > 0) {
-                    await loadChat(state.chats[0].id);
-                } else {
+                try {
+                    // Try to load from Firestore first
+                    const firestoreSuccess = await loadChatsFromFirestore();
+                    if (!firestoreSuccess) {
+                        console.log('Falling back to local storage');
+                        await loadChatsFromLocalStorage();
+                    }
+                    
+                    // Handle URL routing
+                    const urlChatId = getChatIdFromURL();
+                    console.log('URL Chat ID:', urlChatId);
+                    
+                    if (urlChatId) {
+                        // Check if chat exists
+                        const urlChat = state.chats.find(chat => chat.id === urlChatId);
+                        if (urlChat) {
+                            console.log('Loading URL chat:', urlChatId);
+                            await loadChat(urlChatId);
+                        } else {
+                            console.log('URL chat not found, creating new one:', urlChatId);
+                            // Create new chat with the URL ID
+                            await createNewChat(urlChatId);
+                        }
+                    } else if (state.chats.length > 0) {
+                        // Load most recent chat
+                        console.log('Loading most recent chat');
+                        await loadChat(state.chats[0].id);
+                    } else {
+                        // Create first chat
+                        console.log('Creating first chat');
+                        await createNewChat();
+                    }
+                    
+                    resolve(user);
+                    
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    showNotification('Error loading chats', 'error');
+                    // Create a default chat anyway
                     await createNewChat();
+                    resolve(user);
                 }
                 
-                resolve(user);
             } else {
+                console.log('No user, redirecting to login');
                 window.location.href = 'index.html';
             }
         }, reject);
     });
 }
-
 // ==================== EVENT LISTENERS & INIT ====================
 function setupEventListeners() {
     // Send message
