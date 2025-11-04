@@ -6,6 +6,10 @@
   <title>Hela Code — AI Coding Assistant</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
     * {
       margin: 0;
@@ -17,12 +21,12 @@
       --primary: #8B5FBF;
       --primary-light: #9D76C1;
       --primary-dark: #6D3F9F;
-      --text: #333333;
-      --text-light: #666666;
-      --background: #F8F9FA;
-      --white: #FFFFFF;
-      --card-bg: #FFFFFF;
-      --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --text: #FFFFFF;
+      --text-light: #B0B0B0;
+      --background: #121212;
+      --card-bg: #1E1E1E;
+      --card-hover: #252525;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       --transition: all 0.3s ease;
     }
     
@@ -32,6 +36,7 @@
       color: var(--text);
       line-height: 1.6;
       overflow-x: hidden;
+      min-height: 100vh;
     }
     
     .container {
@@ -72,7 +77,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: var(--white);
+      background: var(--card-bg);
       padding: 8px 16px;
       border-radius: 20px;
       box-shadow: var(--shadow);
@@ -85,8 +90,144 @@
     
     @keyframes pulse {
       0% { box-shadow: var(--shadow); }
-      50% { box-shadow: 0 0 0 3px rgba(139, 95, 191, 0.2); }
+      50% { box-shadow: 0 0 0 3px rgba(139, 95, 191, 0.4); }
       100% { box-shadow: var(--shadow); }
+    }
+    
+    /* Auth Modal */
+    .auth-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+    
+    .auth-modal.active {
+      display: flex;
+    }
+    
+    .auth-container {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    
+    .auth-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+    
+    .auth-title {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: var(--primary);
+      text-align: center;
+    }
+    
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .auth-input {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 14px 16px;
+      color: var(--text);
+      font-size: 1rem;
+      transition: var(--transition);
+      font-family: inherit;
+    }
+    
+    .auth-input:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 10px rgba(139, 95, 191, 0.4);
+    }
+    
+    .auth-input::placeholder {
+      color: var(--text-light);
+    }
+    
+    .auth-btn {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+      font-size: 1rem;
+    }
+    
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(139, 95, 191, 0.4);
+    }
+    
+    .google-btn {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .google-btn:hover {
+      background: var(--card-hover);
+    }
+    
+    .auth-switch {
+      text-align: center;
+      margin-top: 20px;
+      color: var(--text-light);
+      font-size: 0.9rem;
+    }
+    
+    .auth-link {
+      color: var(--primary);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    
+    .auth-link:hover {
+      text-decoration: underline;
+    }
+    
+    .error-message {
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid #ff6b6b;
+      border-radius: 8px;
+      padding: 12px;
+      color: #ff6b6b;
+      font-size: 0.9rem;
+      display: none;
+      text-align: left;
+      line-height: 1.4;
     }
     
     /* Hero Section */
@@ -156,7 +297,7 @@
     }
     
     .btn-secondary {
-      background: var(--white);
+      background: var(--card-bg);
       color: var(--primary);
       box-shadow: var(--shadow);
     }
@@ -218,7 +359,8 @@
     
     .tile:hover {
       transform: translateY(-5px);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      background: var(--card-hover);
     }
     
     .tile-icon {
@@ -241,7 +383,7 @@
     
     /* Footer */
     footer {
-      background: var(--white);
+      background: var(--card-bg);
       padding: 30px 0;
       border-top: 1px solid rgba(139, 95, 191, 0.2);
       position: fixed;
@@ -320,19 +462,24 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.7);
       z-index: 100;
       align-items: center;
       justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+    
+    .modal.active {
+      display: flex;
     }
     
     .modal-content {
-      background: var(--white);
+      background: var(--card-bg);
       border-radius: 16px;
       padding: 30px;
       max-width: 500px;
       width: 90%;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       position: relative;
     }
     
@@ -397,6 +544,31 @@
 <body>
   <!-- Background Animation -->
   <div class="background-animation" id="backgroundAnimation"></div>
+  
+  <!-- Auth Modal -->
+  <div class="auth-modal" id="authModal">
+    <div class="auth-container">
+      <button class="auth-close" id="authClose">&times;</button>
+      <h2 class="auth-title" id="authTitle">Sign In</h2>
+      
+      <div class="error-message" id="authError"></div>
+      
+      <div class="auth-form">
+        <input type="text" id="nameField" placeholder="Full Name" class="auth-input" style="display:none;">
+        <input type="email" id="authEmail" placeholder="Email Address" class="auth-input">
+        <input type="password" id="authPassword" placeholder="Password" class="auth-input">
+        <button class="auth-btn" id="authBtn">Sign In</button>
+        <button class="auth-btn google-btn" id="googleBtn">
+          <i class="fab fa-google"></i> Continue with Google
+        </button>
+      </div>
+      
+      <div class="auth-switch">
+        <span id="authSwitchText">Don't have an account?</span>
+        <a class="auth-link" id="authSwitchLink">Create one</a>
+      </div>
+    </div>
+  </div>
   
   <!-- Header -->
   <header class="container">
@@ -505,6 +677,50 @@
   </div>
 
   <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
+      authDomain: "hela-code.firebaseapp.com",
+      projectId: "hela-code",
+      storageBucket: "hela-code.appspot.com",
+      messagingSenderId: "813299203715",
+      appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Global State
+    let state = {
+      currentUser: null,
+      isSignUp: false
+    };
+
+    // DOM Elements
+    const elements = {
+      authModal: document.getElementById('authModal'),
+      authClose: document.getElementById('authClose'),
+      authTitle: document.getElementById('authTitle'),
+      authError: document.getElementById('authError'),
+      nameField: document.getElementById('nameField'),
+      authEmail: document.getElementById('authEmail'),
+      authPassword: document.getElementById('authPassword'),
+      authBtn: document.getElementById('authBtn'),
+      googleBtn: document.getElementById('googleBtn'),
+      authSwitchText: document.getElementById('authSwitchText'),
+      authSwitchLink: document.getElementById('authSwitchLink'),
+      launchBtn: document.getElementById('launchBtn'),
+      reloadBtn: document.getElementById('reloadBtn'),
+      creditBar: document.getElementById('creditBar'),
+      creditCount: document.getElementById('creditCount'),
+      animatedLogo: document.getElementById('animatedLogo')
+    };
+
     // Initialize the page
     document.addEventListener('DOMContentLoaded', function() {
       // Animate logo typing effect
@@ -558,13 +774,13 @@
       modalTriggers.forEach(trigger => {
         trigger.addEventListener('click', function() {
           const modalId = this.getAttribute('data-modal') + '-modal';
-          document.getElementById(modalId).style.display = 'flex';
+          document.getElementById(modalId).classList.add('active');
         });
       });
       
       closeButtons.forEach(button => {
         button.addEventListener('click', function() {
-          this.closest('.modal').style.display = 'none';
+          this.closest('.modal').classList.remove('active');
         });
       });
       
@@ -572,18 +788,29 @@
       modals.forEach(modal => {
         modal.addEventListener('click', function(e) {
           if (e.target === this) {
-            this.style.display = 'none';
+            this.classList.remove('active');
           }
         });
       });
       
+      // Auth functionality
+      elements.authSwitchLink.addEventListener('click', toggleAuthMode);
+      elements.authClose.addEventListener('click', closeAuthModal);
+      elements.authBtn.addEventListener('click', handleAuth);
+      elements.googleBtn.addEventListener('click', handleGoogleAuth);
+      
       // Button functionality
-      document.getElementById('launchBtn').addEventListener('click', function() {
-        alert('Launching Hela Code Assistant...');
-        // In a real implementation, this would redirect to the chat interface
+      elements.launchBtn.addEventListener('click', function() {
+        if (state.currentUser) {
+          // Redirect to access.html if logged in
+          window.location.href = 'access.html';
+        } else {
+          // Show auth modal if not logged in
+          openAuthModal();
+        }
       });
       
-      document.getElementById('reloadBtn').addEventListener('click', function() {
+      elements.reloadBtn.addEventListener('click', function() {
         const creditCount = document.getElementById('creditCount');
         let credits = parseInt(creditCount.textContent);
         credits += 100;
@@ -596,7 +823,173 @@
       
       // Initialize credit display
       updateCreditDisplay();
+      
+      // Check if user is already logged in
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          state.currentUser = user;
+          console.log('User logged in:', user.email);
+          
+          // Check if user has existing chats
+          checkUserChats(user.uid);
+        } else {
+          state.currentUser = null;
+        }
+      });
     });
+
+    // Auth Functions
+    function toggleAuthMode() {
+      state.isSignUp = !state.isSignUp;
+      elements.authTitle.textContent = state.isSignUp ? 'Create Account' : 'Sign In';
+      elements.authBtn.textContent = state.isSignUp ? 'Sign Up' : 'Sign In';
+      elements.authSwitchText.textContent = state.isSignUp ? 'Already have an account?' : 'Don\'t have an account?';
+      elements.authSwitchLink.textContent = state.isSignUp ? 'Sign In' : 'Create one';
+      elements.nameField.style.display = state.isSignUp ? 'block' : 'none';
+      hideAuthError();
+    }
+
+    function openAuthModal() {
+      elements.authModal.classList.add('active');
+    }
+
+    function closeAuthModal() {
+      elements.authModal.classList.remove('active');
+      hideAuthError();
+    }
+
+    function showAuthError(message) {
+      elements.authError.textContent = message;
+      elements.authError.style.display = 'block';
+    }
+
+    function hideAuthError() {
+      elements.authError.style.display = 'none';
+    }
+
+    async function handleAuth() {
+      const email = elements.authEmail.value.trim();
+      const password = elements.authPassword.value;
+      const name = elements.nameField.value.trim();
+
+      if (!email || !password) {
+        showAuthError('Please fill in all fields');
+        return;
+      }
+
+      if (state.isSignUp && !name) {
+        showAuthError('Please enter your full name');
+        return;
+      }
+
+      if (state.isSignUp && password.length < 6) {
+        showAuthError('Password must be at least 6 characters');
+        return;
+      }
+
+      elements.authBtn.disabled = true;
+      elements.authBtn.textContent = 'Processing...';
+
+      try {
+        if (state.isSignUp) {
+          // Create new account
+          const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+          
+          // Update profile with display name
+          await userCredential.user.updateProfile({
+            displayName: name
+          });
+          
+          // Create user document in Firestore
+          await db.collection('users').doc(userCredential.user.uid).set({
+            name: name,
+            email: email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            credits: 100 // Initial credits
+          });
+          
+          handleAuthSuccess(userCredential.user);
+        } else {
+          // Sign in
+          const userCredential = await auth.signInWithEmailAndPassword(email, password);
+          handleAuthSuccess(userCredential.user);
+        }
+      } catch (error) {
+        showAuthError(error.message.replace('Firebase:', '').trim());
+        elements.authBtn.disabled = false;
+        elements.authBtn.textContent = state.isSignUp ? 'Sign Up' : 'Sign In';
+      }
+    }
+
+    async function handleGoogleAuth() {
+      elements.googleBtn.disabled = true;
+      elements.googleBtn.innerHTML = '<i class="fab fa-google"></i> Connecting...';
+
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const userCredential = await auth.signInWithPopup(provider);
+        
+        // Check if this is a new user
+        if (userCredential.additionalUserInfo.isNewUser) {
+          // Create user document in Firestore for new Google users
+          await db.collection('users').doc(userCredential.user.uid).set({
+            name: userCredential.user.displayName,
+            email: userCredential.user.email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            credits: 100 // Initial credits
+          });
+        }
+        
+        handleAuthSuccess(userCredential.user);
+      } catch (error) {
+        showAuthError(error.message.replace('Firebase:', '').trim());
+        elements.googleBtn.disabled = false;
+        elements.googleBtn.innerHTML = '<i class="fab fa-google"></i> Continue with Google';
+      }
+    }
+
+    function handleAuthSuccess(user) {
+      console.log('Auth success:', user.email);
+      closeAuthModal();
+      state.currentUser = user;
+      
+      // Update credits from Firestore
+      updateCreditsFromFirestore(user.uid);
+    }
+
+    async function updateCreditsFromFirestore(uid) {
+      try {
+        const userDoc = await db.collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          if (userData.credits !== undefined) {
+            elements.creditCount.textContent = userData.credits;
+            updateCreditDisplay();
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user credits:', error);
+      }
+    }
+
+    async function checkUserChats(uid) {
+      try {
+        const chatsSnapshot = await db.collection('users')
+          .doc(uid)
+          .collection('chats')
+          .orderBy('updatedAt', 'desc')
+          .limit(1)
+          .get();
+
+        // If user has existing chats, redirect to chat.html
+        if (!chatsSnapshot.empty) {
+          console.log('User has existing chats, redirecting to chat.html');
+          window.location.href = 'https://helacode.vercel.app/chat.html';
+        }
+      } catch (error) {
+        console.error('Error checking user chats:', error);
+      }
+    }
   </script>
 </body>
 </html>
