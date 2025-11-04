@@ -683,6 +683,110 @@
                 padding: 20px;
             }
         }
+        /* Add to CSS section - User Profile */
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card-bg);
+    padding: 8px 16px;
+    border-radius: 20px;
+    margin-right: 15px;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.user-level {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+/* Code Syntax Highlighting */
+code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #f8f8f2;
+}
+
+pre {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 12px 0;
+    position: relative;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    color: #f8f8f2;
+}
+
+.code-block {
+    position: relative;
+    margin: 15px 0;
+}
+
+.code-header {
+    background: #2d2d2d;
+    padding: 8px 12px;
+    border-radius: 8px 8px 0 0;
+    border: 1px solid #333;
+    border-bottom: none;
+    font-size: 0.8rem;
+    color: #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.copy-code-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: var(--transition);
+}
+
+.copy-code-btn:hover {
+    background: var(--primary);
+}
+
+/* Language-specific colors */
+.language-javascript { color: #f1fa8c; }
+.language-python { color: #8be9fd; }
+.language-html { color: #ff79c6; }
+.language-css { color: #50fa7b; }
+.language-json { color: #bd93f9; }
     </style>
 </head>
 <body>
@@ -694,23 +798,32 @@
             </div>
             <span>Hela Code</span>
         </div>
-        <div class="user-section">
-            <div class="credit-bar" id="creditBar">
-                <i class="fas fa-gem"></i>
-                <span>Credits: <span id="creditsDisplay">100</span></span>
-            </div>
-            <div class="nav-buttons">
-                <button class="nav-btn" id="challengesBtn" title="Challenges">
-                    <i class="fas fa-tasks"></i>
-                </button>
-                <button class="nav-btn" id="achievementsBtn" title="Achievements">
-                    <i class="fas fa-trophy"></i>
-                </button>
-                <button class="nav-btn" id="logoutBtn" title="Logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>
+       <div class="user-section">
+    <div class="user-profile">
+        <div class="user-avatar" id="userAvatar">
+            <i class="fas fa-user"></i>
         </div>
+        <div class="user-info">
+            <div class="user-name" id="userName">Guest</div>
+            <div class="user-level">Level <span id="userLevel">1</span></div>
+        </div>
+    </div>
+    <div class="credit-bar" id="creditBar">
+        <i class="fas fa-gem"></i>
+        <span>Credits: <span id="creditsDisplay">100</span></span>
+    </div>
+    <div class="nav-buttons">
+        <button class="nav-btn" id="challengesBtn" title="Challenges">
+            <i class="fas fa-tasks"></i>
+        </button>
+        <button class="nav-btn" id="achievementsBtn" title="Achievements">
+            <i class="fas fa-trophy"></i>
+        </button>
+        <button class="nav-btn" id="logoutBtn" title="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+        </button>
+    </div>
+</div>
     </header>
 
     <!-- Main Content -->
@@ -1676,87 +1789,91 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
         }
 
         function displayAIResponse(content) {
-            try {
-                if (!elements.chatMessages) return;
-                
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'message ai';
-                
-                const avatar = document.createElement('div');
-                avatar.className = 'message-avatar';
-                avatar.textContent = 'H';
-                messageDiv.appendChild(avatar);
-                
-                const messageContent = document.createElement('div');
-                messageContent.className = 'message-content';
-                
-                const messageBubble = document.createElement('div');
-                messageBubble.className = 'message-bubble ai-bubble';
-                
-                const formattedContent = content
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\`(.*?)\`/g, '<code>$1</code>');
-                
-                messageBubble.innerHTML = formattedContent;
-                
-                messageContent.appendChild(messageBubble);
-                messageDiv.appendChild(messageContent);
-                elements.chatMessages.appendChild(messageDiv);
-                
-                scrollToBottom();
-            } catch (error) {
-                console.error('Error displaying AI response:', error);
-            }
-        }
-
-        function showTypingIndicator() {
-            try {
-                removeTypingIndicator();
-                
-                const typingDiv = document.createElement('div');
-                typingDiv.className = 'message ai';
-                typingDiv.id = 'typing-indicator';
-                
-                const avatar = document.createElement('div');
-                avatar.className = 'message-avatar';
-                avatar.textContent = 'H';
-                typingDiv.appendChild(avatar);
-                
-                const messageContent = document.createElement('div');
-                messageContent.className = 'message-content';
-                
-                const messageBubble = document.createElement('div');
-                messageBubble.className = 'message-bubble ai-bubble typing-indicator';
-                messageBubble.innerHTML = `
-                    <div class="typing-dots">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
+    try {
+        if (!elements.chatMessages) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ai';
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = 'H';
+        messageDiv.appendChild(avatar);
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message-bubble ai-bubble';
+        
+        // Enhanced content formatting with code highlighting
+        let formattedContent = content
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/`(.*?)`/g, '<code>$1</code>');
+        
+        // Handle code blocks with syntax highlighting
+        formattedContent = formattedContent.replace(/```(\w+)?\n([\s\S]*?)```/g, function(match, lang, code) {
+            const language = lang || 'text';
+            return `
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>${language}</span>
+                        <button class="copy-code-btn" onclick="copyToClipboard(this)">Copy</button>
                     </div>
-                    <span>Hela Code is thinking...</span>
-                `;
-                
-                messageContent.appendChild(messageBubble);
-                typingDiv.appendChild(messageContent);
-                elements.chatMessages.appendChild(typingDiv);
-                
-                scrollToBottom();
-            } catch (error) {
-                console.error('Error showing typing indicator:', error);
-            }
-        }
+                    <pre><code class="language-${language}">${escapeHTML(code.trim())}</code></pre>
+                </div>
+            `;
+        });
+        
+        messageBubble.innerHTML = formattedContent;
+        
+        messageContent.appendChild(messageBubble);
+        messageDiv.appendChild(messageContent);
+        elements.chatMessages.appendChild(messageDiv);
+        
+        // Add copy functionality
+        addCopyCodeListeners();
+        
+        scrollToBottom();
+    } catch (error) {
+        console.error('Error displaying AI response:', error);
+    }
+}
 
-        function removeTypingIndicator() {
-            try {
-                const typing = document.getElementById('typing-indicator');
-                if (typing && typing.parentNode) {
-                    typing.parentNode.removeChild(typing);
-                }
-            } catch (error) {
-                console.error('Error removing typing indicator:', error);
-            }
-        }
+// Add copy to clipboard function
+function copyToClipboard(button) {
+    try {
+        const codeBlock = button.closest('.code-block');
+        const codeElement = codeBlock.querySelector('code');
+        const codeText = codeElement.textContent;
+        
+        navigator.clipboard.writeText(codeText).then(() => {
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            button.style.background = 'var(--success)';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = '';
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy code:', err);
+            button.textContent = 'Failed';
+            button.style.background = 'var(--error)';
+        });
+    } catch (error) {
+        console.error('Error copying code:', error);
+    }
+}
 
+function addCopyCodeListeners() {
+    document.querySelectorAll('.copy-code-btn').forEach(btn => {
+        btn.onclick = function() {
+            copyToClipboard(this);
+        };
+    });
+}
         // ==================== AI API ====================
         async function callAI(userMessage, conversationContext = []) {
             try {
