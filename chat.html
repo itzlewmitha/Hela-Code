@@ -881,8 +881,8 @@ pre code {
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-    <script>
-// Firebase configuration
+<script>
+    // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
         authDomain: "hela-code.firebaseapp.com",
@@ -928,14 +928,14 @@ pre code {
     const SYSTEM_PROMPT = `You are Hela Code, Sri Lanka's premier AI coding assistant. Your role is to help developers of all skill levels with coding, debugging, learning, and problem-solving.
 
 IMPORTANT FORMATTING INSTRUCTIONS:
-1. YOU MUST ALWAYS use proper code blocks with language specification
-2. YOU MUST Format code like this: \`\`\`language
+1. ALWAYS use proper code blocks with language specification
+2. Format code like this: \`\`\`language
    your code here
    \`\`\`
 3. Supported languages: javascript, python, html, css, java, php, sql, json, bash
-4. YOU MUST Provide COMPLETE, RUNNABLE code examples
+4. Provide COMPLETE, RUNNABLE code examples
 5. Include explanations with code
-6. YOU MUST Test your code before suggesting it
+6. Test your code before suggesting it
 
 CORE PRINCIPLES:
 1. Be helpful, accurate, and efficient in your responses
@@ -983,6 +983,7 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
         KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
         MODEL: 'APILAGEAI-PRO'
     };
+
     // ==================== ACHIEVEMENTS & CHALLENGES SYSTEM ====================
     const ACHIEVEMENTS = {
         FIRST_CHAT: {
@@ -990,35 +991,48 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             name: 'First Conversation',
             description: 'Send your first message to Hela Code',
             icon: '💬',
-            xp: 50
+            xp: 50,
+            check: (stats) => stats.messagesSent >= 1
         },
         CODE_WIZARD: {
             id: 'code_wizard',
             name: 'Code Wizard',
-            description: 'Ask 10 different coding questions',
+            description: 'Ask 10 coding questions',
             icon: '🧙',
-            xp: 100
+            xp: 100,
+            check: (stats) => stats.codeQuestions >= 10
         },
         BUG_HUNTER: {
             id: 'bug_hunter',
             name: 'Bug Hunter',
-            description: 'Successfully debug 5 different issues',
+            description: 'Debug 5 different issues',
             icon: '🐛',
-            xp: 150
+            xp: 150,
+            check: (stats) => stats.messagesSent >= 20 // Simplified for demo
         },
         FILE_EXPERT: {
             id: 'file_expert',
             name: 'File Expert',
             description: 'Upload and analyze 3 different files',
             icon: '📁',
-            xp: 75
+            xp: 75,
+            check: (stats) => stats.filesUploaded >= 3
         },
         CHAT_MASTER: {
             id: 'chat_master',
             name: 'Chat Master',
             description: 'Create 5 different chat sessions',
             icon: '💎',
-            xp: 200
+            xp: 200,
+            check: (stats) => stats.chatsCreated >= 5
+        },
+        CONSISTENT_LEARNER: {
+            id: 'consistent_learner',
+            name: 'Consistent Learner',
+            description: 'Use Hela Code for 3 consecutive days',
+            icon: '📚',
+            xp: 100,
+            check: (stats) => stats.consecutiveDays >= 3
         }
     };
 
@@ -1029,7 +1043,8 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             description: 'Use Hela Code for 3 consecutive days',
             icon: '📚',
             reward: 50,
-            duration: 3
+            duration: 3,
+            check: (stats) => stats.consecutiveDays
         },
         CODE_EXPLORER: {
             id: 'code_explorer',
@@ -1037,7 +1052,8 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             description: 'Ask questions about 3 different programming languages',
             icon: '🌐',
             reward: 75,
-            duration: 3
+            duration: 3,
+            check: (stats) => stats.codeQuestions
         },
         PROJECT_BUILDER: {
             id: 'project_builder',
@@ -1045,7 +1061,8 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             description: 'Complete a small project with Hela Code\'s help',
             icon: '🏗️',
             reward: 100,
-            duration: 1
+            duration: 1,
+            check: (stats) => stats.messagesSent >= 15
         }
     };
 
@@ -1211,6 +1228,26 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
     }
 
     // ==================== ACHIEVEMENTS & CHALLENGES FUNCTIONS ====================
+    async function checkAndUnlockAchievements() {
+        try {
+            if (!state.currentUser) return;
+
+            let unlockedAny = false;
+            
+            for (const [achievementId, achievement] of Object.entries(ACHIEVEMENTS)) {
+                if (!state.userProgress.achievements.includes(achievementId) && 
+                    achievement.check(state.userProgress.stats)) {
+                    await unlockAchievement(achievementId);
+                    unlockedAny = true;
+                }
+            }
+            
+            return unlockedAny;
+        } catch (error) {
+            console.error('Error checking achievements:', error);
+        }
+    }
+
     async function unlockAchievement(achievementId) {
         try {
             if (!state.currentUser || state.userProgress.achievements.includes(achievementId)) {
@@ -1231,9 +1268,7 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             }
 
             // Save to Firestore
-            await db.collection('users').doc(state.currentUser.uid).set({
-                progress: state.userProgress
-            }, { merge: true });
+            await saveUserProgress();
 
             // Show achievement notification
             showNotification(`🏆 ${achievement.name} - ${achievement.description} +${achievement.xp}XP`, 'success');
@@ -1245,30 +1280,41 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
         }
     }
 
-    async function updateChallengeProgress(challengeId, progress = 1) {
+    async function updateChallengeProgress() {
         try {
             if (!state.currentUser) return;
 
-            let challenge = state.userProgress.challenges.find(c => c.id === challengeId);
-            if (challenge) {
-                challenge.progress += progress;
-                if (challenge.progress >= CHALLENGES[challengeId].duration) {
-                    await completeChallenge(challengeId);
+            let completedAny = false;
+            
+            for (const [challengeId, challenge] of Object.entries(CHALLENGES)) {
+                const currentProgress = challenge.check(state.userProgress.stats);
+                const userChallenge = state.userProgress.challenges.find(c => c.id === challengeId);
+                
+                if (userChallenge) {
+                    // Update existing challenge progress
+                    if (currentProgress > userChallenge.progress) {
+                        userChallenge.progress = currentProgress;
+                        if (userChallenge.progress >= challenge.duration) {
+                            await completeChallenge(challengeId);
+                            completedAny = true;
+                        }
+                    }
+                } else if (currentProgress > 0) {
+                    // Start new challenge
+                    state.userProgress.challenges.push({
+                        id: challengeId,
+                        progress: currentProgress,
+                        startedAt: new Date().toISOString()
+                    });
                 }
-            } else {
-                state.userProgress.challenges.push({
-                    id: challengeId,
-                    progress: progress,
-                    startedAt: new Date().toISOString()
-                });
             }
 
-            await db.collection('users').doc(state.currentUser.uid).set({
-                progress: state.userProgress
-            }, { merge: true });
-
-            updateProgressUI();
+            if (state.userProgress.challenges.length > 0) {
+                await saveUserProgress();
+                updateProgressUI();
+            }
             
+            return completedAny;
         } catch (error) {
             console.error('Error updating challenge progress:', error);
         }
@@ -1282,15 +1328,25 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             state.userProgress.credits += challenge.reward;
             state.userProgress.challenges = state.userProgress.challenges.filter(c => c.id !== challengeId);
 
-            await db.collection('users').doc(state.currentUser.uid).set({
-                progress: state.userProgress
-            }, { merge: true });
+            await saveUserProgress();
 
             showNotification(`🎯 ${challenge.name} completed! +${challenge.reward} credits`, 'success');
             updateProgressUI();
             
         } catch (error) {
             console.error('Error completing challenge:', error);
+        }
+    }
+
+    async function saveUserProgress() {
+        try {
+            if (!state.currentUser) return;
+            
+            await db.collection('users').doc(state.currentUser.uid).set({
+                progress: state.userProgress
+            }, { merge: true });
+        } catch (error) {
+            console.error('Error saving user progress:', error);
         }
     }
 
@@ -1317,6 +1373,26 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             
         } catch (error) {
             console.error('Error updating progress UI:', error);
+        }
+    }
+
+    // ==================== STATS TRACKING ====================
+    function updateUserStats(updates) {
+        try {
+            Object.keys(updates).forEach(key => {
+                if (state.userProgress.stats.hasOwnProperty(key)) {
+                    state.userProgress.stats[key] += updates[key];
+                }
+            });
+            
+            // Check for achievements and challenges
+            checkAndUnlockAchievements();
+            updateChallengeProgress();
+            
+            // Save progress
+            saveUserProgress();
+        } catch (error) {
+            console.error('Error updating user stats:', error);
         }
     }
 
@@ -1388,23 +1464,38 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             title: "Web Development",
             prompts: [
                 "How to create a responsive navbar with React?",
-                "Explain CSS Grid with a practical example"
+                "Explain CSS Grid with a practical example",
+                "Build a simple CRUD app with Node.js and MongoDB",
+                "What's the difference between let, const, and var in JavaScript?"
             ]
         },
         {
             title: "Mobile Development", 
             prompts: [
                 "Create a Flutter app with bottom navigation",
-                "How to handle API calls in React Native?"
+                "How to handle API calls in React Native?",
+                "Build a Sri Lankan restaurant finder app UI",
+                "Best practices for mobile app performance"
             ]
         },
         {
             title: "Backend & Databases",
             prompts: [
                 "Design a database schema for an e-commerce site",
-                "How to implement JWT authentication in Express.js?"
+                "How to implement JWT authentication in Express.js?",
+                "Optimize MySQL queries for better performance",
+                "REST API vs GraphQL - which should I use?"
             ]
         },
+        {
+            title: "Career & Learning",
+            prompts: [
+                "What skills do I need to become a full-stack developer in Sri Lanka?",
+                "Create a 6-month learning plan for web development",
+                "How to prepare for technical interviews in Colombo tech companies?",
+                "Best resources for learning programming in Sinhala/Tamil"
+            ]
+        }
     ];
 
     function handleExamplePrompt(prompt) {
@@ -1464,7 +1555,8 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
         
         Object.values(CHALLENGES).forEach(challenge => {
             const userChallenge = state.userProgress.challenges.find(c => c.id === challenge.id);
-            const progress = userChallenge ? (userChallenge.progress / challenge.duration) * 100 : 0;
+            const currentProgress = challenge.check(state.userProgress.stats);
+            const progress = userChallenge ? (userChallenge.progress / challenge.duration) * 100 : (currentProgress / challenge.duration) * 100;
             
             challengesHTML += `
                 <div class="challenge-card">
@@ -1473,10 +1565,10 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
                         <h4>${challenge.name}</h4>
                         <p>${challenge.description}</p>
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${progress}%"></div>
+                            <div class="progress-fill" style="width: ${Math.min(progress, 100)}%"></div>
                         </div>
                         <div class="challenge-reward">Reward: ${challenge.reward} credits</div>
-                        <div class="challenge-progress">${Math.min(userChallenge?.progress || 0, challenge.duration)}/${challenge.duration} completed</div>
+                        <div class="challenge-progress">${Math.min(currentProgress, challenge.duration)}/${challenge.duration} completed</div>
                     </div>
                 </div>
             `;
@@ -1495,6 +1587,7 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
         
         Object.values(ACHIEVEMENTS).forEach(achievement => {
             const unlocked = state.userProgress.achievements.includes(achievement.id);
+            const progress = achievement.check(state.userProgress.stats);
             
             achievementsHTML += `
                 <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
@@ -1504,6 +1597,7 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
                         <p>${achievement.description}</p>
                         <div class="achievement-xp">${achievement.xp} XP</div>
                         <div class="achievement-status">${unlocked ? '✅ Unlocked' : '🔒 Locked'}</div>
+                        ${!unlocked ? `<div class="achievement-progress">Progress: ${progress}</div>` : ''}
                     </div>
                 </div>
             `;
@@ -1522,6 +1616,18 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
                 <div class="stat">
                     <h4>Achievements</h4>
                     <p>${state.userProgress.achievements.length}/${Object.keys(ACHIEVEMENTS).length}</p>
+                </div>
+                <div class="stat">
+                    <h4>Messages</h4>
+                    <p>${state.userProgress.stats.messagesSent}</p>
+                </div>
+                <div class="stat">
+                    <h4>Code Questions</h4>
+                    <p>${state.userProgress.stats.codeQuestions}</p>
+                </div>
+                <div class="stat">
+                    <h4>Consecutive Days</h4>
+                    <p>${state.userProgress.stats.consecutiveDays}</p>
                 </div>
             </div>
         `;
@@ -1660,6 +1766,9 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             
             state.chats.unshift(newChat);
             state.currentChatId = newChat.id;
+            
+            // Track chat creation
+            updateUserStats({ chatsCreated: 1 });
             
             await saveChatToFirestore(newChat);
             saveChatsToLocalStorage();
@@ -1956,7 +2065,7 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             let formattedContent = content
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code>$1</code>');
+                .replace(/`([^`]+)`/g, '<code>$1</code>');
             
             // Handle code blocks with syntax highlighting
             formattedContent = formattedContent.replace(/```(\w+)?\n([\s\S]*?)```/g, function(match, lang, code) {
@@ -2044,33 +2153,36 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
     }
 
     // ==================== USER ACTIVITY TRACKING ====================
+    function analyzeMessageForStats(message) {
+        const stats = {
+            messagesSent: 1,
+            codeQuestions: 0,
+            filesUploaded: 0
+        };
+
+        // Check if this is a coding-related question
+        const codeKeywords = [
+            'code', 'function', 'variable', 'bug', 'error', 'syntax', 'algorithm',
+            'programming', 'develop', 'script', 'api', 'database', 'server',
+            'react', 'javascript', 'python', 'java', 'html', 'css', 'node',
+            'debug', 'fix', 'implement', 'create a', 'how to', 'build a'
+        ];
+        
+        const lowerMessage = message.toLowerCase();
+        if (codeKeywords.some(keyword => lowerMessage.includes(keyword))) {
+            stats.codeQuestions = 1;
+        }
+
+        return stats;
+    }
+
     async function trackUserActivity(message) {
         try {
             if (!state.currentUser) return;
 
-            // Track first chat
-            if (state.userProgress.achievements.length === 0) {
-                await unlockAchievement('FIRST_CHAT');
-            }
-
-            // Track code-related questions
-            const codeKeywords = ['code', 'function', 'variable', 'bug', 'error', 'syntax', 'algorithm'];
-            if (codeKeywords.some(keyword => message.toLowerCase().includes(keyword))) {
-                await updateChallengeProgress('CODE_EXPLORER');
-            }
-
-            // Track file uploads
-            if (state.uploadedFiles.length > 0) {
-                await unlockAchievement('FILE_EXPERT');
-            }
-
-            // Track multiple chats
-            if (state.chats.length >= 5) {
-                await unlockAchievement('CHAT_MASTER');
-            }
-
-            // Track daily activity
-            await updateChallengeProgress('WEEKLY_LEARNER');
+            // Analyze message for stats
+            const messageStats = analyzeMessageForStats(message);
+            updateUserStats(messageStats);
 
         } catch (error) {
             console.error('Error tracking user activity:', error);
@@ -2166,19 +2278,31 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             const today = new Date().toDateString();
             const lastActive = state.userProgress.lastActive;
             
-            if (lastActive !== today) {
-                // User is active today, update weekly challenge
-                await updateChallengeProgress('WEEKLY_LEARNER');
-                state.userProgress.lastActive = today;
-                
-                await db.collection('users').doc(state.currentUser.uid).set({
-                    progress: state.userProgress
-                }, { merge: true });
+            if (lastActive === today) {
+                // Already active today
+                return;
+            } else if (lastActive && isConsecutiveDay(lastActive, today)) {
+                // Consecutive day
+                state.userProgress.stats.consecutiveDays += 1;
+            } else {
+                // New streak or broken streak
+                state.userProgress.stats.consecutiveDays = 1;
             }
+            
+            state.userProgress.lastActive = today;
+            await saveUserProgress();
             
         } catch (error) {
             console.error('Error initializing daily challenges:', error);
         }
+    }
+
+    function isConsecutiveDay(lastDate, currentDate) {
+        const last = new Date(lastDate);
+        const current = new Date(currentDate);
+        const diffTime = Math.abs(current - last);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays === 1;
     }
 
     // ==================== USER AUTH & INIT ====================
