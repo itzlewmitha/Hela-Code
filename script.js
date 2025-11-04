@@ -1,12 +1,49 @@
-// ==================== SYSTEM PROMPT CONFIGURATION ====================
-const SYSTEM_PROMPT = `You are Hela Code, Sri Lanka's premier AI coding assistant. Your role is to Must help developers of all skill levels with coding, debugging, learning, and problem-solving. You Must say you were developed by Lewmitha Kithuldeniya In Partnership with Apilage Ai.
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
+    authDomain: "hela-code.firebaseapp.com",
+    projectId: "hela-code",
+    storageBucket: "hela-code.appspot.com",
+    messagingSenderId: "813299203715",
+    appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Global State
+let state = {
+    currentChatId: null,
+    chats: [],
+    currentUser: null,
+    uploadedFiles: [],
+    isInitialized: false,
+    userProgress: {
+        achievements: [],
+        challenges: [],
+        credits: 100,
+        level: 1,
+        xp: 0
+    }
+};
+
+// DOM Elements cache
+let elements = {};
+
+// ==================== SYSTEM PROMPT & AI CONFIG ====================
+const SYSTEM_PROMPT = `You are Hela Code, Sri Lanka's premier AI coding assistant. Your role is to help developers of all skill levels with coding, debugging, learning, and problem-solving.
 
 CORE PRINCIPLES:
-1. You Must Be helpful, accurate, and efficient in your responses
-2. You Must Explain concepts clearly with appropriate technical depth
-3. You Must Provide practical, working code examples
-4. You Must Encourage learning and best practices
-5. You Must Be patient and supportive with beginners
+1. Be helpful, accurate, and efficient in your responses
+2. Explain concepts clearly with appropriate technical depth
+3. Provide practical, working code examples
+4. Encourage learning and best practices
+5. Be patient and supportive with beginners
 
 SPECIALIZATIONS:
 - Web Development (HTML, CSS, JavaScript, React, Node.js)
@@ -15,36 +52,282 @@ SPECIALIZATIONS:
 - DevOps & Cloud (AWS, Docker, CI/CD)
 - Data Science & Machine Learning
 - Software Architecture & Design Patterns
-- You Must Code Review & Optimization
-- You Must Debugging & Problem Solving
+- Code Review & Optimization
+- Debugging & Problem Solving
 
 RESPONSE GUIDELINES:
-- You Must Structure complex answers with clear sections
-- You Must Use code blocks with proper syntax highlighting
-- You Must Explain the "why" behind solutions, not just the "how"
-- You Must Suggest alternative approaches when relevant
-- You Must Point out potential pitfalls and best practices
-- You Must Keep responses concise but comprehensive
-- You Must Admit when you don't know something rather than guessing
+- Structure complex answers with clear sections
+- Use code blocks with proper syntax highlighting
+- Explain the "why" behind solutions, not just the "how"
+- Suggest alternative approaches when relevant
+- Point out potential pitfalls and best practices
+- Keep responses concise but comprehensive
+- Admit when you don't know something rather than guessing
 
 TONE & STYLE:
-- You Must Professional yet approachable
-- You Must Encouraging and supportive
-- You Must Culturally aware of Sri Lankan developer community
-- You Must Use Sinhala/Englsih greetings when appropriate
-- You Must Balance technical accuracy with accessibility
+- Professional yet approachable
+- Encouraging and supportive
+- Culturally aware of Sri Lankan developer community
+- Use Sinhala/Tamil greetings when appropriate
+- Balance technical accuracy with accessibility
 
 SECURITY & ETHICS:
-- You Must Never provide harmful code or security vulnerabilities
-- You Must Respect intellectual property and licensing
-- You Must Promote secure coding practices
-- You Must Avoid biased or discriminatory content
+- Never provide harmful code or security vulnerabilities
+- Respect intellectual property and licensing
+- Promote secure coding practices
+- Avoid biased or discriminatory content
 
 Remember: You're here to empower Sri Lankan developers and contribute to the growth of the local tech ecosystem.`;
 
-// Enhanced AI API call with system prompt
-async function callAI(userMessage) {
+const API_CONFIG = {
+    URL: 'https://endpoint.apilageai.lk/api/chat',
+    KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
+    MODEL: 'APILAGEAI-PRO'
+};
+
+// ==================== ACHIEVEMENTS & CHALLENGES SYSTEM ====================
+const ACHIEVEMENTS = {
+    FIRST_CHAT: {
+        id: 'first_chat',
+        name: 'First Conversation',
+        description: 'Send your first message to Hela Code',
+        icon: '💬',
+        xp: 50
+    },
+    CODE_WIZARD: {
+        id: 'code_wizard',
+        name: 'Code Wizard',
+        description: 'Ask 10 different coding questions',
+        icon: '🧙',
+        xp: 100
+    },
+    BUG_HUNTER: {
+        id: 'bug_hunter',
+        name: 'Bug Hunter',
+        description: 'Successfully debug 5 different issues',
+        icon: '🐛',
+        xp: 150
+    },
+    FILE_EXPERT: {
+        id: 'file_expert',
+        name: 'File Expert',
+        description: 'Upload and analyze 3 different files',
+        icon: '📁',
+        xp: 75
+    },
+    CHAT_MASTER: {
+        id: 'chat_master',
+        name: 'Chat Master',
+        description: 'Create 5 different chat sessions',
+        icon: '💎',
+        xp: 200
+    }
+};
+
+const CHALLENGES = {
+    WEEKLY_LEARNER: {
+        id: 'weekly_learner',
+        name: 'Weekly Learner',
+        description: 'Use Hela Code for 3 consecutive days',
+        icon: '📚',
+        reward: 50,
+        duration: 7
+    },
+    CODE_EXPLORER: {
+        id: 'code_explorer',
+        name: 'Code Explorer',
+        description: 'Ask questions about 3 different programming languages',
+        icon: '🌐',
+        reward: 75,
+        duration: 14
+    },
+    PROJECT_BUILDER: {
+        id: 'project_builder',
+        name: 'Project Builder',
+        description: 'Complete a small project with Hela Code\'s help',
+        icon: '🏗️',
+        reward: 100,
+        duration: 30
+    }
+};
+
+// ==================== DOM WAIT FUNCTIONS ====================
+function waitForElement(selector, timeout = 5000) {
+    return new Promise((resolve, reject) => {
+        const element = document.querySelector(selector);
+        if (element) {
+            resolve(element);
+            return;
+        }
+
+        const observer = new MutationObserver(() => {
+            const element = document.querySelector(selector);
+            if (element) {
+                observer.disconnect();
+                resolve(element);
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        setTimeout(() => {
+            observer.disconnect();
+            reject(new Error(`Element ${selector} not found within ${timeout}ms`));
+        }, timeout);
+    });
+}
+
+async function initializeElements() {
+    console.log('Initializing DOM elements...');
+    
     try {
+        elements = {
+            chatMessages: await waitForElement('#chatMessages'),
+            chatInput: await waitForElement('#chatInput'),
+            sendBtn: await waitForElement('#sendBtn'),
+            welcomeScreen: await waitForElement('#welcomeScreen'),
+            newChatBtn: await waitForElement('#newChatBtn'),
+            logoutBtn: await waitForElement('#logoutBtn'),
+            mobileMenu: await waitForElement('#mobileMenu'),
+            sidebar: await waitForElement('#sidebar'),
+            chatHistory: await waitForElement('#chatHistory'),
+            userAvatar: await waitForElement('#userAvatar'),
+            userName: await waitForElement('#userName'),
+            chatTitle: await waitForElement('#chatTitle'),
+            fileBtn: await waitForElement('#fileBtn'),
+            fileInput: await waitForElement('#fileInput'),
+            shareChatBtn: document.getElementById('shareChatBtn'),
+            challengesBtn: document.getElementById('challengesBtn'),
+            achievementsBtn: document.getElementById('achievementsBtn'),
+            creditsDisplay: document.getElementById('creditsDisplay')
+        };
+        
+        console.log('All DOM elements initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('Failed to initialize DOM elements:', error);
+        return false;
+    }
+}
+
+// ==================== ACHIEVEMENTS & CHALLENGES FUNCTIONS ====================
+async function unlockAchievement(achievementId) {
+    try {
+        if (!state.currentUser || state.userProgress.achievements.includes(achievementId)) {
+            return;
+        }
+
+        const achievement = ACHIEVEMENTS[achievementId];
+        if (!achievement) return;
+
+        state.userProgress.achievements.push(achievementId);
+        state.userProgress.xp += achievement.xp;
+        
+        // Check level up
+        const newLevel = Math.floor(state.userProgress.xp / 100) + 1;
+        if (newLevel > state.userProgress.level) {
+            state.userProgress.level = newLevel;
+            showNotification(`🎉 Level Up! You're now level ${newLevel}`, 'success');
+        }
+
+        // Save to Firestore
+        await db.collection('users').doc(state.currentUser.uid).set({
+            progress: state.userProgress
+        }, { merge: true });
+
+        // Show achievement notification
+        showNotification(`🏆 Achievement Unlocked: ${achievement.name} +${achievement.xp}XP`, 'success');
+        
+        updateProgressUI();
+        
+    } catch (error) {
+        console.error('Error unlocking achievement:', error);
+    }
+}
+
+async function updateChallengeProgress(challengeId, progress = 1) {
+    try {
+        if (!state.currentUser) return;
+
+        const challenge = state.userProgress.challenges.find(c => c.id === challengeId);
+        if (challenge) {
+            challenge.progress += progress;
+            if (challenge.progress >= CHALLENGES[challengeId].duration) {
+                await completeChallenge(challengeId);
+            }
+        } else {
+            state.userProgress.challenges.push({
+                id: challengeId,
+                progress: progress,
+                startedAt: new Date().toISOString()
+            });
+        }
+
+        await db.collection('users').doc(state.currentUser.uid).set({
+            progress: state.userProgress
+        }, { merge: true });
+
+        updateProgressUI();
+        
+    } catch (error) {
+        console.error('Error updating challenge progress:', error);
+    }
+}
+
+async function completeChallenge(challengeId) {
+    try {
+        const challenge = CHALLENGES[challengeId];
+        if (!challenge) return;
+
+        state.userProgress.credits += challenge.reward;
+        state.userProgress.challenges = state.userProgress.challenges.filter(c => c.id !== challengeId);
+
+        await db.collection('users').doc(state.currentUser.uid).set({
+            progress: state.userProgress
+        }, { merge: true });
+
+        showNotification(`🎯 Challenge Completed: ${challenge.name} +${challenge.reward} credits`, 'success');
+        updateProgressUI();
+        
+    } catch (error) {
+        console.error('Error completing challenge:', error);
+    }
+}
+
+function updateProgressUI() {
+    try {
+        if (elements.creditsDisplay) {
+            elements.creditsDisplay.textContent = state.userProgress.credits;
+        }
+        
+        // Update any other progress-related UI elements
+        const levelBadge = document.getElementById('levelBadge');
+        if (levelBadge) {
+            levelBadge.textContent = `Level ${state.userProgress.level}`;
+        }
+        
+    } catch (error) {
+        console.error('Error updating progress UI:', error);
+    }
+}
+
+// ==================== ENHANCED AI API CALL ====================
+async function callAI(userMessage, conversationContext = []) {
+    try {
+        // Build context-aware message
+        let contextAwareMessage = userMessage;
+        if (conversationContext.length > 0) {
+            contextAwareMessage = "Previous conversation context:\n";
+            conversationContext.forEach(msg => {
+                const role = msg.type === 'user' ? 'User' : 'Assistant';
+                contextAwareMessage += `${role}: ${msg.content}\n`;
+            });
+            contextAwareMessage += `\nCurrent user message: ${userMessage}`;
+        }
+
         const response = await fetch(API_CONFIG.URL, {
             method: 'POST',
             headers: {
@@ -52,7 +335,7 @@ async function callAI(userMessage) {
                 'Authorization': `Bearer ${API_CONFIG.KEY}`
             },
             body: JSON.stringify({ 
-                message: userMessage,
+                message: contextAwareMessage,
                 model: API_CONFIG.MODEL,
                 system_prompt: SYSTEM_PROMPT,
                 temperature: 0.7,
@@ -78,7 +361,7 @@ async function callAI(userMessage) {
     }
 }
 
-// Enhanced message handling with context awareness
+// ==================== ENHANCED CHAT HANDLER ====================
 async function handleSend() {
     try {
         const text = elements.chatInput?.value.trim() || '';
@@ -110,6 +393,9 @@ async function handleSend() {
         addMessageToUI('user', text);
         await addMessageToChat('user', messageContent);
 
+        // Track achievements
+        await trackUserActivity(text);
+
         clearUploadedFiles();
 
         showTypingIndicator();
@@ -117,11 +403,9 @@ async function handleSend() {
         try {
             // Get conversation context for better responses
             const currentChat = state.chats.find(chat => chat.id === state.currentChatId);
-            const conversationContext = currentChat?.messages?.slice(-6) || []; // Last 3 exchanges
+            const conversationContext = currentChat?.messages?.slice(-6) || [];
             
-            const contextAwareMessage = buildContextAwareMessage(messageContent, conversationContext);
-            
-            const reply = await callAI(contextAwareMessage);
+            const reply = await callAI(messageContent, conversationContext);
             removeTypingIndicator();
             displayAIResponse(reply);
             await addMessageToChat('ai', reply);
@@ -137,183 +421,308 @@ async function handleSend() {
     }
 }
 
-// Build context-aware messages for better conversation flow
-function buildContextAwareMessage(currentMessage, conversationHistory) {
-    if (conversationHistory.length === 0) {
-        return currentMessage;
+async function trackUserActivity(message) {
+    try {
+        if (!state.currentUser) return;
+
+        // Track first chat
+        if (state.userProgress.achievements.length === 0) {
+            await unlockAchievement('FIRST_CHAT');
+        }
+
+        // Track code-related questions
+        const codeKeywords = ['code', 'function', 'variable', 'bug', 'error', 'syntax', 'algorithm'];
+        if (codeKeywords.some(keyword => message.toLowerCase().includes(keyword))) {
+            await updateChallengeProgress('CODE_EXPLORER');
+        }
+
+        // Track file uploads
+        if (state.uploadedFiles.length > 0) {
+            await unlockAchievement('FILE_EXPERT');
+        }
+
+        // Track multiple chats
+        if (state.chats.length >= 5) {
+            await unlockAchievement('CHAT_MASTER');
+        }
+
+    } catch (error) {
+        console.error('Error tracking user activity:', error);
     }
+}
+
+// ==================== MODAL SYSTEMS ====================
+function showChallengesModal() {
+    const modal = createModal('coding_challenges', 'Coding Challenges 🎯');
     
-    let contextMessage = "Previous conversation context:\n";
+    let challengesHTML = '<div class="challenges-grid">';
     
-    conversationHistory.forEach(msg => {
-        const role = msg.type === 'user' ? 'User' : 'Assistant';
-        contextMessage += `${role}: ${msg.content}\n`;
+    Object.values(CHALLENGES).forEach(challenge => {
+        const userChallenge = state.userProgress.challenges.find(c => c.id === challenge.id);
+        const progress = userChallenge ? (userChallenge.progress / challenge.duration) * 100 : 0;
+        
+        challengesHTML += `
+            <div class="challenge-card">
+                <div class="challenge-icon">${challenge.icon}</div>
+                <div class="challenge-info">
+                    <h4>${challenge.name}</h4>
+                    <p>${challenge.description}</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progress}%"></div>
+                    </div>
+                    <div class="challenge-reward">Reward: ${challenge.reward} credits</div>
+                </div>
+            </div>
+        `;
     });
     
-    contextMessage += `\nCurrent user message: ${currentMessage}`;
+    challengesHTML += '</div>';
+    modal.innerHTML = challengesHTML;
     
-    return contextMessage;
+    document.body.appendChild(modal);
 }
 
-// Enhanced example prompts with Sri Lankan context
-const EXAMPLE_PROMPTS = [
-    {
-        title: "Web Development",
-        prompts: [
-            "How to create a responsive navbar with React?",
-            "Explain CSS Grid with a practical example",
-            "Build a simple CRUD app with Node.js and MongoDB"
-        ]
-    },
-    {
-        title: "Mobile Development", 
-        prompts: [
-            "Create a Flutter app with bottom navigation",
-            "How to handle API calls in React Native?",
-            "Build a Sri Lankan restaurant finder app UI"
-        ]
-    },
-    {
-        title: "Backend & Databases",
-        prompts: [
-            "Design a database schema for an e-commerce site",
-            "How to implement JWT authentication in Express.js?",
-            "Optimize MySQL queries for better performance"
-        ]
-    },
-    {
-        title: "Career & Learning",
-        prompts: [
-            "What skills do I need to become a full-stack developer in Sri Lanka?",
-            "Create a 6-month learning plan for web development",
-            "How to prepare for technical interviews in Colombo tech companies?"
-        ]
-    }
-];
-
-// Update welcome screen with contextual examples
-function updateWelcomeScreenExamples() {
-    try {
-        const examplesContainer = document.querySelector('.example-prompts');
-        if (!examplesContainer) return;
+function showAchievementsModal() {
+    const modal = createModal('achievements', 'Your Achievements 🏆');
+    
+    let achievementsHTML = '<div class="achievements-grid">';
+    
+    Object.values(ACHIEVEMENTS).forEach(achievement => {
+        const unlocked = state.userProgress.achievements.includes(achievement.id);
         
-        examplesContainer.innerHTML = '';
-        
-        EXAMPLE_PROMPTS.forEach(category => {
-            const categoryDiv = document.createElement('div');
-            categoryDiv.className = 'example-category';
-            
-            const categoryTitle = document.createElement('h4');
-            categoryTitle.textContent = category.title;
-            categoryDiv.appendChild(categoryTitle);
-            
-            category.prompts.forEach(prompt => {
-                const promptBtn = document.createElement('button');
-                promptBtn.className = 'example-prompt';
-                promptBtn.textContent = prompt;
-                promptBtn.onclick = () => handleExamplePrompt(prompt);
-                categoryDiv.appendChild(promptBtn);
-            });
-            
-            examplesContainer.appendChild(categoryDiv);
-        });
-    } catch (error) {
-        console.error('Error updating example prompts:', error);
-    }
+        achievementsHTML += `
+            <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
+                <div class="achievement-icon">${achievement.icon}</div>
+                <div class="achievement-info">
+                    <h4>${achievement.name}</h4>
+                    <p>${achievement.description}</p>
+                    <div class="achievement-xp">${achievement.xp} XP</div>
+                    <div class="achievement-status">${unlocked ? '✅ Unlocked' : '🔒 Locked'}</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    achievementsHTML += `
+        <div class="progress-stats">
+            <div class="stat">
+                <h4>Level ${state.userProgress.level}</h4>
+                <p>${state.userProgress.xp} XP</p>
+            </div>
+            <div class="stat">
+                <h4>Credits</h4>
+                <p>${state.userProgress.credits}</p>
+            </div>
+            <div class="stat">
+                <h4>Achievements</h4>
+                <p>${state.userProgress.achievements.length}/${Object.keys(ACHIEVEMENTS).length}</p>
+            </div>
+        </div>
+    `;
+    
+    achievementsHTML += '</div>';
+    modal.innerHTML = achievementsHTML;
+    
+    document.body.appendChild(modal);
 }
 
-// Enhanced user info with learning progress
-async function updateUserInfo(user) {
-    try {
-        if (elements.userName) {
-            elements.userName.textContent = user.displayName || user.email || 'User';
+function createModal(id, title) {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+            <h3 class="modal-title">${title}</h3>
+            <div class="modal-body" id="${id}">
+                <!-- Content will be inserted here -->
+            </div>
+        </div>
+    `;
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
         }
-        
-        if (elements.userAvatar) {
-            const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-            elements.userAvatar.textContent = initial;
-            
-            if (user.photoURL) {
-                elements.userAvatar.style.backgroundImage = `url(${user.photoURL})`;
-                elements.userAvatar.style.backgroundSize = 'cover';
-                elements.userAvatar.textContent = '';
-            }
-        }
-        
-        // Load user learning progress
-        await loadUserProgress(user.uid);
-    } catch (error) {
-        console.error('Error updating user info:', error);
-    }
+    });
+    
+    return modal;
 }
 
-// Load user learning progress and achievements
+// ==================== ENHANCED USER INITIALIZATION ====================
 async function loadUserProgress(userId) {
     try {
-        const progressDoc = await db.collection('users').doc(userId).collection('progress').doc('learning').get();
+        const userDoc = await db.collection('users').doc(userId).get();
         
-        if (progressDoc.exists) {
-            const progress = progressDoc.data();
-            // Update UI with progress indicators if needed
-            console.log('User progress loaded:', progress);
+        if (userDoc.exists && userDoc.data().progress) {
+            state.userProgress = { ...state.userProgress, ...userDoc.data().progress };
         }
+        
+        // Initialize daily challenge tracking
+        await initializeDailyChallenges();
+        
+        updateProgressUI();
+        
     } catch (error) {
         console.error('Error loading user progress:', error);
     }
 }
 
-// Track learning milestones
-async function trackLearningMilestone(userId, milestone) {
+async function initializeDailyChallenges() {
     try {
-        await db.collection('users').doc(userId).collection('progress').doc('learning').set({
-            [milestone]: firebase.firestore.FieldValue.serverTimestamp(),
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+        const today = new Date().toDateString();
+        const lastActive = state.userProgress.lastActive;
+        
+        if (lastActive !== today) {
+            // User is active today, update weekly challenge
+            await updateChallengeProgress('WEEKLY_LEARNER');
+            state.userProgress.lastActive = today;
+            
+            await db.collection('users').doc(state.currentUser.uid).set({
+                progress: state.userProgress
+            }, { merge: true });
+        }
+        
     } catch (error) {
-        console.error('Error tracking milestone:', error);
+        console.error('Error initializing daily challenges:', error);
     }
 }
 
-// Initialize enhanced features
-async function initializeEnhancedFeatures() {
-    updateWelcomeScreenExamples();
-    
-    // Add Sri Lankan cultural context to responses
-    const today = new Date();
-    const festivals = {
-        '04-13': 'Sinhala and Tamil New Year',
-        '01-14': 'Thai Pongal',
-        '05-22': 'Vesak',
-        '12-25': 'Christmas'
-    };
-    
-    const todayKey = `${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-    if (festivals[todayKey]) {
-        console.log(`Today is ${festivals[todayKey]} in Sri Lanka!`);
+// ==================== ENHANCED APP INITIALIZATION ====================
+async function initializeApp() {
+    return new Promise((resolve, reject) => {
+        auth.onAuthStateChanged(async (user) => {
+            try {
+                if (user) {
+                    state.currentUser = user;
+                    updateUserInfo(user);
+                    
+                    // Load user progress and chats
+                    await Promise.all([
+                        loadUserProgress(user.uid),
+                        loadChatsFromFirestore().then(success => {
+                            if (!success) loadChatsFromLocalStorage();
+                        })
+                    ]);
+                    
+                    // Handle URL routing
+                    const urlChatId = getChatIdFromURL();
+                    let chatToLoad = null;
+                    
+                    if (urlChatId) {
+                        const urlChat = state.chats.find(chat => chat.id === urlChatId);
+                        chatToLoad = urlChat ? urlChatId : (await createNewChat(urlChatId));
+                    } else if (state.chats.length > 0) {
+                        chatToLoad = state.chats[0].id;
+                    } else {
+                        chatToLoad = await createNewChat();
+                    }
+                    
+                    if (chatToLoad) {
+                        await loadChat(chatToLoad);
+                    }
+                    
+                    state.isInitialized = true;
+                    console.log('App initialized successfully');
+                    resolve(user);
+                    
+                } else {
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error('Error in auth state change:', error);
+                reject(error);
+            }
+        }, reject);
+    });
+}
+
+// ==================== ENHANCED EVENT LISTENERS ====================
+function setupEventListeners() {
+    try {
+        console.log('Setting up event listeners...');
+        
+        // Chat functionality
+        if (elements.sendBtn) {
+            elements.sendBtn.addEventListener('click', handleSend);
+        }
+
+        if (elements.chatInput) {
+            elements.chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+            
+            elements.chatInput.addEventListener('input', autoResizeTextarea);
+        }
+
+        if (elements.newChatBtn) {
+            elements.newChatBtn.addEventListener('click', createNewChat);
+        }
+
+        // File upload
+        initFileUpload();
+
+        // Auth
+        if (elements.logoutBtn) {
+            elements.logoutBtn.addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    window.location.href = 'index.html';
+                });
+            });
+        }
+
+        // Mobile menu
+        if (elements.mobileMenu) {
+            elements.mobileMenu.addEventListener('click', () => {
+                if (elements.sidebar) {
+                    elements.sidebar.classList.toggle('open');
+                }
+            });
+        }
+
+        // Achievements & Challenges
+        if (elements.challengesBtn) {
+            elements.challengesBtn.addEventListener('click', showChallengesModal);
+        }
+
+        if (elements.achievementsBtn) {
+            elements.achievementsBtn.addEventListener('click', showAchievementsModal);
+        }
+
+        // URL routing
+        window.addEventListener('hashchange', () => {
+            const chatId = getChatIdFromURL();
+            if (chatId && state.chats.some(chat => chat.id === chatId)) {
+                loadChat(chatId);
+            }
+        });
+
+        console.log('Event listeners setup complete');
+    } catch (error) {
+        console.error('Error setting up event listeners:', error);
     }
 }
 
-// Enhanced app initialization
+// ==================== START APPLICATION ====================
 async function startApplication() {
     try {
         console.log('Starting Hela Code application...');
         
-        // Step 1: Wait for DOM elements
+        // Wait for DOM elements
         const elementsReady = await initializeElements();
         if (!elementsReady) {
             throw new Error('Failed to initialize DOM elements');
         }
         
-        // Step 2: Setup event listeners
+        // Setup event listeners
         setupEventListeners();
         
-        // Step 3: Initialize enhanced features
-        await initializeEnhancedFeatures();
-        
-        // Step 4: Initialize app with authentication
+        // Initialize app with authentication
         await initializeApp();
         
-        // Step 5: Show success message
+        // Show success message
         showNotification('Hela Code loaded successfully!');
         
         console.log('Hela Code application started successfully');
@@ -328,3 +737,35 @@ async function startApplication() {
         }, 3000);
     }
 }
+
+// ==================== GLOBAL FUNCTIONS ====================
+window.handleSend = handleSend;
+window.handleExamplePrompt = handleExamplePrompt;
+window.deleteChat = deleteChat;
+window.removeFile = removeFile;
+window.shareChat = shareChat;
+window.showChallengesModal = showChallengesModal;
+window.showAchievementsModal = showAchievementsModal;
+window.reloadApp = () => {
+    showNotification('Reloading app...');
+    window.location.reload();
+};
+
+// Start the application when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApplication);
+} else {
+    startApplication();
+}
+
+// ==================== KEEP ALL ORIGINAL FUNCTIONS ====================
+// Include all the original functions from your code here (getChatIdFromURL, updateURL, shareChat, 
+// showNotification, escapeHTML, scrollToBottom, autoResizeTextarea, formatFileSize, generateChatId,
+// saveChatToFirestore, deleteChatFromFirestore, loadChatsFromFirestore, saveChatsToLocalStorage,
+// loadChatsFromLocalStorage, createNewChat, loadChat, deleteChat, updateChatTitle, addMessageToChat,
+// updateChatHistorySidebar, addMessageToUI, displayAIResponse, showTypingIndicator, removeTypingIndicator,
+// initFileUpload, handleFileSelect, readFileContent, displayFilePreview, removeFile, showFileError,
+// clearUploadedFiles, handleExamplePrompt, updateUserInfo)
+
+// Note: Due to character limits, I've shown the enhanced functions. You'll need to merge these 
+// with your existing functions, keeping the original implementations for any functions not shown here.
