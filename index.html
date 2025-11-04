@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hela Code — AI Coding Assistant</title>
+  <title>Hela Code — Sri Lankan AI Coding Assistant</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Firebase SDK -->
@@ -477,8 +477,10 @@
       background: var(--card-bg);
       border-radius: 16px;
       padding: 30px;
-      max-width: 500px;
+      max-width: 600px;
       width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       position: relative;
     }
@@ -496,13 +498,68 @@
     
     .modal-title {
       font-size: 1.5rem;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
       color: var(--primary);
     }
     
     .modal-text {
       color: var(--text-light);
       line-height: 1.6;
+    }
+    
+    .policy-section {
+      margin-bottom: 25px;
+    }
+    
+    .policy-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .policy-content {
+      padding-left: 10px;
+      border-left: 2px solid var(--primary-light);
+      margin-left: 5px;
+    }
+    
+    .policy-list {
+      list-style-type: none;
+      margin: 10px 0;
+    }
+    
+    .policy-list li {
+      margin-bottom: 8px;
+      padding-left: 20px;
+      position: relative;
+    }
+    
+    .policy-list li:before {
+      content: "•";
+      color: var(--primary);
+      position: absolute;
+      left: 0;
+    }
+    
+    .warning-text {
+      color: #ff6b6b;
+      font-weight: 500;
+    }
+    
+    .success-text {
+      color: #4CAF50;
+      font-weight: 500;
+    }
+    
+    .contact-info {
+      background: rgba(139, 95, 191, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
     }
     
     /* Responsive */
@@ -537,6 +594,11 @@
       
       .hero {
         padding: 60px 0 40px;
+      }
+      
+      .modal-content {
+        max-height: 85vh;
+        padding: 20px;
       }
     }
   </style>
@@ -655,116 +717,194 @@
   <div class="modal" id="privacy-policy-modal">
     <div class="modal-content">
       <button class="modal-close">&times;</button>
-      <h3 class="modal-title">Privacy Policy</h3>
-      <p class="modal-text">🔐 Privacy Policy
-📁 1. Information We Collect
+      <h3 class="modal-title">🔐 Privacy Policy</h3>
+      <div class="modal-text">
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-info-circle"></i>
+            <span>1. Information We Collect</span>
+          </div>
+          <div class="policy-content">
+            <p>We collect only minimal technical data needed to keep the app running:</p>
+            <ul class="policy-list">
+              <li>Anonymous usage stats (page loads, clicks)</li>
+              <li>Optional account info (email / username / credit balance)</li>
+              <li>Payment details handled only by your chosen provider (PayPal / Stripe / PayHere etc.)</li>
+            </ul>
+          </div>
+        </div>
 
-We collect only minimal technical data needed to keep the app running:
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-ban"></i>
+            <span>2. What We Don't Collect</span>
+          </div>
+          <div class="policy-content">
+            <p class="warning-text">We respect your privacy completely:</p>
+            <ul class="policy-list">
+              <li>We don't read, store, or log your chat messages</li>
+              <li>We don't track your personal files, camera, or microphone</li>
+              <li>We don't sell or share data to advertisers</li>
+            </ul>
+          </div>
+        </div>
 
-Anonymous usage stats (page loads, clicks)
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-cogs"></i>
+            <span>3. Data Processing</span>
+          </div>
+          <div class="policy-content">
+            <p>When you send a message, it's sent securely to Apilage AI's servers for processing.</p>
+            <p class="success-text">Responses come back to Hela Code — that's it.</p>
+            <p>All communication uses <strong>HTTPS encryption</strong> 🔒</p>
+          </div>
+        </div>
 
-Optional account info (email / username / credit balance)
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-credit-card"></i>
+            <span>4. Payments & Credits</span>
+          </div>
+          <div class="policy-content">
+            <p>Payments and reloads are processed by trusted third-party gateways.</p>
+            <p class="warning-text">Hela Code never stores your card or wallet details.</p>
+            <p>Credit top-ups are linked to your user account only.</p>
+          </div>
+        </div>
 
-Payment details handled only by your chosen provider (PayPal / Stripe / PayHere etc.)
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-clock"></i>
+            <span>5. Data Retention</span>
+          </div>
+          <div class="policy-content">
+            <p>Minimal logs (error reports or analytics) are kept for system security and are automatically deleted after <strong>30 days</strong>.</p>
+          </div>
+        </div>
 
-🙈 2. What We Don’t Collect
-
-❌ We don’t read, store, or log your chat messages.
-
-❌ We don’t track your personal files, camera, or microphone.
-
-❌ We don’t sell or share data to advertisers.
-
-🤖 3. Data Processing
-
-When you send a message, it’s sent securely to Apilage AI’s servers for processing.
-Responses come back to Hela Code — that’s it.
-All communication uses HTTPS 🔒
-
-💳 4. Payments & Credits
-
-Payments and reloads are processed by trusted third-party gateways.
-
-Hela Code never stores your card or wallet details.
-
-Credit top-ups are linked to your user account only.
-
-⏳ 5. Data Retention
-
-Minimal logs (error reports or analytics) are kept for system security and are automatically deleted after 30 days.
-
-🧯 6. Security
-
-We use modern encryption, authentication tokens, and firewall protection.
-Still, no system is 100% secure — so avoid sharing sensitive or personal code.</p>
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-shield-alt"></i>
+            <span>6. Security</span>
+          </div>
+          <div class="policy-content">
+            <p>We use modern encryption, authentication tokens, and firewall protection.</p>
+            <p class="warning-text">Still, no system is 100% secure — so avoid sharing sensitive or personal code.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   
   <div class="modal" id="terms-conditions-modal">
     <div class="modal-content">
       <button class="modal-close">&times;</button>
-      <h3 class="modal-title">Terms & Conditions</h3>
-      <p class="modal-text">📜 Terms & Conditions
-1️⃣ Acceptance of Terms
+      <h3 class="modal-title">📜 Terms & Conditions</h3>
+      <div class="modal-text">
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-check-circle"></i>
+            <span>1. Acceptance of Terms</span>
+          </div>
+          <div class="policy-content">
+            <p>By using Hela Code, you agree to these terms. If you disagree, please stop using the service.</p>
+          </div>
+        </div>
 
-By using Hela Code, you agree to these terms. If you disagree, please stop using the service.
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-balance-scale"></i>
+            <span>2. Fair Use</span>
+          </div>
+          <div class="policy-content">
+            <p>Use Hela Code ethically:</p>
+            <ul class="policy-list">
+              <li>Don't upload illegal, harmful, or plagiarized material</li>
+              <li>Don't exploit the AI for harassment or misinformation</li>
+              <li class="success-text">Keep it positive, creative, and educational 🌱</li>
+            </ul>
+          </div>
+        </div>
 
-2️⃣ Fair Use
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-gem"></i>
+            <span>3. Credits & Reload System</span>
+          </div>
+          <div class="policy-content">
+            <p>Credits represent usage points inside the Hela Code platform.</p>
+            <p class="warning-text">Once purchased or used, credits are non-refundable 💎</p>
+            <p>Low balance may restrict AI access until you reload.</p>
+          </div>
+        </div>
 
-Use Hela Code ethically:
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-copyright"></i>
+            <span>4. Intellectual Property</span>
+          </div>
+          <div class="policy-content">
+            <ul class="policy-list">
+              <li>Hela Code's interface, design, and assets belong to <strong>PIX Studios Holdings PVT LTD</strong></li>
+              <li>AI responses belong to the respective model provider (Apilage AI)</li>
+              <li class="success-text">You're free to use generated code or text at your own discretion</li>
+            </ul>
+          </div>
+        </div>
 
-Don’t upload illegal, harmful, or plagiarized material.
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>5. Disclaimer</span>
+          </div>
+          <div class="policy-content">
+            <p>Hela Code is built for learning and fun only.</p>
+            <p class="warning-text">We make no guarantees of accuracy, reliability, or completeness.</p>
+            <p>Use at your own risk — especially for production or commercial projects ⚠️</p>
+          </div>
+        </div>
 
-Don’t exploit the AI for harassment or misinformation.
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-gavel"></i>
+            <span>6. Limitation of Liability</span>
+          </div>
+          <div class="policy-content">
+            <p>PIX Studios Holdings PVT LTD and its developers are not responsible for:</p>
+            <ul class="policy-list">
+              <li>Any data loss, bugs, or downtime</li>
+              <li>Damages from using, misusing, or depending on AI output</li>
+            </ul>
+          </div>
+        </div>
 
-Keep it positive, creative, and educational 🌱
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-sync-alt"></i>
+            <span>7. Updates to Policy</span>
+          </div>
+          <div class="policy-content">
+            <p>We may update these terms as the project grows.</p>
+            <p class="success-text">The latest version will always be available here 📅</p>
+          </div>
+        </div>
 
-3️⃣ Credits & Reload System
-
-Credits represent usage points inside the Hela Code platform.
-
-Once purchased or used, credits are non-refundable 💎
-
-Low balance may restrict AI access until you reload.
-
-4️⃣ Intellectual Property
-
-Hela Code’s interface, design, and assets belong to PIX Studios Holdings PVT LTD.
-
-AI responses belong to the respective model provider (Apilage AI).
-
-You’re free to use generated code or text at your own discretion.
-
-5️⃣ Disclaimer
-
-Hela Code is built for learning and fun only.
-We make no guarantees of accuracy, reliability, or completeness.
-Use at your own risk — especially for production or commercial projects ⚠️
-
-6️⃣ Limitation of Liability
-
-PIX Studios Holdings PVT LTD and its developers are not responsible for:
-
-Any data loss, bugs, or downtime.
-
-Damages from using, misusing, or depending on AI output.
-
-7️⃣ Updates to Policy
-
-We may update these terms as the project grows.
-The latest version will always be available here 📅
-
-💬 Contact Us
-
-Questions or feedback?
-📧 Email: support@hela-code.lk
-
-🌐 Website: https://hela-code.lk
-
-In short:
-We don’t peek at your chats 👀
-We use Apilage AI to power the brains ⚙️
-We built this for creativity, curiosity, and a bit of fun 🎨</p>
+        <div class="contact-info">
+          <div class="policy-title">
+            <i class="fas fa-comments"></i>
+            <span>Contact Us</span>
+          </div>
+          <div class="policy-content">
+            <p>Questions or feedback?</p>
+            <ul class="policy-list">
+              <li>📧 Email: support@hela-code.lk</li>
+              <li>🌐 Website: https://hela-code.lk</li>
+            </ul>
+            <p class="success-text">In short: We don't peek at your chats 👀 | We use Apilage AI to power the brains ⚙️ | We built this for creativity, curiosity, and a bit of fun 🎨</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   
@@ -772,7 +912,45 @@ We built this for creativity, curiosity, and a bit of fun 🎨</p>
     <div class="modal-content">
       <button class="modal-close">&times;</button>
       <h3 class="modal-title">Contact / Support</h3>
-      <p class="modal-text">Need help? Our support team is available to assist you with any questions or issues. Contact us via email at support@helacode.com or through our help center. We typically respond within 24 hours.</p>
+      <div class="modal-text">
+        <p>Need help? Our support team is available to assist you with any questions or issues.</p>
+        
+        <div class="contact-info">
+          <div class="policy-title">
+            <i class="fas fa-envelope"></i>
+            <span>Email Support</span>
+          </div>
+          <div class="policy-content">
+            <p>Contact us via email at: <strong>support@helacode.com</strong></p>
+            <p>We typically respond within <strong>24 hours</strong>.</p>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-globe"></i>
+            <span>Help Center</span>
+          </div>
+          <div class="policy-content">
+            <p>Visit our help center for FAQs and documentation:</p>
+            <p><strong>https://hela-code.lk/support</strong></p>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-clock"></i>
+            <span>Response Times</span>
+          </div>
+          <div class="policy-content">
+            <ul class="policy-list">
+              <li>General Inquiries: <strong>24 hours</strong></li>
+              <li>Technical Issues: <strong>12 hours</strong></li>
+              <li>Billing Questions: <strong>6 hours</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -866,21 +1044,29 @@ We built this for creativity, curiosity, and a bit of fun 🎨</p>
         }
       }
       
-      // Modal functionality
+      // Modal functionality - FIXED: Added proper event listeners for all modals
       const modals = document.querySelectorAll('.modal');
       const modalTriggers = document.querySelectorAll('[data-modal]');
       const closeButtons = document.querySelectorAll('.modal-close');
       
+      // Fix for privacy button and all modal triggers
       modalTriggers.forEach(trigger => {
-        trigger.addEventListener('click', function() {
+        trigger.addEventListener('click', function(e) {
+          e.preventDefault();
           const modalId = this.getAttribute('data-modal') + '-modal';
-          document.getElementById(modalId).classList.add('active');
+          const modal = document.getElementById(modalId);
+          if (modal) {
+            modal.classList.add('active');
+          }
         });
       });
       
       closeButtons.forEach(button => {
         button.addEventListener('click', function() {
-          this.closest('.modal').classList.remove('active');
+          const modal = this.closest('.modal');
+          if (modal) {
+            modal.classList.remove('active');
+          }
         });
       });
       
@@ -1092,4 +1278,4 @@ We built this for creativity, curiosity, and a bit of fun 🎨</p>
     }
   </script>
 </body>
-</html>  make here those lines beatiful clean bold u know
+</html>
