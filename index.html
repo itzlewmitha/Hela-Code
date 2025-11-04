@@ -3,11 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hela Code — Loging Portal</title>
+  <title>Hela Code — AI Coding Assistant</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <style>
     * {
       margin: 0;
@@ -17,376 +14,424 @@
     
     body {
       min-height: 100vh;
-      background: radial-gradient(circle at 20% 30%, #111425 0%, #0b0c1b 70%);
+      background: #0a0014;
       font-family: 'Inter', sans-serif;
       color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow-x: hidden;
-      padding: 20px;
-    }
-    
-    .neon-grid {
-      position: fixed;
-      inset: 0;
-      background:
-        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
-        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
-      background-size: 40px 40px;
-      animation: moveGrid 20s linear infinite;
-      z-index: 0;
-    }
-    
-    @keyframes moveGrid {
-      0% { background-position: 0 0, 0 0; }
-      100% { background-position: 40px 40px, 40px 40px; }
-    }
-    
-    .container {
+      overflow: hidden;
       position: relative;
-      z-index: 2;
+    }
+    
+    /* Code Rain Background */
+    .code-rain {
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      max-width: 370px;
-      background: rgba(15, 15, 35, 0.95);
-      border: 1px solid rgba(162, 89, 255, 0.2);
-      box-shadow: 0 0 25px rgba(162, 89, 255, 0.3);
-      border-radius: 16px;
-      padding: 30px 25px;
-      text-align: center;
-      backdrop-filter: blur(12px);
-      animation: fadeIn 1.2s ease-in-out;
+      height: 100%;
+      z-index: 1;
+      opacity: 0.4;
     }
     
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
+    .code-char {
+      position: absolute;
+      color: #b967ff;
+      font-family: monospace;
+      font-size: 14px;
+      opacity: 0;
+      animation: fall linear forwards;
     }
     
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      background: linear-gradient(90deg, #a259ff, #00e6ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 10px;
-      letter-spacing: 1px;
+    @keyframes fall {
+      to {
+        top: 100vh;
+        opacity: 0;
+      }
     }
     
-    p {
-      font-size: 0.9rem;
-      color: #ccc;
-      margin-bottom: 25px;
+    /* Main Terminal Window */
+    .terminal-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 700px;
+      background: rgba(10, 0, 20, 0.85);
+      border: 1px solid #b967ff;
+      box-shadow: 0 0 30px rgba(185, 103, 255, 0.5);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 2;
+      backdrop-filter: blur(5px);
+    }
+    
+    .terminal-header {
+      background: rgba(20, 5, 35, 0.9);
+      padding: 12px 20px;
+      border-bottom: 1px solid #b967ff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .terminal-title {
+      font-weight: 600;
+      color: #e0b3ff;
+      font-size: 1.1rem;
+    }
+    
+    .terminal-controls {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .control-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .close { background: #ff5f57; }
+    .minimize { background: #ffbd2e; }
+    .maximize { background: #28ca42; }
+    
+    .terminal-body {
+      padding: 25px;
+      min-height: 350px;
+      font-family: 'Courier New', monospace;
+      font-size: 1.1rem;
+    }
+    
+    .terminal-line {
+      margin-bottom: 8px;
       line-height: 1.4;
     }
     
-    input {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      padding: 14px 16px;
-      margin-bottom: 15px;
-      color: #fff;
-      font-size: 0.95rem;
-      transition: 0.25s;
-      font-family: inherit;
+    .prompt {
+      color: #b967ff;
+      font-weight: bold;
     }
     
-    input:focus {
-      border-color: #a259ff;
-      outline: none;
-      box-shadow: 0 0 10px rgba(162, 89, 255, 0.4);
+    .text {
+      color: #e0b3ff;
     }
     
-    input::placeholder {
-      color: #888;
+    .blink {
+      animation: blink 1s infinite;
     }
     
-    button {
-      width: 100%;
-      background: linear-gradient(90deg, #a259ff, #00e6ff);
-      color: #fff;
-      font-weight: 600;
-      padding: 14px;
-      border: none;
-      border-radius: 8px;
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      margin-top: 30px;
+      justify-content: center;
+    }
+    
+    .action-btn {
+      background: rgba(185, 103, 255, 0.2);
+      color: #e0b3ff;
+      border: 1px solid #b967ff;
+      padding: 12px 24px;
+      border-radius: 4px;
       cursor: pointer;
-      transition: 0.3s ease;
-      font-family: inherit;
-      font-size: 0.95rem;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      transition: all 0.3s;
     }
     
-    button:hover {
+    .action-btn:hover {
+      background: rgba(185, 103, 255, 0.4);
+      box-shadow: 0 0 15px rgba(185, 103, 255, 0.5);
       transform: translateY(-2px);
-      box-shadow: 0 0 15px rgba(162, 89, 255, 0.6);
     }
     
-    .google-btn {
-      background: #fff;
-      color: #000;
+    /* Credit System */
+    .credit-widget {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(20, 5, 35, 0.9);
+      border: 1px solid #b967ff;
+      border-radius: 6px;
+      padding: 12px 15px;
+      z-index: 3;
+      font-family: 'Courier New', monospace;
+      box-shadow: 0 0 10px rgba(185, 103, 255, 0.3);
+    }
+    
+    .credit-text {
+      color: #e0b3ff;
+      font-size: 0.9rem;
+    }
+    
+    .low-balance {
+      animation: pulse 2s infinite;
+      color: #ff6b9d;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* Privacy Overlay */
+    .privacy-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      font-weight: 600;
-      margin-top: 10px;
-      transition: 0.3s;
+      z-index: 10;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
     }
     
-    .google-btn:hover {
-      background: #f5f5f5;
-      transform: translateY(-2px);
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    .privacy-overlay.active {
+      opacity: 1;
+      visibility: visible;
     }
     
-    .google-icon {
-      width: 20px;
-      height: 20px;
-      background: url('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg') no-repeat center;
-      background-size: contain;
-    }
-    
-    .toggle-link {
-      margin-top: 20px;
-      font-size: 0.9rem;
-      color: #a259ff;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    
-    .toggle-link:hover {
-      text-decoration: underline;
-      color: #00e6ff;
-    }
-    
-    .error-message {
-      background: rgba(255, 107, 107, 0.1);
-      border: 1px solid #ff6b6b;
+    .privacy-terminal {
+      width: 90%;
+      max-width: 600px;
+      background: rgba(10, 0, 20, 0.95);
+      border: 1px solid #b967ff;
       border-radius: 8px;
-      padding: 12px;
-      color: #ff6b6b;
-      font-size: 0.9rem;
-      margin-bottom: 16px;
-      display: none;
-      text-align: left;
-      line-height: 1.4;
+      overflow: hidden;
     }
     
+    .privacy-content {
+      padding: 25px;
+      font-family: 'Courier New', monospace;
+      color: #e0b3ff;
+      line-height: 1.6;
+    }
+    
+    .privacy-close {
+      text-align: center;
+      margin-top: 20px;
+      color: #b967ff;
+      font-size: 0.9rem;
+    }
+    
+    /* Footer */
     footer {
       position: fixed;
       bottom: 20px;
-      font-size: 0.8rem;
-      color: #555;
-      text-align: center;
       width: 100%;
-      padding: 0 20px;
+      text-align: center;
+      color: #6b4d85;
+      font-size: 0.8rem;
+      z-index: 2;
     }
-
+    
     /* Mobile Responsive */
-    @media (max-width: 480px) {
-      body {
-        padding: 15px;
-        align-items: flex-start;
-        padding-top: 40px;
-      }
-      
-      .container {
-        padding: 25px 20px;
-        max-width: 100%;
-      }
-      
-      h1 {
-        font-size: 1.6rem;
-      }
-      
-      p {
-        font-size: 0.85rem;
-      }
-      
-      input, button {
-        padding: 12px 14px;
-      }
-      
-      footer {
-        position: relative;
-        margin-top: 30px;
-        bottom: auto;
-      }
-    }
-
-    @media (max-width: 320px) {
-      .container {
+    @media (max-width: 768px) {
+      .terminal-body {
         padding: 20px 15px;
+        font-size: 1rem;
       }
       
-      h1 {
-        font-size: 1.4rem;
+      .action-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .action-btn {
+        width: 80%;
+        text-align: center;
+      }
+      
+      .credit-widget {
+        top: 10px;
+        right: 10px;
+        padding: 8px 12px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="neon-grid"></div>
-
-  <div class="container">
-    <h1>Hela Code</h1>
-    <p id="formTitle">Sign In to Your Account</p>
-
-    <div class="error-message" id="errorMessage"></div>
-
-    <!-- Full name visible only during sign up -->
-    <input type="text" id="nameField" placeholder="Full Name" style="display:none;">
-    <input type="email" id="email" placeholder="Email Address">
-    <input type="password" id="password" placeholder="Password">
-
-    <button id="authBtn">Sign In</button>
-    <button class="google-btn" id="googleBtn">
-      <span class="google-icon"></span>
-      Continue with Google
-    </button>
-
-    <div class="toggle-link" id="switchForm">Don't have an account? Create one</div>
+  <!-- Code Rain Background -->
+  <div class="code-rain" id="codeRain"></div>
+  
+  <!-- Credit System -->
+  <div class="credit-widget" id="creditWidget">
+    <div class="credit-text">User Balance: 💎 <span id="creditCount">125</span> Credits</div>
   </div>
-
-  <footer>Made with ⚡ by Lewmitha — Pix Studios Sri Lanka</footer>
+  
+  <!-- Main Terminal -->
+  <div class="terminal-container">
+    <div class="terminal-header">
+      <div class="terminal-title">Hela Code Terminal</div>
+      <div class="terminal-controls">
+        <div class="control-btn close"></div>
+        <div class="control-btn minimize"></div>
+        <div class="control-btn maximize"></div>
+      </div>
+    </div>
+    <div class="terminal-body" id="terminalBody">
+      <!-- Terminal content will be populated by JavaScript -->
+    </div>
+  </div>
+  
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <button class="action-btn" id="launchBtn">Launch Assistant</button>
+    <button class="action-btn" id="reloadBtn">Reload Credits</button>
+    <button class="action-btn" id="privacyBtn">Privacy</button>
+  </div>
+  
+  <!-- Privacy Overlay -->
+  <div class="privacy-overlay" id="privacyOverlay">
+    <div class="privacy-terminal">
+      <div class="terminal-header">
+        <div class="terminal-title">Privacy Policy</div>
+        <div class="terminal-controls">
+          <div class="control-btn close" id="closePrivacy"></div>
+        </div>
+      </div>
+      <div class="privacy-content">
+        <div class="terminal-line"><span class="prompt">></span> <span class="text">privacy.txt</span></div>
+        <div class="terminal-line">&nbsp;</div>
+        <div class="terminal-line"><span class="text">Your data is not stored or shared.</span></div>
+        <div class="terminal-line"><span class="text">All code sessions are temporary and encrypted.</span></div>
+        <div class="terminal-line"><span class="text">Reload transactions are handled securely.</span></div>
+        <div class="terminal-line">&nbsp;</div>
+        <div class="privacy-close">press [esc] to close</div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>© 2025 Hela Code | Powered by PIX Studios | Version Beta</footer>
 
   <script>
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
-      authDomain: "hela-code.firebaseapp.com",
-      projectId: "hela-code",
-      appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
-    };
-
-    // Initialize Firebase
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-
-    // DOM Elements
-    const switchForm = document.getElementById('switchForm');
-    const formTitle = document.getElementById('formTitle');
-    const authBtn = document.getElementById('authBtn');
-    const nameField = document.getElementById('nameField');
-    const emailField = document.getElementById('email');
-    const passwordField = document.getElementById('password');
-    const googleBtn = document.getElementById('googleBtn');
-    const errorMessage = document.getElementById('errorMessage');
-    
-    let isSignUp = false;
-
-    // Form switching
-    switchForm.addEventListener('click', () => {
-      isSignUp = !isSignUp;
-      formTitle.textContent = isSignUp ? 'Create Your Account' : 'Sign In to Your Account';
-      authBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
-      switchForm.textContent = isSignUp ? 'Already have an account? Sign In' : 'Don\'t have an account? Create one';
-      nameField.style.display = isSignUp ? 'block' : 'none';
-      hideError();
-    });
-
-    // Show error message
-    function showError(message) {
-      errorMessage.textContent = message;
-      errorMessage.style.display = 'block';
-    }
-
-    // Hide error message
-    function hideError() {
-      errorMessage.style.display = 'none';
-    }
-
-    // Save user and redirect
-    function saveUserAndRedirect(user) {
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        name: user.displayName || user.email.split('@')[0],
-        photoURL: user.photoURL
-      };
+    // Create code rain effect
+    function createCodeRain() {
+      const codeRain = document.getElementById('codeRain');
+      const chars = '01{}[]<>;:!@#$%&*()_+-=~`|/\\"\'';
+      const sinhalaChars = 'අආඇඈඉඊඋඌඍඎඏඐඑඒඓඔඕඖකඛගඝඞඟචඡජඣඤඥඦටඨඩඪණඬතථදධනඳපඵබභමඹයරලවශෂසහළෆ';
+      const allChars = chars + sinhalaChars;
       
-      localStorage.setItem('helaUser', JSON.stringify(userData));
-      window.location.href = "chat.html";
+      for (let i = 0; i < 100; i++) {
+        const codeChar = document.createElement('div');
+        codeChar.className = 'code-char';
+        codeChar.textContent = allChars[Math.floor(Math.random() * allChars.length)];
+        codeChar.style.left = Math.random() * 100 + 'vw';
+        codeChar.style.top = Math.random() * -100 + 'px';
+        codeChar.style.animationDuration = (Math.random() * 5 + 5) + 's';
+        codeChar.style.animationDelay = Math.random() * 5 + 's';
+        codeChar.style.color = `hsl(${Math.random() * 60 + 270}, 100%, ${Math.random() * 30 + 60}%)`;
+        codeRain.appendChild(codeChar);
+      }
     }
-
-    // Email/password authentication
-    authBtn.addEventListener('click', async () => {
-      const email = emailField.value.trim();
-      const password = passwordField.value;
-      const name = nameField.value.trim();
-
-      if (!email || !password) {
-        showError('Please fill in all fields');
-        return;
-      }
-
-      if (isSignUp && !name) {
-        showError('Please enter your full name');
-        return;
-      }
-
-      if (isSignUp && password.length < 6) {
-        showError('Password must be at least 6 characters');
-        return;
-      }
-
-      authBtn.disabled = true;
-      authBtn.textContent = 'Processing...';
-
-      try {
-        if (isSignUp) {
-          // Create new account
-          const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-          
-          // Update profile with display name
-          await userCredential.user.updateProfile({
-            displayName: name
-          });
-          
-          saveUserAndRedirect(userCredential.user);
-        } else {
-          // Sign in
-          const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-          saveUserAndRedirect(userCredential.user);
+    
+    // Terminal boot sequence
+    function runBootSequence() {
+      const terminalBody = document.getElementById('terminalBody');
+      const lines = [
+        { text: "Initializing Hela Core...", delay: 800 },
+        { text: "Connecting to AI grid...", delay: 1000 },
+        { text: "Status: <span style='color:#28ca42'>Online</span>", delay: 800 },
+        { text: "Welcome to Hela Code – Sri Lanka's #1 AI Coding Assistant.", delay: 1200 },
+        { text: "&nbsp;", delay: 500 },
+        { text: "> Access Granted.", delay: 1000, class: "blink" }
+      ];
+      
+      let currentLine = 0;
+      
+      function typeNextLine() {
+        if (currentLine >= lines.length) return;
+        
+        const line = document.createElement('div');
+        line.className = 'terminal-line';
+        if (lines[currentLine].class) {
+          line.classList.add(lines[currentLine].class);
         }
-      } catch (error) {
-        showError(error.message.replace('Firebase:', '').trim());
-        authBtn.disabled = false;
-        authBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+        terminalBody.appendChild(line);
+        
+        const text = lines[currentLine].text;
+        let charIndex = 0;
+        
+        function typeChar() {
+          if (charIndex < text.length) {
+            line.innerHTML += text.charAt(charIndex);
+            charIndex++;
+            setTimeout(typeChar, 30);
+          } else {
+            currentLine++;
+            setTimeout(typeNextLine, lines[currentLine - 1].delay);
+          }
+        }
+        
+        typeChar();
+      }
+      
+      typeNextLine();
+    }
+    
+    // Update credit display
+    function updateCreditDisplay() {
+      const creditCount = document.getElementById('creditCount');
+      const creditWidget = document.getElementById('creditWidget');
+      const credits = parseInt(creditCount.textContent);
+      
+      if (credits < 100) {
+        creditWidget.classList.add('low-balance');
+        creditCount.innerHTML = `<span class="low-balance">${credits}</span>`;
+      } else {
+        creditWidget.classList.remove('low-balance');
+      }
+    }
+    
+    // Event listeners
+    document.getElementById('launchBtn').addEventListener('click', function() {
+      // In a real implementation, this would redirect to the chat interface
+      alert('Launching Hela Code Assistant...');
+    });
+    
+    document.getElementById('reloadBtn').addEventListener('click', function() {
+      const creditCount = document.getElementById('creditCount');
+      let credits = parseInt(creditCount.textContent);
+      credits += 100;
+      creditCount.textContent = credits;
+      updateCreditDisplay();
+      
+      // In a real implementation, this would open a payment interface
+      alert('Redirecting to credit purchase...');
+    });
+    
+    document.getElementById('privacyBtn').addEventListener('click', function() {
+      document.getElementById('privacyOverlay').classList.add('active');
+    });
+    
+    document.getElementById('closePrivacy').addEventListener('click', function() {
+      document.getElementById('privacyOverlay').classList.remove('active');
+    });
+    
+    // Close privacy overlay with ESC key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        document.getElementById('privacyOverlay').classList.remove('active');
       }
     });
-
-    // Google authentication
-    googleBtn.addEventListener('click', async () => {
-      googleBtn.disabled = true;
-      googleBtn.innerHTML = '<span class="google-icon"></span> Connecting...';
-
-      try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        const userCredential = await firebase.auth().signInWithPopup(provider);
-        saveUserAndRedirect(userCredential.user);
-      } catch (error) {
-        showError(error.message.replace('Firebase:', '').trim());
-        googleBtn.disabled = false;
-        googleBtn.innerHTML = '<span class="google-icon"></span> Continue with Google';
-      }
-    });
-
-    // Enter key support
-    passwordField.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        authBtn.click();
-      }
-    });
-
-    // Check if user is already logged in
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        saveUserAndRedirect(user);
-      }
-    });
+    
+    // Initialize the page
+    window.onload = function() {
+      createCodeRain();
+      runBootSequence();
+      updateCreditDisplay();
+    };
   </script>
 </body>
 </html>
