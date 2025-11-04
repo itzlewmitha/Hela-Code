@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hela Code — AI Coding Assistant</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * {
       margin: 0;
@@ -12,111 +13,106 @@
       box-sizing: border-box;
     }
     
+    :root {
+      --primary: #8B5FBF;
+      --primary-light: #9D76C1;
+      --primary-dark: #6D3F9F;
+      --text: #333333;
+      --text-light: #666666;
+      --background: #F8F9FA;
+      --white: #FFFFFF;
+      --card-bg: #FFFFFF;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --transition: all 0.3s ease;
+    }
+    
     body {
-      min-height: 100vh;
-      background: #0a0014;
       font-family: 'Inter', sans-serif;
-      color: #fff;
-      overflow: hidden;
-      position: relative;
+      background-color: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
     }
     
-    /* Code Rain Background */
-    .code-rain {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      opacity: 0.4;
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
     }
     
-    .code-char {
-      position: absolute;
-      color: #b967ff;
-      font-family: monospace;
-      font-size: 14px;
-      opacity: 0;
-      animation: fall linear forwards;
-    }
-    
-    @keyframes fall {
-      to {
-        top: 100vh;
-        opacity: 0;
-      }
-    }
-    
-    /* Main Terminal Window */
-    .terminal-container {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 90%;
-      max-width: 700px;
-      background: rgba(10, 0, 20, 0.85);
-      border: 1px solid #b967ff;
-      box-shadow: 0 0 30px rgba(185, 103, 255, 0.5);
-      border-radius: 8px;
-      overflow: hidden;
-      z-index: 2;
-      backdrop-filter: blur(5px);
-    }
-    
-    .terminal-header {
-      background: rgba(20, 5, 35, 0.9);
-      padding: 12px 20px;
-      border-bottom: 1px solid #b967ff;
+    /* Header */
+    header {
+      padding: 20px 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     
-    .terminal-title {
-      font-weight: 600;
-      color: #e0b3ff;
-      font-size: 1.1rem;
-    }
-    
-    .terminal-controls {
+    .logo {
       display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--primary);
+    }
+    
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    
+    .credit-bar {
+      display: flex;
+      align-items: center;
       gap: 8px;
+      background: var(--white);
+      padding: 8px 16px;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      font-weight: 500;
     }
     
-    .control-btn {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
+    .credit-bar.low {
+      animation: pulse 2s infinite;
     }
     
-    .close { background: #ff5f57; }
-    .minimize { background: #ffbd2e; }
-    .maximize { background: #28ca42; }
-    
-    .terminal-body {
-      padding: 25px;
-      min-height: 350px;
-      font-family: 'Courier New', monospace;
-      font-size: 1.1rem;
+    @keyframes pulse {
+      0% { box-shadow: var(--shadow); }
+      50% { box-shadow: 0 0 0 3px rgba(139, 95, 191, 0.2); }
+      100% { box-shadow: var(--shadow); }
     }
     
-    .terminal-line {
-      margin-bottom: 8px;
-      line-height: 1.4;
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 80px 0 60px;
     }
     
-    .prompt {
-      color: #b967ff;
-      font-weight: bold;
+    .logo-animated {
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--primary);
+      position: relative;
+      display: inline-block;
     }
     
-    .text {
-      color: #e0b3ff;
-    }
-    
-    .blink {
+    .logo-animated::after {
+      content: '';
+      position: absolute;
+      right: -15px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 50px;
+      background-color: var(--primary);
       animation: blink 1s infinite;
     }
     
@@ -125,313 +121,482 @@
       50% { opacity: 0; }
     }
     
-    /* Action Buttons */
-    .action-buttons {
+    .tagline {
+      font-size: 1.4rem;
+      color: var(--text-light);
+      margin-bottom: 40px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .cta-buttons {
       display: flex;
-      gap: 15px;
-      margin-top: 30px;
+      gap: 20px;
       justify-content: center;
+      margin-bottom: 80px;
     }
     
-    .action-btn {
-      background: rgba(185, 103, 255, 0.2);
-      color: #e0b3ff;
-      border: 1px solid #b967ff;
-      padding: 12px 24px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-family: 'Courier New', monospace;
+    .btn {
+      padding: 14px 32px;
+      border-radius: 50px;
+      font-weight: 600;
       font-size: 1rem;
-      transition: all 0.3s;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+      position: relative;
+      overflow: hidden;
     }
     
-    .action-btn:hover {
-      background: rgba(185, 103, 255, 0.4);
-      box-shadow: 0 0 15px rgba(185, 103, 255, 0.5);
-      transform: translateY(-2px);
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      box-shadow: 0 4px 15px rgba(139, 95, 191, 0.3);
     }
     
-    /* Credit System */
-    .credit-widget {
+    .btn-secondary {
+      background: var(--white);
+      color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+    
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(139, 95, 191, 0.4);
+    }
+    
+    .btn-primary:hover::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.5);
+      opacity: 0;
+      border-radius: 100%;
+      transform: scale(1, 1) translate(-50%);
+      transform-origin: 50% 50%;
+    }
+    
+    .btn-primary:hover::after {
+      animation: ripple 1s ease-out;
+    }
+    
+    @keyframes ripple {
+      0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(20, 20);
+        opacity: 0;
+      }
+    }
+    
+    /* Info Tiles */
+    .info-section {
+      padding: 60px 0 100px;
+    }
+    
+    .info-tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+    }
+    
+    .tile {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+      cursor: pointer;
+      text-align: center;
+    }
+    
+    .tile:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .tile-icon {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      color: var(--primary);
+    }
+    
+    .tile-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: var(--text);
+    }
+    
+    .tile-description {
+      color: var(--text-light);
+      font-size: 1rem;
+    }
+    
+    /* Footer */
+    footer {
+      background: var(--white);
+      padding: 30px 0;
+      border-top: 1px solid rgba(139, 95, 191, 0.2);
       position: fixed;
-      top: 20px;
-      right: 20px;
-      background: rgba(20, 5, 35, 0.9);
-      border: 1px solid #b967ff;
-      border-radius: 6px;
-      padding: 12px 15px;
-      z-index: 3;
-      font-family: 'Courier New', monospace;
-      box-shadow: 0 0 10px rgba(185, 103, 255, 0.3);
+      bottom: 0;
+      width: 100%;
     }
     
-    .credit-text {
-      color: #e0b3ff;
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .footer-links {
+      display: flex;
+      gap: 25px;
+    }
+    
+    .footer-link {
+      color: var(--text-light);
+      text-decoration: none;
+      transition: var(--transition);
       font-size: 0.9rem;
     }
     
-    .low-balance {
-      animation: pulse 2s infinite;
-      color: #ff6b9d;
+    .footer-link:hover {
+      color: var(--primary);
     }
     
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+    .version {
+      color: var(--text-light);
+      font-size: 0.9rem;
     }
     
-    /* Privacy Overlay */
-    .privacy-overlay {
+    /* Background Animation */
+    .background-animation {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s;
-    }
-    
-    .privacy-overlay.active {
-      opacity: 1;
-      visibility: visible;
-    }
-    
-    .privacy-terminal {
-      width: 90%;
-      max-width: 600px;
-      background: rgba(10, 0, 20, 0.95);
-      border: 1px solid #b967ff;
-      border-radius: 8px;
+      z-index: -1;
       overflow: hidden;
     }
     
-    .privacy-content {
-      padding: 25px;
-      font-family: 'Courier New', monospace;
-      color: #e0b3ff;
+    .floating-element {
+      position: absolute;
+      opacity: 0.03;
+      font-size: 24px;
+      color: var(--primary);
+      animation: float 15s infinite linear;
+    }
+    
+    @keyframes float {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.03;
+      }
+      90% {
+        opacity: 0.03;
+      }
+      100% {
+        transform: translateY(-100px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+    
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal-content {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      position: relative;
+    }
+    
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+    
+    .modal-title {
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+      color: var(--primary);
+    }
+    
+    .modal-text {
+      color: var(--text-light);
       line-height: 1.6;
     }
     
-    .privacy-close {
-      text-align: center;
-      margin-top: 20px;
-      color: #b967ff;
-      font-size: 0.9rem;
-    }
-    
-    /* Footer */
-    footer {
-      position: fixed;
-      bottom: 20px;
-      width: 100%;
-      text-align: center;
-      color: #6b4d85;
-      font-size: 0.8rem;
-      z-index: 2;
-    }
-    
-    /* Mobile Responsive */
+    /* Responsive */
     @media (max-width: 768px) {
-      .terminal-body {
-        padding: 20px 15px;
-        font-size: 1rem;
+      .logo-animated {
+        font-size: 2.5rem;
       }
       
-      .action-buttons {
+      .tagline {
+        font-size: 1.2rem;
+      }
+      
+      .cta-buttons {
         flex-direction: column;
         align-items: center;
       }
       
-      .action-btn {
-        width: 80%;
+      .btn {
+        width: 200px;
+      }
+      
+      .footer-content {
+        flex-direction: column;
+        gap: 15px;
         text-align: center;
       }
       
-      .credit-widget {
-        top: 10px;
-        right: 10px;
-        padding: 8px 12px;
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .hero {
+        padding: 60px 0 40px;
       }
     }
   </style>
 </head>
 <body>
-  <!-- Code Rain Background -->
-  <div class="code-rain" id="codeRain"></div>
+  <!-- Background Animation -->
+  <div class="background-animation" id="backgroundAnimation"></div>
   
-  <!-- Credit System -->
-  <div class="credit-widget" id="creditWidget">
-    <div class="credit-text">User Balance: 💎 <span id="creditCount">125</span> Credits</div>
-  </div>
+  <!-- Header -->
+  <header class="container">
+    <div class="logo">
+      <div class="logo-icon">
+        <i class="fas fa-code"></i>
+      </div>
+      <span>Hela Code</span>
+    </div>
+    <div class="credit-bar" id="creditBar">
+      <i class="fas fa-gem"></i>
+      <span>Credits: <span id="creditCount">250</span></span>
+    </div>
+  </header>
   
-  <!-- Main Terminal -->
-  <div class="terminal-container">
-    <div class="terminal-header">
-      <div class="terminal-title">Hela Code Terminal</div>
-      <div class="terminal-controls">
-        <div class="control-btn close"></div>
-        <div class="control-btn minimize"></div>
-        <div class="control-btn maximize"></div>
+  <!-- Hero Section -->
+  <section class="hero container">
+    <h1 class="logo-animated" id="animatedLogo">Hela Code</h1>
+    <p class="tagline">Sri Lanka's #1 AI Coding Assistant — Where your ideas talk back.</p>
+    <div class="cta-buttons">
+      <button class="btn btn-primary" id="launchBtn">Launch Assistant</button>
+      <button class="btn btn-secondary" id="reloadBtn">Reload Credits</button>
+    </div>
+  </section>
+  
+  <!-- Info Tiles -->
+  <section class="info-section container">
+    <div class="info-tiles">
+      <div class="tile" data-modal="what-is-hela">
+        <div class="tile-icon">💬</div>
+        <h3 class="tile-title">What is Hela Code?</h3>
+        <p class="tile-description">Your AI partner for code, logic, and learning.</p>
+      </div>
+      <div class="tile" data-modal="how-credits-work">
+        <div class="tile-icon">⚡</div>
+        <h3 class="tile-title">How Credits Work</h3>
+        <p class="tile-description">Each message uses small credit units. Reload anytime.</p>
+      </div>
+      <div class="tile" data-modal="privacy-safety">
+        <div class="tile-icon">🔒</div>
+        <h3 class="tile-title">Privacy & Safety</h3>
+        <p class="tile-description">Your code stays yours. We never store personal data.</p>
       </div>
     </div>
-    <div class="terminal-body" id="terminalBody">
-      <!-- Terminal content will be populated by JavaScript -->
+  </section>
+  
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-content">
+      <div class="footer-links">
+        <a href="#" class="footer-link" data-modal="privacy-policy">Privacy Policy</a>
+        <a href="#" class="footer-link" data-modal="terms-conditions">Terms & Conditions</a>
+        <a href="#" class="footer-link" data-modal="contact-support">Contact / Support</a>
+      </div>
+      <div class="version">v1.4 – Beta</div>
+    </div>
+  </footer>
+  
+  <!-- Modals -->
+  <div class="modal" id="what-is-hela-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">What is Hela Code?</h3>
+      <p class="modal-text">Hela Code is Sri Lanka's premier AI coding assistant designed to help developers of all skill levels. Whether you're debugging, learning new concepts, or building complex applications, Hela Code provides intelligent suggestions and explanations to accelerate your coding journey.</p>
     </div>
   </div>
   
-  <!-- Action Buttons -->
-  <div class="action-buttons">
-    <button class="action-btn" id="launchBtn">Launch Assistant</button>
-    <button class="action-btn" id="reloadBtn">Reload Credits</button>
-    <button class="action-btn" id="privacyBtn">Privacy</button>
-  </div>
-  
-  <!-- Privacy Overlay -->
-  <div class="privacy-overlay" id="privacyOverlay">
-    <div class="privacy-terminal">
-      <div class="terminal-header">
-        <div class="terminal-title">Privacy Policy</div>
-        <div class="terminal-controls">
-          <div class="control-btn close" id="closePrivacy"></div>
-        </div>
-      </div>
-      <div class="privacy-content">
-        <div class="terminal-line"><span class="prompt">></span> <span class="text">privacy.txt</span></div>
-        <div class="terminal-line">&nbsp;</div>
-        <div class="terminal-line"><span class="text">Your data is not stored or shared.</span></div>
-        <div class="terminal-line"><span class="text">All code sessions are temporary and encrypted.</span></div>
-        <div class="terminal-line"><span class="text">Reload transactions are handled securely.</span></div>
-        <div class="terminal-line">&nbsp;</div>
-        <div class="privacy-close">press [esc] to close</div>
-      </div>
+  <div class="modal" id="how-credits-work-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">How Credits Work</h3>
+      <p class="modal-text">Credits are used to interact with Hela Code's AI assistant. Each message you send consumes a small number of credits based on complexity. You can reload credits anytime through secure payment options. Unused credits never expire.</p>
     </div>
   </div>
   
-  <footer>© 2025 Hela Code | Powered by PIX Studios | Version Beta</footer>
+  <div class="modal" id="privacy-safety-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">Privacy & Safety</h3>
+      <p class="modal-text">We take your privacy seriously. Your code and conversations are encrypted and never stored on our servers after your session ends. We don't share your data with third parties. Your intellectual property remains yours alone.</p>
+    </div>
+  </div>
+  
+  <div class="modal" id="privacy-policy-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">Privacy Policy</h3>
+      <p class="modal-text">Our privacy policy outlines how we handle your data. We collect minimal information necessary to provide our services and ensure a seamless experience. We do not sell or share your personal information with third parties.</p>
+    </div>
+  </div>
+  
+  <div class="modal" id="terms-conditions-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">Terms & Conditions</h3>
+      <p class="modal-text">By using Hela Code, you agree to our terms of service. These include appropriate use guidelines, credit policies, and intellectual property rights. Please review these terms carefully before using our platform.</p>
+    </div>
+  </div>
+  
+  <div class="modal" id="contact-support-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">Contact / Support</h3>
+      <p class="modal-text">Need help? Our support team is available to assist you with any questions or issues. Contact us via email at support@helacode.com or through our help center. We typically respond within 24 hours.</p>
+    </div>
+  </div>
 
   <script>
-    // Create code rain effect
-    function createCodeRain() {
-      const codeRain = document.getElementById('codeRain');
-      const chars = '01{}[]<>;:!@#$%&*()_+-=~`|/\\"\'';
-      const sinhalaChars = 'අආඇඈඉඊඋඌඍඎඏඐඑඒඓඔඕඖකඛගඝඞඟචඡජඣඤඥඦටඨඩඪණඬතථදධනඳපඵබභමඹයරලවශෂසහළෆ';
-      const allChars = chars + sinhalaChars;
-      
-      for (let i = 0; i < 100; i++) {
-        const codeChar = document.createElement('div');
-        codeChar.className = 'code-char';
-        codeChar.textContent = allChars[Math.floor(Math.random() * allChars.length)];
-        codeChar.style.left = Math.random() * 100 + 'vw';
-        codeChar.style.top = Math.random() * -100 + 'px';
-        codeChar.style.animationDuration = (Math.random() * 5 + 5) + 's';
-        codeChar.style.animationDelay = Math.random() * 5 + 's';
-        codeChar.style.color = `hsl(${Math.random() * 60 + 270}, 100%, ${Math.random() * 30 + 60}%)`;
-        codeRain.appendChild(codeChar);
-      }
-    }
-    
-    // Terminal boot sequence
-    function runBootSequence() {
-      const terminalBody = document.getElementById('terminalBody');
-      const lines = [
-        { text: "Initializing Hela Core...", delay: 800 },
-        { text: "Connecting to AI grid...", delay: 1000 },
-        { text: "Status: <span style='color:#28ca42'>Online</span>", delay: 800 },
-        { text: "Welcome to Hela Code – Sri Lanka's #1 AI Coding Assistant.", delay: 1200 },
-        { text: "&nbsp;", delay: 500 },
-        { text: "> Access Granted.", delay: 1000, class: "blink" }
-      ];
-      
-      let currentLine = 0;
-      
-      function typeNextLine() {
-        if (currentLine >= lines.length) return;
-        
-        const line = document.createElement('div');
-        line.className = 'terminal-line';
-        if (lines[currentLine].class) {
-          line.classList.add(lines[currentLine].class);
-        }
-        terminalBody.appendChild(line);
-        
-        const text = lines[currentLine].text;
-        let charIndex = 0;
-        
-        function typeChar() {
-          if (charIndex < text.length) {
-            line.innerHTML += text.charAt(charIndex);
-            charIndex++;
-            setTimeout(typeChar, 30);
-          } else {
-            currentLine++;
-            setTimeout(typeNextLine, lines[currentLine - 1].delay);
-          }
-        }
-        
-        typeChar();
-      }
-      
-      typeNextLine();
-    }
-    
-    // Update credit display
-    function updateCreditDisplay() {
-      const creditCount = document.getElementById('creditCount');
-      const creditWidget = document.getElementById('creditWidget');
-      const credits = parseInt(creditCount.textContent);
-      
-      if (credits < 100) {
-        creditWidget.classList.add('low-balance');
-        creditCount.innerHTML = `<span class="low-balance">${credits}</span>`;
-      } else {
-        creditWidget.classList.remove('low-balance');
-      }
-    }
-    
-    // Event listeners
-    document.getElementById('launchBtn').addEventListener('click', function() {
-      // In a real implementation, this would redirect to the chat interface
-      alert('Launching Hela Code Assistant...');
-    });
-    
-    document.getElementById('reloadBtn').addEventListener('click', function() {
-      const creditCount = document.getElementById('creditCount');
-      let credits = parseInt(creditCount.textContent);
-      credits += 100;
-      creditCount.textContent = credits;
-      updateCreditDisplay();
-      
-      // In a real implementation, this would open a payment interface
-      alert('Redirecting to credit purchase...');
-    });
-    
-    document.getElementById('privacyBtn').addEventListener('click', function() {
-      document.getElementById('privacyOverlay').classList.add('active');
-    });
-    
-    document.getElementById('closePrivacy').addEventListener('click', function() {
-      document.getElementById('privacyOverlay').classList.remove('active');
-    });
-    
-    // Close privacy overlay with ESC key
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        document.getElementById('privacyOverlay').classList.remove('active');
-      }
-    });
-    
     // Initialize the page
-    window.onload = function() {
-      createCodeRain();
-      runBootSequence();
+    document.addEventListener('DOMContentLoaded', function() {
+      // Animate logo typing effect
+      const logoElement = document.getElementById('animatedLogo');
+      const logoText = logoElement.textContent;
+      logoElement.textContent = '';
+      
+      let i = 0;
+      function typeLogo() {
+        if (i < logoText.length) {
+          logoElement.textContent += logoText.charAt(i);
+          i++;
+          setTimeout(typeLogo, 150);
+        }
+      }
+      
+      setTimeout(typeLogo, 500);
+      
+      // Create background animation
+      const backgroundAnimation = document.getElementById('backgroundAnimation');
+      const sinhalaChars = 'අආඇඈඉඊඋඌඍඎඏඐඑඒඓඔඕඖකඛගඝඞඟචඡජඣඤඥඦටඨඩඪණඬතථදධනඳපඵබභමඹයරලවශෂසහළෆ';
+      
+      for (let i = 0; i < 20; i++) {
+        const element = document.createElement('div');
+        element.className = 'floating-element';
+        element.textContent = sinhalaChars[Math.floor(Math.random() * sinhalaChars.length)];
+        element.style.left = Math.random() * 100 + 'vw';
+        element.style.animationDelay = Math.random() * 15 + 's';
+        element.style.fontSize = (Math.random() * 20 + 16) + 'px';
+        backgroundAnimation.appendChild(element);
+      }
+      
+      // Update credit display
+      function updateCreditDisplay() {
+        const creditCount = document.getElementById('creditCount');
+        const creditBar = document.getElementById('creditBar');
+        const credits = parseInt(creditCount.textContent);
+        
+        if (credits < 100) {
+          creditBar.classList.add('low');
+        } else {
+          creditBar.classList.remove('low');
+        }
+      }
+      
+      // Modal functionality
+      const modals = document.querySelectorAll('.modal');
+      const modalTriggers = document.querySelectorAll('[data-modal]');
+      const closeButtons = document.querySelectorAll('.modal-close');
+      
+      modalTriggers.forEach(trigger => {
+        trigger.addEventListener('click', function() {
+          const modalId = this.getAttribute('data-modal') + '-modal';
+          document.getElementById(modalId).style.display = 'flex';
+        });
+      });
+      
+      closeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          this.closest('.modal').style.display = 'none';
+        });
+      });
+      
+      // Close modal when clicking outside content
+      modals.forEach(modal => {
+        modal.addEventListener('click', function(e) {
+          if (e.target === this) {
+            this.style.display = 'none';
+          }
+        });
+      });
+      
+      // Button functionality
+      document.getElementById('launchBtn').addEventListener('click', function() {
+        alert('Launching Hela Code Assistant...');
+        // In a real implementation, this would redirect to the chat interface
+      });
+      
+      document.getElementById('reloadBtn').addEventListener('click', function() {
+        const creditCount = document.getElementById('creditCount');
+        let credits = parseInt(creditCount.textContent);
+        credits += 100;
+        creditCount.textContent = credits;
+        updateCreditDisplay();
+        
+        // In a real implementation, this would open a payment interface
+        alert('Redirecting to credit purchase...');
+      });
+      
+      // Initialize credit display
       updateCreditDisplay();
-    };
+    });
   </script>
 </body>
 </html>
