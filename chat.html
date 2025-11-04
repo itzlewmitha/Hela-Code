@@ -798,6 +798,9 @@ pre code {
             </div>
             <span>Hela Code</span>
         </div>
+<button class="mobile-menu-btn" id="mobileMenuBtn">
+    <i class="fas fa-bars"></i>
+</button>
        <div class="user-section">
     <div class="user-profile">
         <div class="user-avatar" id="userAvatar">
@@ -1182,25 +1185,32 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
             }
         }
 
-        function updateProgressUI() {
-            try {
-                if (elements.creditsDisplay) {
-                    elements.creditsDisplay.textContent = state.userProgress.credits;
-                }
-                
-                // Update credit bar styling
-                if (elements.creditBar) {
-                    if (state.userProgress.credits < 50) {
-                        elements.creditBar.classList.add('low');
-                    } else {
-                        elements.creditBar.classList.remove('low');
-                    }
-                }
-                
-            } catch (error) {
-                console.error('Error updating progress UI:', error);
+        // Replace the updateProgressUI function with this enhanced version
+function updateProgressUI() {
+    try {
+        if (elements.creditsDisplay) {
+            elements.creditsDisplay.textContent = state.userProgress.credits;
+        }
+        
+        // Update credit bar styling
+        if (elements.creditBar) {
+            if (state.userProgress.credits < 50) {
+                elements.creditBar.classList.add('low');
+            } else {
+                elements.creditBar.classList.remove('low');
             }
         }
+        
+        // Update user level
+        const userLevel = document.getElementById('userLevel');
+        if (userLevel) {
+            userLevel.textContent = state.userProgress.level;
+        }
+        
+    } catch (error) {
+        console.error('Error updating progress UI:', error);
+    }
+}
 
         // ==================== DOM WAIT FUNCTIONS ====================
         function waitForElement(selector, timeout = 5000) {
@@ -2045,26 +2055,35 @@ function addCopyCodeListeners() {
 
         // ==================== USER AUTH & INIT ====================
         function updateUserInfo(user) {
-            try {
-                if (elements.userName) {
-                    elements.userName.textContent = user.displayName || user.email || 'User';
-                }
-                
-                if (elements.userAvatar) {
-                    const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-                    elements.userAvatar.textContent = initial;
-                    
-                    if (user.photoURL) {
-                        elements.userAvatar.style.backgroundImage = `url(${user.photoURL})`;
-                        elements.userAvatar.style.backgroundSize = 'cover';
-                        elements.userAvatar.textContent = '';
-                    }
-                }
-            } catch (error) {
-                console.error('Error updating user info:', error);
+    try {
+        if (elements.userName) {
+            elements.userName.textContent = user.displayName || user.email || 'User';
+        }
+        
+        if (elements.userAvatar) {
+            const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+            
+            if (user.photoURL) {
+                elements.userAvatar.innerHTML = '';
+                elements.userAvatar.style.backgroundImage = `url(${user.photoURL})`;
+                elements.userAvatar.style.backgroundSize = 'cover';
+                elements.userAvatar.style.backgroundPosition = 'center';
+            } else {
+                elements.userAvatar.innerHTML = initial;
+                elements.userAvatar.style.backgroundImage = 'none';
             }
         }
-
+        
+        // Update level display
+        const userLevel = document.getElementById('userLevel');
+        if (userLevel) {
+            userLevel.textContent = state.userProgress.level;
+        }
+        
+    } catch (error) {
+        console.error('Error updating user info:', error);
+    }
+}
         async function initializeApp() {
             return new Promise((resolve, reject) => {
                 auth.onAuthStateChanged(async (user) => {
