@@ -780,7 +780,20 @@ pre code {
 .copy-code-btn:hover {
     background: var(--primary);
 }
+.download-code-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: var(--transition);
+}
 
+.download-code-btn:hover {
+    background: var(--success);
+}
 /* Language-specific colors */
 .language-javascript { color: #f1fa8c; }
 .language-python { color: #8be9fd; }
@@ -2044,58 +2057,112 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
     }
 
     function displayAIResponse(content) {
-        try {
-            if (!elements.chatMessages) return;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ai';
-            
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = 'H';
-            messageDiv.appendChild(avatar);
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = 'message-content';
-            
-            const messageBubble = document.createElement('div');
-            messageBubble.className = 'message-bubble ai-bubble';
-            
+    try {
+        if (!elements.chatMessages) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ai';
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = 'H';
+        messageDiv.appendChild(avatar);
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message-bubble ai-bubble';
+        
+        // Only format code blocks if they exist in the response
+        let formattedContent = content;
+        
+        // Check if the content contains code blocks
+        if (content.includes('```')) {
             // Enhanced content formatting with code highlighting
-            let formattedContent = content
+            formattedContent = content
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 .replace(/`([^`]+)`/g, '<code>$1</code>');
             
-            // Handle code blocks with syntax highlighting
+            // Handle code blocks with syntax highlighting ONLY if they exist
             formattedContent = formattedContent.replace(/```(\w+)?\n([\s\S]*?)```/g, function(match, lang, code) {
                 const language = lang || 'text';
                 return `
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span>${language}</span>
-                            <button class="copy-code-btn" onclick="copyToClipboard(this)">Copy</button>
-                        </div>
-                        <pre><code class="language-${language}">${escapeHTML(code.trim())}</code></pre>
-                    </div>
-                `;
+    <div class="code-block">
+        <div class="code-header">
+            <span>${language}</span>
+            <div>
+                <button class="copy-code-btn" onclick="copyToClipboard(this)">Copy</button>
+                <button class="download-code-btn" onclick="downloadCode(this)" style="margin-left: 8px;">Download</button>
+            </div>
+        </div>
+        <pre><code class="language-${language}">${escapeHTML(code.trim())}</code></pre>
+    </div>
+`;
             });
-            
-            messageBubble.innerHTML = formattedContent;
-            
-            messageContent.appendChild(messageBubble);
-            messageDiv.appendChild(messageContent);
-            elements.chatMessages.appendChild(messageDiv);
-            
-            // Add copy functionality
-            addCopyCodeListeners();
-            
-            scrollToBottom();
-        } catch (error) {
-            console.error('Error displaying AI response:', error);
+        } else {
+            // If no code blocks, just do basic formatting
+            formattedContent = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>');
         }
+        
+        messageBubble.innerHTML = formattedContent;
+        
+        messageContent.appendChild(messageBubble);
+        messageDiv.appendChild(messageContent);
+        elements.chatMessages.appendChild(messageDiv);
+        
+        // Add copy functionality
+        addCopyCodeListeners();
+        
+        scrollToBottom();
+    } catch (error) {
+        console.error('Error displaying AI response:', error);
     }
+}
+    // Add this function to your existing code
+function downloadCode(button) {
+    try {
+        const codeBlock = button.closest('.code-block');
+        const codeElement = codeBlock.querySelector('code');
+        const language = codeBlock.querySelector('.code-header span').textContent;
+        const codeText = codeElement.textContent;
+        
+        const blob = new Blob([codeText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `code.${getFileExtension(language)}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showNotification('Code downloaded successfully!', 'success');
+    } catch (error) {
+        console.error('Error downloading code:', error);
+        showNotification('Error downloading code', 'error');
+    }
+}
 
+function getFileExtension(language) {
+    const extensions = {
+        'javascript': 'js',
+        'python': 'py',
+        'html': 'html',
+        'css': 'css',
+        'java': 'java',
+        'php': 'php',
+        'sql': 'sql',
+        'json': 'json',
+        'bash': 'sh',
+        'text': 'txt'
+    };
+    return extensions[language.toLowerCase()] || 'txt';
+}
     // ==================== AI API ====================
     async function callAI(userMessage, conversationContext = []) {
         try {
@@ -2526,17 +2593,18 @@ Remember: You're here to empower Sri Lankan developers and contribute to the gro
     }
 
     // ==================== GLOBAL FUNCTIONS ====================
-    window.handleSend = handleSend;
-    window.handleExamplePrompt = handleExamplePrompt;
-    window.deleteChat = deleteChat;
-    window.shareChat = shareChat;
-    window.showChallengesModal = showChallengesModal;
-    window.showAchievementsModal = showAchievementsModal;
-    window.copyToClipboard = copyToClipboard;
-    window.reloadApp = () => {
-        showNotification('Reloading app...');
-        window.location.reload();
-    };
+window.handleSend = handleSend;
+window.handleExamplePrompt = handleExamplePrompt;
+window.deleteChat = deleteChat;
+window.shareChat = shareChat;
+window.showChallengesModal = showChallengesModal;
+window.showAchievementsModal = showAchievementsModal;
+window.copyToClipboard = copyToClipboard;
+window.downloadCode = downloadCode;  // <-- ADD THIS LINE HERE
+window.reloadApp = () => {
+    showNotification('Reloading app...');
+    window.location.reload();
+};
 
     // Start the application when DOM is ready
     if (document.readyState === 'loading') {
