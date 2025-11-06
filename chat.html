@@ -579,507 +579,509 @@
         </div>
     </div>
 
-    <script>
-        // ==================== GLOBAL STATE ====================
-        let state = {
-            currentChatId: null,
-            chats: [],
-            currentUser: null,
-            uploadedFiles: [],
-            isInitialized: false,
-            userProgress: {
-                achievements: [],
-                challenges: [],
-                credits: 5,
-                level: 1,
-                xp: 0,
-                lastActive: null,
-                stats: {
-                    messagesSent: 0,
-                    codeQuestions: 0,
-                    filesUploaded: 0,
-                    chatsCreated: 0,
-                    consecutiveDays: 0
-                }
-            }
-        };
-
-        // ==================== DOM ELEMENTS ====================
-        let elements = {};
-
-        // ==================== UTILITY FUNCTIONS ====================
-        function showNotification(message, type = 'success') {
-            const notif = document.createElement('div');
-            notif.className = `notification ${type}`;
-            notif.textContent = message;
-            document.body.appendChild(notif);
-            
-            setTimeout(() => {
-                if (notif.parentNode) {
-                    notif.parentNode.removeChild(notif);
-                }
-            }, 3000);
-        }
-
-        function escapeHTML(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function scrollToBottom() {
-            setTimeout(() => {
-                if (elements.chatMessages) {
-                    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-                }
-            }, 100);
-        }
-
-        function autoResizeTextarea() {
-            if (elements.chatInput) {
-                elements.chatInput.style.height = 'auto';
-                elements.chatInput.style.height = Math.min(elements.chatInput.scrollHeight, 120) + 'px';
+<script>
+    // ==================== GLOBAL STATE ====================
+    let state = {
+        currentChatId: null,
+        chats: [],
+        currentUser: null,
+        uploadedFiles: [],
+        isInitialized: false,
+        userProgress: {
+            achievements: [],
+            challenges: [],
+            credits: 5,
+            level: 1,
+            xp: 0,
+            lastActive: null,
+            stats: {
+                messagesSent: 0,
+                codeQuestions: 0,
+                filesUploaded: 0,
+                chatsCreated: 0,
+                consecutiveDays: 0
             }
         }
+    };
 
-        function generateChatId() {
-            return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        }
+    // ==================== DOM ELEMENTS ====================
+    let elements = {};
 
-        // ==================== TYPING INDICATOR FUNCTIONS ====================
-        function removeTypingIndicator() {
-            const typing = document.getElementById('typing-indicator');
-            if (typing && typing.parentNode) {
-                typing.parentNode.removeChild(typing);
+    // ==================== UTILITY FUNCTIONS ====================
+    function showNotification(message, type = 'success') {
+        const notif = document.createElement('div');
+        notif.className = `notification ${type}`;
+        notif.textContent = message;
+        document.body.appendChild(notif);
+        
+        setTimeout(() => {
+            if (notif.parentNode) {
+                notif.parentNode.removeChild(notif);
             }
-        }
+        }, 3000);
+    }
 
-        function showTypingIndicator() {
-            removeTypingIndicator();
-            
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'message ai';
-            typingDiv.id = 'typing-indicator';
-            
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = 'H';
-            typingDiv.appendChild(avatar);
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = 'message-content';
-            
-            const messageBubble = document.createElement('div');
-            messageBubble.className = 'message-bubble ai-bubble typing-indicator';
-            messageBubble.innerHTML = `
-                <div class="typing-dots">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                </div>
-                <span>Hela Code is thinking...</span>
-            `;
-            
-            messageContent.appendChild(messageBubble);
-            typingDiv.appendChild(messageContent);
-            
+    function escapeHTML(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function scrollToBottom() {
+        setTimeout(() => {
             if (elements.chatMessages) {
-                elements.chatMessages.appendChild(typingDiv);
-                scrollToBottom();
+                elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
             }
-        }
+        }, 100);
+    }
 
-        // ==================== CODE BLOCK FUNCTIONS ====================
-        function copyToClipboard(button) {
-            const codeBlock = button.closest('.code-block');
-            const codeElement = codeBlock.querySelector('code');
-            const codeText = codeElement.textContent;
-            
-            navigator.clipboard.writeText(codeText).then(() => {
-                const originalText = button.textContent;
-                button.textContent = 'Copied!';
-                button.style.background = 'var(--success)';
-                
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.style.background = '';
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy code:', err);
-                button.textContent = 'Failed';
-                button.style.background = 'var(--error)';
-            });
+    function autoResizeTextarea() {
+        if (elements.chatInput) {
+            elements.chatInput.style.height = 'auto';
+            elements.chatInput.style.height = Math.min(elements.chatInput.scrollHeight, 120) + 'px';
         }
+    }
 
-        function downloadCode(button) {
-            const codeBlock = button.closest('.code-block');
-            const codeElement = codeBlock.querySelector('code');
-            const language = codeBlock.querySelector('.code-header span').textContent;
-            const codeText = codeElement.textContent;
-            
-            const blob = new Blob([codeText], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `code.${getFileExtension(language)}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showNotification('Code downloaded successfully!', 'success');
+    function generateChatId() {
+        return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // ==================== TYPING INDICATOR FUNCTIONS ====================
+    function removeTypingIndicator() {
+        const typing = document.getElementById('typing-indicator');
+        if (typing && typing.parentNode) {
+            typing.parentNode.removeChild(typing);
         }
+    }
 
-        function getFileExtension(language) {
-            const extensions = {
-                'javascript': 'js',
-                'python': 'py',
-                'html': 'html',
-                'css': 'css',
-                'java': 'java',
-                'php': 'php',
-                'sql': 'sql',
-                'json': 'json',
-                'bash': 'sh',
-                'text': 'txt'
+    function showTypingIndicator() {
+        removeTypingIndicator();
+        
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message ai';
+        typingDiv.id = 'typing-indicator';
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = 'H';
+        typingDiv.appendChild(avatar);
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message-bubble ai-bubble typing-indicator';
+        messageBubble.innerHTML = `
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+            <span>Hela Code is thinking...</span>
+        `;
+        
+        messageContent.appendChild(messageBubble);
+        typingDiv.appendChild(messageContent);
+        
+        if (elements.chatMessages) {
+            elements.chatMessages.appendChild(typingDiv);
+            scrollToBottom();
+        }
+    }
+
+    // ==================== CODE BLOCK FUNCTIONS ====================
+    function copyToClipboard(button) {
+        const codeBlock = button.closest('.code-block');
+        const codeElement = codeBlock.querySelector('code');
+        const codeText = codeElement.textContent;
+        
+        navigator.clipboard.writeText(codeText).then(() => {
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            button.style.background = 'var(--success)';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = '';
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy code:', err);
+            button.textContent = 'Failed';
+            button.style.background = 'var(--error)';
+        });
+    }
+
+    function downloadCode(button) {
+        const codeBlock = button.closest('.code-block');
+        const codeElement = codeBlock.querySelector('code');
+        const language = codeBlock.querySelector('.code-header span').textContent;
+        const codeText = codeElement.textContent;
+        
+        const blob = new Blob([codeText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `code.${getFileExtension(language)}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showNotification('Code downloaded successfully!', 'success');
+    }
+
+    function getFileExtension(language) {
+        const extensions = {
+            'javascript': 'js',
+            'python': 'py',
+            'html': 'html',
+            'css': 'css',
+            'java': 'java',
+            'php': 'php',
+            'sql': 'sql',
+            'json': 'json',
+            'bash': 'sh',
+            'text': 'txt'
+        };
+        return extensions[language.toLowerCase()] || 'txt';
+    }
+
+    function addCodeBlockListeners() {
+        document.querySelectorAll('.copy-code-btn').forEach(btn => {
+            btn.onclick = function() {
+                copyToClipboard(this);
             };
-            return extensions[language.toLowerCase()] || 'txt';
-        }
+        });
+        
+        document.querySelectorAll('.download-code-btn').forEach(btn => {
+            btn.onclick = function() {
+                downloadCode(this);
+            };
+        });
+    }
 
-        function addCodeBlockListeners() {
-            document.querySelectorAll('.copy-code-btn').forEach(btn => {
-                btn.onclick = function() {
-                    copyToClipboard(this);
-                };
-            });
-            
-            document.querySelectorAll('.download-code-btn').forEach(btn => {
-                btn.onclick = function() {
-                    downloadCode(this);
-                };
-            });
-        }
-
-        // ==================== FIXED CODE DETECTION FUNCTION ====================
-        function formatAIResponse(content) {
-            // Split content by code blocks
-            const parts = content.split(/(```[\s\S]*?```)/g);
-            let formattedContent = '';
-            
-            parts.forEach(part => {
-                if (part.startsWith('```') && part.endsWith('```')) {
-                    // This is a code block
-                    const codeContent = part.slice(3, -3).trim();
-                    const firstNewline = codeContent.indexOf('\n');
-                    
-                    let language = 'text';
-                    let code = codeContent;
-                    
-                    if (firstNewline !== -1) {
-                        const potentialLang = codeContent.substring(0, firstNewline).trim();
-                        // Check if this looks like a language identifier
-                        if (/^[a-zA-Z0-9+#-]+$/.test(potentialLang)) {
-                            language = potentialLang;
-                            code = codeContent.substring(firstNewline + 1);
-                        }
+    // ==================== FIXED CODE DETECTION FUNCTION ====================
+    function formatAIResponse(content) {
+        if (!content) return '';
+        
+        // Split content by code blocks
+        const parts = content.split(/(```[\s\S]*?```)/g);
+        let formattedContent = '';
+        
+        parts.forEach(part => {
+            if (part.startsWith('```') && part.endsWith('```')) {
+                // This is a code block
+                const codeContent = part.slice(3, -3).trim();
+                const firstNewline = codeContent.indexOf('\n');
+                
+                let language = 'text';
+                let code = codeContent;
+                
+                if (firstNewline !== -1) {
+                    const potentialLang = codeContent.substring(0, firstNewline).trim();
+                    // Check if this looks like a language identifier
+                    if (/^[a-zA-Z0-9+#-]+$/.test(potentialLang)) {
+                        language = potentialLang;
+                        code = codeContent.substring(firstNewline + 1);
                     }
-                    
-                    formattedContent += `
-                        <div class="code-block">
-                            <div class="code-header">
-                                <span>${language}</span>
-                                <div class="code-actions">
-                                    <button class="copy-code-btn">Copy</button>
-                                    <button class="download-code-btn">Download</button>
-                                </div>
+                }
+                
+                formattedContent += `
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>${language}</span>
+                            <div class="code-actions">
+                                <button class="copy-code-btn">Copy</button>
+                                <button class="download-code-btn">Download</button>
                             </div>
-                            <pre><code class="language-${language}">${escapeHTML(code)}</code></pre>
                         </div>
-                    `;
-                } else {
-                    // This is regular text
-                    formattedContent += part
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        .replace(/`([^`]+)`/g, '<code>$1</code>')
-                        .replace(/\n/g, '<br>');
-                }
-            });
-            
-            return formattedContent;
-        }
-
-        // ==================== EXAMPLE PROMPTS - REDUCED TO 3 ====================
-        const EXAMPLE_PROMPTS = [
-            {
-                title: "Web Development",
-                prompts: [
-                    "How to create a responsive navbar with React?",
-                    "Explain CSS Grid with a practical example",
-                    "Build a simple CRUD app with Node.js and MongoDB"
-                ]
-            },
-            {
-                title: "Mobile Development", 
-                prompts: [
-                    "Create a Flutter app with bottom navigation",
-                    "How to handle API calls in React Native?",
-                    "Build a Sri Lankan restaurant finder app UI"
-                ]
-            },
-            {
-                title: "Backend & Databases",
-                prompts: [
-                    "Design a database schema for an e-commerce site",
-                    "How to implement JWT authentication in Express.js?",
-                    "Optimize MySQL queries for better performance"
-                ]
-            }
-        ];
-
-        function handleExamplePrompt(prompt) {
-            if (elements.chatInput) {
-                elements.chatInput.value = prompt;
-                elements.chatInput.focus();
-                autoResizeTextarea();
-                showNotification('Prompt added to chat! Click send when ready.', 'success');
-            }
-        }
-
-        function displayExamplePrompts() {
-            const examplesContainer = elements.examplePrompts;
-            if (!examplesContainer) return;
-            
-            examplesContainer.innerHTML = '';
-            
-            EXAMPLE_PROMPTS.forEach(category => {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'example-category';
-                
-                const categoryTitle = document.createElement('h4');
-                categoryTitle.textContent = category.title;
-                categoryTitle.className = 'category-title';
-                categoryDiv.appendChild(categoryTitle);
-                
-                const promptsContainer = document.createElement('div');
-                promptsContainer.className = 'prompts-container';
-                
-                category.prompts.forEach(prompt => {
-                    const promptBtn = document.createElement('button');
-                    promptBtn.className = 'example-prompt-btn';
-                    promptBtn.textContent = prompt;
-                    promptBtn.onclick = () => handleExamplePrompt(prompt);
-                    promptsContainer.appendChild(promptBtn);
-                });
-                
-                categoryDiv.appendChild(promptsContainer);
-                examplesContainer.appendChild(categoryDiv);
-            });
-        }
-
-        // ==================== CHAT MANAGEMENT ====================
-        async function createNewChat() {
-            try {
-                const newChat = {
-                    id: generateChatId(),
-                    title: 'New Chat',
-                    messages: [],
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                };
-                
-                state.chats.unshift(newChat);
-                state.currentChatId = newChat.id;
-                
-                // Update UI
-                if (elements.chatMessages) {
-                    elements.chatMessages.innerHTML = '';
-                }
-                if (elements.welcomeScreen) {
-                    elements.welcomeScreen.style.display = 'flex';
-                }
-                
-                updateChatHistorySidebar();
-                
-                console.log('Created new chat:', newChat.id);
-                return newChat.id;
-            } catch (error) {
-                console.error('Error creating new chat:', error);
-                showNotification('Error creating chat', 'error');
-                return null;
-            }
-        }
-
-        function updateChatHistorySidebar() {
-            if (!elements.chatHistory) return;
-            
-            elements.chatHistory.innerHTML = '';
-            
-            if (state.chats.length === 0) {
-                elements.chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
-                return;
-            }
-            
-            state.chats.forEach(chat => {
-                const chatItem = document.createElement('div');
-                chatItem.className = `chat-item ${chat.id === state.currentChatId ? 'active' : ''}`;
-                chatItem.innerHTML = `
-                    <span class="chat-item-icon">💬</span>
-                    <span class="chat-item-title">${escapeHTML(chat.title)}</span>
-                    <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                        <pre><code class="language-${language}">${escapeHTML(code)}</code></pre>
+                    </div>
                 `;
-                
-                chatItem.addEventListener('click', function(e) {
-                    if (!e.target.closest('.delete-chat')) {
-                        loadChat(chat.id);
-                    }
-                });
-                
-                elements.chatHistory.appendChild(chatItem);
+            } else {
+                // This is regular text
+                formattedContent += part
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`([^`]+)`/g, '<code>$1</code>')
+                    .replace(/\n/g, '<br>');
+            }
+        });
+        
+        return formattedContent;
+    }
+
+    // ==================== EXAMPLE PROMPTS - REDUCED TO 3 ====================
+    const EXAMPLE_PROMPTS = [
+        {
+            title: "Web Development",
+            prompts: [
+                "How to create a responsive navbar with React?",
+                "Explain CSS Grid with a practical example",
+                "Build a simple CRUD app with Node.js and MongoDB"
+            ]
+        },
+        {
+            title: "Mobile Development", 
+            prompts: [
+                "Create a Flutter app with bottom navigation",
+                "How to handle API calls in React Native?",
+                "Build a Sri Lankan restaurant finder app UI"
+            ]
+        },
+        {
+            title: "Backend & Databases",
+            prompts: [
+                "Design a database schema for an e-commerce site",
+                "How to implement JWT authentication in Express.js?",
+                "Optimize MySQL queries for better performance"
+            ]
+        }
+    ];
+
+    function handleExamplePrompt(prompt) {
+        if (elements.chatInput) {
+            elements.chatInput.value = prompt;
+            elements.chatInput.focus();
+            autoResizeTextarea();
+            showNotification('Prompt added to chat! Click send when ready.', 'success');
+        }
+    }
+
+    function displayExamplePrompts() {
+        const examplesContainer = elements.examplePrompts;
+        if (!examplesContainer) return;
+        
+        examplesContainer.innerHTML = '';
+        
+        EXAMPLE_PROMPTS.forEach(category => {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'example-category';
+            
+            const categoryTitle = document.createElement('h4');
+            categoryTitle.textContent = category.title;
+            categoryTitle.className = 'category-title';
+            categoryDiv.appendChild(categoryTitle);
+            
+            const promptsContainer = document.createElement('div');
+            promptsContainer.className = 'prompts-container';
+            
+            category.prompts.forEach(prompt => {
+                const promptBtn = document.createElement('button');
+                promptBtn.className = 'example-prompt-btn';
+                promptBtn.textContent = prompt;
+                promptBtn.onclick = () => handleExamplePrompt(prompt);
+                promptsContainer.appendChild(promptBtn);
             });
-        }
+            
+            categoryDiv.appendChild(promptsContainer);
+            examplesContainer.appendChild(categoryDiv);
+        });
+    }
 
-        function deleteChat(chatId, event) {
-            if (event) event.stopPropagation();
+    // ==================== CHAT MANAGEMENT ====================
+    async function createNewChat() {
+        try {
+            const newChat = {
+                id: generateChatId(),
+                title: 'New Chat',
+                messages: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
             
-            if (!confirm('Are you sure you want to delete this chat?')) {
-                return;
-            }
+            state.chats.unshift(newChat);
+            state.currentChatId = newChat.id;
             
-            state.chats = state.chats.filter(chat => chat.id !== chatId);
-            
-            if (state.currentChatId === chatId) {
-                if (state.chats.length > 0) {
-                    state.currentChatId = state.chats[0].id;
-                    loadChat(state.currentChatId);
-                } else {
-                    createNewChat();
-                }
-            }
-            
-            updateChatHistorySidebar();
-            showNotification('Chat deleted');
-        }
-
-        function loadChat(chatId) {
-            const chat = state.chats.find(c => c.id === chatId);
-            if (!chat) {
-                console.error('Chat not found:', chatId);
-                showNotification('Chat not found', 'error');
-                return false;
-            }
-            
-            state.currentChatId = chatId;
-            
-            // Clear chat area
+            // Update UI
             if (elements.chatMessages) {
                 elements.chatMessages.innerHTML = '';
             }
-            
-            // Show/hide welcome screen based on messages
             if (elements.welcomeScreen) {
-                if (chat.messages && chat.messages.length > 0) {
-                    elements.welcomeScreen.style.display = 'none';
-                } else {
-                    elements.welcomeScreen.style.display = 'flex';
-                }
-            }
-            
-            // Rebuild messages
-            if (chat.messages && chat.messages.length > 0) {
-                chat.messages.forEach(msg => {
-                    if (msg.type === 'user') {
-                        addMessageToUI('user', msg.content);
-                    } else {
-                        displayAIResponse(msg.content);
-                    }
-                });
+                elements.welcomeScreen.style.display = 'flex';
             }
             
             updateChatHistorySidebar();
-            scrollToBottom();
             
-            console.log('Chat loaded successfully:', chatId);
-            return true;
+            console.log('Created new chat:', newChat.id);
+            return newChat.id;
+        } catch (error) {
+            console.error('Error creating new chat:', error);
+            showNotification('Error creating chat', 'error');
+            return null;
         }
+    }
 
-        // ==================== UI MESSAGE FUNCTIONS ====================
-        function addMessageToUI(sender, text) {
-            if (!elements.chatMessages) return;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = 'message-content';
-            
-            if (sender === 'ai') {
-                const avatar = document.createElement('div');
-                avatar.className = 'message-avatar';
-                avatar.textContent = 'H';
-                messageDiv.appendChild(avatar);
-            }
-            
-            const messageBubble = document.createElement('div');
-            messageBubble.className = `message-bubble ${sender === 'ai' ? 'ai-bubble' : ''}`;
-            messageBubble.textContent = text;
-            
-            messageContent.appendChild(messageBubble);
-            messageDiv.appendChild(messageContent);
-            
-            if (sender === 'user') {
-                const avatar = document.createElement('div');
-                avatar.className = 'message-avatar';
-                avatar.textContent = 'U';
-                avatar.style.background = '#666';
-                messageDiv.appendChild(avatar);
-            }
-            
-            elements.chatMessages.appendChild(messageDiv);
-            
-            scrollToBottom();
+    function updateChatHistorySidebar() {
+        if (!elements.chatHistory) return;
+        
+        elements.chatHistory.innerHTML = '';
+        
+        if (state.chats.length === 0) {
+            elements.chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
+            return;
         }
+        
+        state.chats.forEach(chat => {
+            const chatItem = document.createElement('div');
+            chatItem.className = `chat-item ${chat.id === state.currentChatId ? 'active' : ''}`;
+            chatItem.innerHTML = `
+                <span class="chat-item-icon">💬</span>
+                <span class="chat-item-title">${escapeHTML(chat.title)}</span>
+                <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            
+            chatItem.addEventListener('click', function(e) {
+                if (!e.target.closest('.delete-chat')) {
+                    loadChat(chat.id);
+                }
+            });
+            
+            elements.chatHistory.appendChild(chatItem);
+        });
+    }
 
-        function displayAIResponse(content) {
-            if (!elements.chatMessages) return;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ai';
-            
+    function deleteChat(chatId, event) {
+        if (event) event.stopPropagation();
+        
+        if (!confirm('Are you sure you want to delete this chat?')) {
+            return;
+        }
+        
+        state.chats = state.chats.filter(chat => chat.id !== chatId);
+        
+        if (state.currentChatId === chatId) {
+            if (state.chats.length > 0) {
+                state.currentChatId = state.chats[0].id;
+                loadChat(state.currentChatId);
+            } else {
+                createNewChat();
+            }
+        }
+        
+        updateChatHistorySidebar();
+        showNotification('Chat deleted');
+    }
+
+    function loadChat(chatId) {
+        const chat = state.chats.find(c => c.id === chatId);
+        if (!chat) {
+            console.error('Chat not found:', chatId);
+            showNotification('Chat not found', 'error');
+            return false;
+        }
+        
+        state.currentChatId = chatId;
+        
+        // Clear chat area
+        if (elements.chatMessages) {
+            elements.chatMessages.innerHTML = '';
+        }
+        
+        // Show/hide welcome screen based on messages
+        if (elements.welcomeScreen) {
+            if (chat.messages && chat.messages.length > 0) {
+                elements.welcomeScreen.style.display = 'none';
+            } else {
+                elements.welcomeScreen.style.display = 'flex';
+            }
+        }
+        
+        // Rebuild messages
+        if (chat.messages && chat.messages.length > 0) {
+            chat.messages.forEach(msg => {
+                if (msg.type === 'user') {
+                    addMessageToUI('user', msg.content);
+                } else {
+                    displayAIResponse(msg.content);
+                }
+            });
+        }
+        
+        updateChatHistorySidebar();
+        scrollToBottom();
+        
+        console.log('Chat loaded successfully:', chatId);
+        return true;
+    }
+
+    // ==================== UI MESSAGE FUNCTIONS ====================
+    function addMessageToUI(sender, text) {
+        if (!elements.chatMessages) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        if (sender === 'ai') {
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
             avatar.textContent = 'H';
             messageDiv.appendChild(avatar);
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = 'message-content';
-            
-            const messageBubble = document.createElement('div');
-            messageBubble.className = 'message-bubble ai-bubble';
-            
-            // Use the fixed code detection function
-            messageBubble.innerHTML = formatAIResponse(content);
-            
-            messageContent.appendChild(messageBubble);
-            messageDiv.appendChild(messageContent);
-            elements.chatMessages.appendChild(messageDiv);
-            
-            // Add event listeners to code block buttons
-            addCodeBlockListeners();
-            
-            scrollToBottom();
         }
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = `message-bubble ${sender === 'ai' ? 'ai-bubble' : ''}`;
+        messageBubble.textContent = text;
+        
+        messageContent.appendChild(messageBubble);
+        messageDiv.appendChild(messageContent);
+        
+        if (sender === 'user') {
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = 'U';
+            avatar.style.background = '#666';
+            messageDiv.appendChild(avatar);
+        }
+        
+        elements.chatMessages.appendChild(messageDiv);
+        
+        scrollToBottom();
+    }
 
-        // ==================== MOCK AI RESPONSE FOR TESTING ====================
-        async function callAI(userMessage) {
-            // Mock AI response with code blocks for testing
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    const mockResponses = [
-                        `Here's a simple React navbar component:
+    function displayAIResponse(content) {
+        if (!elements.chatMessages) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ai';
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = 'H';
+        messageDiv.appendChild(avatar);
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message-bubble ai-bubble';
+        
+        // Use the fixed code detection function
+        messageBubble.innerHTML = formatAIResponse(content);
+        
+        messageContent.appendChild(messageBubble);
+        messageDiv.appendChild(messageContent);
+        elements.chatMessages.appendChild(messageDiv);
+        
+        // Add event listeners to code block buttons
+        addCodeBlockListeners();
+        
+        scrollToBottom();
+    }
+
+    // ==================== MOCK AI RESPONSE FOR TESTING ====================
+    async function callAI(userMessage) {
+        // Mock AI response with code blocks for testing
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const mockResponses = [
+                    `Here's a simple React navbar component:
 
 \`\`\`javascript
 import React, { useState } from 'react';
@@ -1177,7 +1179,7 @@ And here's the CSS:
     transition: all 0.3s ease;
 }
 \`\`\``,
-                        `Here's a Python Flask API example:
+                    `Here's a Python Flask API example:
 
 \`\`\`python
 from flask import Flask, request, jsonify
@@ -1234,7 +1236,7 @@ if __name__ == '__main__':
     db.create_all()
     app.run(debug=True)
 \`\`\``,
-                        `Here's a SQL database schema for e-commerce:
+                    `Here's a SQL database schema for e-commerce:
 
 \`\`\`sql
 -- Users table
@@ -1294,162 +1296,185 @@ CREATE TABLE order_items (
     FOREIGN KEY (product_id) REFERENCES products(id)
 );
 \`\`\``
-                    ];
+                ];
+                
+                const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+                resolve(randomResponse);
+            }, 1500);
+        });
+    }
+
+    // ==================== MAIN CHAT HANDLER ====================
+    async function handleSend() {
+        try {
+            const text = elements.chatInput?.value.trim() || '';
+            
+            if (!text) {
+                showNotification('Please enter a message', 'error');
+                return;
+            }
+            
+            // Disable send button during processing
+            if (elements.sendBtn) {
+                elements.sendBtn.disabled = true;
+                elements.sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            }
+            
+            if (elements.chatInput) {
+                elements.chatInput.value = '';
+                autoResizeTextarea();
+            }
+            
+            if (!state.currentChatId || state.chats.length === 0) {
+                await createNewChat();
+            }
+            
+            if (elements.welcomeScreen) {
+                elements.welcomeScreen.style.display = 'none';
+            }
+
+            addMessageToUI('user', text);
+
+            showTypingIndicator();
+            
+            try {
+                const reply = await callAI(text);
+                removeTypingIndicator();
+                displayAIResponse(reply);
+                
+                // Save message to chat history
+                const currentChat = state.chats.find(chat => chat.id === state.currentChatId);
+                if (currentChat) {
+                    currentChat.messages.push(
+                        { type: 'user', content: text, timestamp: new Date().toISOString() },
+                        { type: 'ai', content: reply, timestamp: new Date().toISOString() }
+                    );
                     
-                    const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
-                    resolve(randomResponse);
-                }, 2000);
+                    // Update chat title if it's the first message
+                    if (currentChat.messages.length === 2 && currentChat.title === 'New Chat') {
+                        currentChat.title = text.length > 30 ? text.substring(0, 30) + '...' : text;
+                        updateChatHistorySidebar();
+                    }
+                }
+                
+            } catch (error) {
+                removeTypingIndicator();
+                console.error('AI API Error:', error);
+                const errorMessage = "Sorry, I'm having trouble connecting right now. Please try again in a moment.";
+                displayAIResponse(errorMessage);
+            }
+        } catch (error) {
+            console.error('Error in handleSend:', error);
+            showNotification('Error sending message', 'error');
+        } finally {
+            // Re-enable send button
+            if (elements.sendBtn) {
+                elements.sendBtn.disabled = false;
+                elements.sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            }
+        }
+    }
+
+    // ==================== INITIALIZATION ====================
+    async function initializeElements() {
+        try {
+            elements = {
+                chatMessages: document.getElementById('chatMessages'),
+                chatInput: document.getElementById('chatInput'),
+                sendBtn: document.getElementById('sendBtn'),
+                welcomeScreen: document.getElementById('welcomeScreen'),
+                newChatBtn: document.getElementById('newChatBtn'),
+                logoutBtn: document.getElementById('logoutBtn'),
+                chatHistory: document.getElementById('chatHistory'),
+                examplePrompts: document.getElementById('examplePrompts'),
+                creditsDisplay: document.getElementById('creditsDisplay')
+            };
+            
+            return true;
+        } catch (error) {
+            console.error('Failed to initialize DOM elements:', error);
+            return false;
+        }
+    }
+
+    function setupEventListeners() {
+        // Chat functionality
+        if (elements.sendBtn) {
+            elements.sendBtn.addEventListener('click', handleSend);
+        }
+
+        if (elements.chatInput) {
+            elements.chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+            
+            elements.chatInput.addEventListener('input', autoResizeTextarea);
+        }
+
+        if (elements.newChatBtn) {
+            elements.newChatBtn.addEventListener('click', createNewChat);
+        }
+
+        if (elements.logoutBtn) {
+            elements.logoutBtn.addEventListener('click', () => {
+                showNotification('Logged out successfully');
+                // In a real app, this would redirect to login page
             });
         }
 
-        // ==================== MAIN CHAT HANDLER ====================
-        async function handleSend() {
-            try {
-                const text = elements.chatInput?.value.trim() || '';
-                
-                if (!text) {
-                    showNotification('Please enter a message', 'error');
-                    return;
-                }
-                
-                // Disable send button during processing
-                if (elements.sendBtn) {
-                    elements.sendBtn.disabled = true;
-                    elements.sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                }
-                
-                if (elements.chatInput) {
-                    elements.chatInput.value = '';
-                    autoResizeTextarea();
-                }
-                
-                if (!state.currentChatId || state.chats.length === 0) {
-                    await createNewChat();
-                }
-                
-                if (elements.welcomeScreen) {
-                    elements.welcomeScreen.style.display = 'none';
-                }
-
-                addMessageToUI('user', text);
-
-                showTypingIndicator();
-                
-                try {
-                    const reply = await callAI(text);
-                    removeTypingIndicator();
-                    displayAIResponse(reply);
-                } catch (error) {
-                    removeTypingIndicator();
-                    console.error('AI API Error:', error);
-                    const errorMessage = "Sorry, I'm having trouble connecting right now. Please try again in a moment.";
-                    displayAIResponse(errorMessage);
-                }
-            } catch (error) {
-                console.error('Error in handleSend:', error);
-                showNotification('Error sending message', 'error');
-            } finally {
-                // Re-enable send button
-                if (elements.sendBtn) {
-                    elements.sendBtn.disabled = false;
-                    elements.sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-                }
+        // Example prompt buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('example-prompt-btn')) {
+                handleExamplePrompt(e.target.textContent);
             }
+        });
+    }
+
+    // ==================== START APPLICATION ====================
+    async function startApplication() {
+        try {
+            // Wait for DOM elements
+            const elementsReady = await initializeElements();
+            if (!elementsReady) {
+                throw new Error('Failed to initialize DOM elements');
+            }
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Display example prompts
+            displayExamplePrompts();
+            
+            // Create initial chat
+            await createNewChat();
+            
+            // Show success message
+            showNotification('Hela Code loaded successfully!');
+            
+            console.log('Hela Code application started successfully');
+            
+        } catch (error) {
+            console.error('Failed to start application:', error);
+            showNotification('Failed to load app. Please refresh the page.', 'error');
         }
+    }
 
-        // ==================== INITIALIZATION ====================
-        async function initializeElements() {
-            try {
-                elements = {
-                    chatMessages: document.getElementById('chatMessages'),
-                    chatInput: document.getElementById('chatInput'),
-                    sendBtn: document.getElementById('sendBtn'),
-                    welcomeScreen: document.getElementById('welcomeScreen'),
-                    newChatBtn: document.getElementById('newChatBtn'),
-                    logoutBtn: document.getElementById('logoutBtn'),
-                    chatHistory: document.getElementById('chatHistory'),
-                    examplePrompts: document.getElementById('examplePrompts'),
-                    creditsDisplay: document.getElementById('creditsDisplay')
-                };
-                
-                return true;
-            } catch (error) {
-                console.error('Failed to initialize DOM elements:', error);
-                return false;
-            }
-        }
+    // ==================== GLOBAL FUNCTIONS ====================
+    window.handleSend = handleSend;
+    window.handleExamplePrompt = handleExamplePrompt;
+    window.deleteChat = deleteChat;
+    window.copyToClipboard = copyToClipboard;
+    window.downloadCode = downloadCode;
 
-        function setupEventListeners() {
-            // Chat functionality
-            if (elements.sendBtn) {
-                elements.sendBtn.addEventListener('click', handleSend);
-            }
-
-            if (elements.chatInput) {
-                elements.chatInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                    }
-                });
-                
-                elements.chatInput.addEventListener('input', autoResizeTextarea);
-            }
-
-            if (elements.newChatBtn) {
-                elements.newChatBtn.addEventListener('click', createNewChat);
-            }
-
-            if (elements.logoutBtn) {
-                elements.logoutBtn.addEventListener('click', () => {
-                    showNotification('Logged out successfully');
-                    // In a real app, this would redirect to login page
-                });
-            }
-        }
-
-        // ==================== START APPLICATION ====================
-        async function startApplication() {
-            try {
-                // Wait for DOM elements
-                const elementsReady = await initializeElements();
-                if (!elementsReady) {
-                    throw new Error('Failed to initialize DOM elements');
-                }
-                
-                // Setup event listeners
-                setupEventListeners();
-                
-                // Display example prompts
-                displayExamplePrompts();
-                
-                // Create initial chat
-                await createNewChat();
-                
-                // Show success message
-                showNotification('Hela Code loaded successfully!');
-                
-                console.log('Hela Code application started successfully');
-                
-            } catch (error) {
-                console.error('Failed to start application:', error);
-                showNotification('Failed to load app. Please refresh the page.', 'error');
-            }
-        }
-
-        // ==================== GLOBAL FUNCTIONS ====================
-        window.handleSend = handleSend;
-        window.handleExamplePrompt = handleExamplePrompt;
-        window.deleteChat = deleteChat;
-        window.copyToClipboard = copyToClipboard;
-        window.downloadCode = downloadCode;
-
-        // Start the application when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', startApplication);
-        } else {
-            startApplication();
-        }
-    </script>
+    // Start the application when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startApplication);
+    } else {
+        startApplication();
+    }
+</script>
 </body>
 </html>
