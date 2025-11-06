@@ -1782,49 +1782,44 @@ async function createNewChatWithId(chatId) {
     showNotification('Chat deleted');
 }
 
-         // ==================== GLOBAL FUNCTIONS ====================
-        window.handleSend = handleSend;
-        window.handleExamplePrompt = handleExamplePrompt;
-        window.deleteChat = deleteChat;
-        window.copyToClipboard = copyToClipboard;
-        window.downloadCode = downloadCode;
+// ==================== GLOBAL FUNCTIONS ====================
+window.handleSend = handleSend;
+window.handleExamplePrompt = handleExamplePrompt;
+window.deleteChat = deleteChat;
+window.shareChat = shareChat;
+window.copyToClipboard = copyToClipboard;
+window.downloadCode = downloadCode;
 
-        // ==================== APP STARTUP ====================
+// ==================== APPLICATION STARTUP ====================
 async function startApplication() {
-  try {
-    // 1️⃣ Initialize all your DOM references
-    const initialized = await initializeElements();
-    if (!initialized) throw new Error("DOM initialization failed.");
+    try {
+        const initialized = await initializeElements();
+        if (!initialized) throw new Error('DOM initialization failed');
 
-    // 2️⃣ Set up all your event listeners
-    setupEventListeners();
+        setupEventListeners();
+        console.log('App initialized successfully');
 
-    // 3️⃣ Optionally load or create the first chat session
-    if (typeof createNewChat === "function") {
-      createNewChat();
-    }
-
-    // 4️⃣ You can also show any welcome or user info here
-    console.log("✅ Chat app started successfully.");
-  } catch (error) {
-    console.error("❌ App startup error:", error);
-    if (typeof showNotification === "function") {
-      showNotification("Failed to start chat.", "error");
-    }
-  }
-}
-        // Start the application when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', startApplication);
+        // Load chat if there's one in URL, otherwise start a new chat
+        const chatId = getChatIdFromURL();
+        if (chatId && state.chats.some(chat => chat.id === chatId)) {
+            loadChat(chatId);
         } else {
-            startApplication();
+            createNewChat();
         }
-        document.addEventListener('click', function(e) {
-    if (e.target.closest('.delete-chat')) {
-        const chatId = e.target.closest('.delete-chat').dataset.chatid;
-        deleteChat(chatId, e);
+
+        showNotification('Welcome back!', 'success');
+    } catch (error) {
+        console.error('Error starting application:', error);
+        showNotification('Failed to start application', 'error');
     }
-});
+}
+
+// ==================== DOM READY CHECK ====================
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApplication);
+} else {
+    startApplication();
+}
     </script>
 </body>
 </html>
