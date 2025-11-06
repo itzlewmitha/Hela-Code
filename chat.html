@@ -1169,7 +1169,7 @@ function updateChatHistorySidebar() {
                 <button class="share-chat" onclick="shareChat('${chat.id}')" title="Share chat">
                     <i class="fas fa-share"></i>
                 </button>
-                <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="Delete chat">
+<button class="delete-chat" data-chatid="${chat.id}" title="Delete chat">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -1808,6 +1808,12 @@ async function createNewChatWithId(chatId) {
         } else {
             startApplication();
         }
+        document.addEventListener('click', function(e) {
+    if (e.target.closest('.delete-chat')) {
+        const chatId = e.target.closest('.delete-chat').dataset.chatid;
+        deleteChat(chatId, e);
+    }
+});
     </script>
 </body>
 </html>
