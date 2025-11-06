@@ -580,6 +580,24 @@
     </div>
 
 <script>
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
+        authDomain: "hela-code.firebaseapp.com",
+        projectId: "hela-code",
+        storageBucket: "hela-code.appspot.com",
+        messagingSenderId: "813299203715",
+        appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
     // ==================== GLOBAL STATE ====================
     let state = {
         currentChatId: null,
@@ -880,6 +898,105 @@
         });
     }
 
+    // ==================== FIREBASE OPERATIONS ====================
+    async function saveChatToFirestore(chat) {
+        try {
+            if (!state.currentUser) return false;
+            
+            await db.collection('users')
+                .doc(state.currentUser.uid)
+                .collection('chats')
+                .doc(chat.id)
+                .set({
+                    title: chat.title,
+                    messages: chat.messages,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            return true;
+        } catch (error) {
+            console.error('Firestore save error:', error);
+            saveChatsToLocalStorage();
+            return false;
+        }
+    }
+
+    async function deleteChatFromFirestore(chatId) {
+        try {
+            if (!state.currentUser) return false;
+            
+            await db.collection('users')
+                .doc(state.currentUser.uid)
+                .collection('chats')
+                .doc(chatId)
+                .delete();
+            return true;
+        } catch (error) {
+            console.error('Firestore delete error:', error);
+            return false;
+        }
+    }
+
+    async function loadChatsFromFirestore() {
+        try {
+            if (!state.currentUser) return false;
+            
+            const snapshot = await db.collection('users')
+                .doc(state.currentUser.uid)
+                .collection('chats')
+                .orderBy('updatedAt', 'desc')
+                .get();
+
+            if (snapshot.empty) {
+                state.chats = [];
+                return true;
+            }
+
+            state.chats = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    title: data.title || 'New Chat',
+                    messages: data.messages || [],
+                    createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+                    updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+                };
+            });
+            
+            console.log(`Loaded ${state.chats.length} chats from Firestore`);
+            return true;
+        } catch (error) {
+            console.error('Firestore load error:', error);
+            return false;
+        }
+    }
+
+    // ==================== LOCAL STORAGE ====================
+    function saveChatsToLocalStorage() {
+        try {
+            if (!state.currentUser) return;
+            localStorage.setItem(`helaChats_${state.currentUser.uid}`, JSON.stringify(state.chats));
+        } catch (error) {
+            console.error('Local storage save error:', error);
+        }
+    }
+
+    function loadChatsFromLocalStorage() {
+        try {
+            if (!state.currentUser) return false;
+            const saved = localStorage.getItem(`helaChats_${state.currentUser.uid}`);
+            if (saved) {
+                state.chats = JSON.parse(saved);
+                console.log(`Loaded ${state.chats.length} chats from local storage`);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Local storage load error:', error);
+            return false;
+        }
+    }
+
     // ==================== CHAT MANAGEMENT ====================
     async function createNewChat() {
         try {
@@ -893,6 +1010,10 @@
             
             state.chats.unshift(newChat);
             state.currentChatId = newChat.id;
+            
+            // Save to Firestore
+            await saveChatToFirestore(newChat);
+            saveChatsToLocalStorage();
             
             // Update UI
             if (elements.chatMessages) {
@@ -944,7 +1065,7 @@
         });
     }
 
-    function deleteChat(chatId, event) {
+    async function deleteChat(chatId, event) {
         if (event) event.stopPropagation();
         
         if (!confirm('Are you sure you want to delete this chat?')) {
@@ -953,12 +1074,15 @@
         
         state.chats = state.chats.filter(chat => chat.id !== chatId);
         
+        await deleteChatFromFirestore(chatId);
+        saveChatsToLocalStorage();
+        
         if (state.currentChatId === chatId) {
             if (state.chats.length > 0) {
                 state.currentChatId = state.chats[0].id;
-                loadChat(state.currentChatId);
+                await loadChat(state.currentChatId);
             } else {
-                createNewChat();
+                await createNewChat();
             }
         }
         
@@ -966,7 +1090,7 @@
         showNotification('Chat deleted');
     }
 
-    function loadChat(chatId) {
+    async function loadChat(chatId) {
         const chat = state.chats.find(c => c.id === chatId);
         if (!chat) {
             console.error('Chat not found:', chatId);
@@ -1006,6 +1130,35 @@
         
         console.log('Chat loaded successfully:', chatId);
         return true;
+    }
+
+    async function addMessageToChat(sender, content) {
+        try {
+            if (!state.currentChatId) return;
+            
+            const chat = state.chats.find(c => c.id === state.currentChatId);
+            if (!chat) return;
+            
+            chat.messages.push({
+                type: sender,
+                content: content,
+                timestamp: new Date().toISOString()
+            });
+            
+            chat.updatedAt = new Date().toISOString();
+            
+            // Update chat title if it's the first user message
+            if (sender === 'user' && chat.messages.length === 1) {
+                chat.title = content.length > 30 ? content.substring(0, 30) + '...' : content;
+            }
+            
+            await saveChatToFirestore(chat);
+            saveChatsToLocalStorage();
+            
+            updateChatHistorySidebar();
+        } catch (error) {
+            console.error('Error adding message to chat:', error);
+        }
     }
 
     // ==================== UI MESSAGE FUNCTIONS ====================
@@ -1075,13 +1228,18 @@
         scrollToBottom();
     }
 
-    // ==================== MOCK AI RESPONSE FOR TESTING ====================
+    // ==================== AI API ====================
+    const API_CONFIG = {
+        URL: 'https://endpoint.apilageai.lk/api/chat',
+        KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
+        MODEL: 'APILAGEAI-PRO'
+    };
+
     async function callAI(userMessage) {
-        // Mock AI response with code blocks for testing
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const mockResponses = [
-                    `Here's a simple React navbar component:
+        try {
+            // Mock response for testing - replace with actual API call
+            const mockResponses = [
+                `Here's a simple React navbar component:
 
 \`\`\`javascript
 import React, { useState } from 'react';
@@ -1179,7 +1337,7 @@ And here's the CSS:
     transition: all 0.3s ease;
 }
 \`\`\``,
-                    `Here's a Python Flask API example:
+                `Here's a Python Flask API example:
 
 \`\`\`python
 from flask import Flask, request, jsonify
@@ -1235,73 +1393,101 @@ def get_users():
 if __name__ == '__main__':
     db.create_all()
     app.run(debug=True)
-\`\`\``,
-                    `Here's a SQL database schema for e-commerce:
-
-\`\`\`sql
--- Users table
-CREATE TABLE users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(50),
-    last_name VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Products table
-CREATE TABLE products (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    price DECIMAL(10, 2) NOT NULL,
-    stock_quantity INT DEFAULT 0,
-    category_id INT,
-    image_url VARCHAR(500),
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(id)
-);
-
--- Categories table
-CREATE TABLE categories (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    parent_id INT,
-    FOREIGN KEY (parent_id) REFERENCES categories(id)
-);
-
--- Orders table
-CREATE TABLE orders (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    total_amount DECIMAL(10, 2) NOT NULL,
-    status ENUM('pending', 'confirmed', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
-    shipping_address TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
--- Order items table
-CREATE TABLE order_items (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    order_id INT NOT NULL,
-    product_id INT NOT NULL,
-    quantity INT NOT NULL,
-    unit_price DECIMAL(10, 2) NOT NULL,
-    FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
-);
 \`\`\``
-                ];
+            ];
+            
+            // Return mock response for now - you can replace this with actual API call
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+                    resolve(randomResponse);
+                }, 1500);
+            });
+
+            /* UNCOMMENT THIS FOR REAL API CALL:
+            const response = await fetch(API_CONFIG.URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${API_CONFIG.KEY}`
+                },
+                body: JSON.stringify({ 
+                    message: userMessage,
+                    model: API_CONFIG.MODEL,
+                    temperature: 0.7,
+                    max_tokens: 2000
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.response;
+            */
+
+        } catch (error) {
+            console.error('AI API Error:', error);
+            throw error;
+        }
+    }
+
+    // ==================== USER MANAGEMENT ====================
+    function updateUserInfo(user) {
+        try {
+            if (elements.userName) {
+                elements.userName.textContent = user.displayName || user.email || 'User';
+            }
+            
+            if (elements.userAvatar) {
+                const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
                 
-                const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
-                resolve(randomResponse);
-            }, 1500);
-        });
+                if (user.photoURL) {
+                    elements.userAvatar.innerHTML = '';
+                    elements.userAvatar.style.backgroundImage = `url(${user.photoURL})`;
+                    elements.userAvatar.style.backgroundSize = 'cover';
+                    elements.userAvatar.style.backgroundPosition = 'center';
+                } else {
+                    elements.userAvatar.innerHTML = initial;
+                    elements.userAvatar.style.backgroundImage = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Error updating user info:', error);
+        }
+    }
+
+    async function loadUserProgress(userId) {
+        try {
+            const userDoc = await db.collection('users').doc(userId).get();
+            
+            if (userDoc.exists && userDoc.data().progress) {
+                state.userProgress = { ...state.userProgress, ...userDoc.data().progress };
+            }
+            
+            updateProgressUI();
+            
+        } catch (error) {
+            console.error('Error loading user progress:', error);
+        }
+    }
+
+    function updateProgressUI() {
+        try {
+            if (elements.creditsDisplay) {
+                elements.creditsDisplay.textContent = state.userProgress.credits;
+            }
+            
+            // Update user level
+            const userLevel = document.getElementById('userLevel');
+            if (userLevel) {
+                userLevel.textContent = state.userProgress.level;
+            }
+            
+        } catch (error) {
+            console.error('Error updating progress UI:', error);
+        }
     }
 
     // ==================== MAIN CHAT HANDLER ====================
@@ -1334,6 +1520,7 @@ CREATE TABLE order_items (
             }
 
             addMessageToUI('user', text);
+            await addMessageToChat('user', text);
 
             showTypingIndicator();
             
@@ -1341,27 +1528,13 @@ CREATE TABLE order_items (
                 const reply = await callAI(text);
                 removeTypingIndicator();
                 displayAIResponse(reply);
-                
-                // Save message to chat history
-                const currentChat = state.chats.find(chat => chat.id === state.currentChatId);
-                if (currentChat) {
-                    currentChat.messages.push(
-                        { type: 'user', content: text, timestamp: new Date().toISOString() },
-                        { type: 'ai', content: reply, timestamp: new Date().toISOString() }
-                    );
-                    
-                    // Update chat title if it's the first message
-                    if (currentChat.messages.length === 2 && currentChat.title === 'New Chat') {
-                        currentChat.title = text.length > 30 ? text.substring(0, 30) + '...' : text;
-                        updateChatHistorySidebar();
-                    }
-                }
-                
+                await addMessageToChat('ai', reply);
             } catch (error) {
                 removeTypingIndicator();
                 console.error('AI API Error:', error);
                 const errorMessage = "Sorry, I'm having trouble connecting right now. Please try again in a moment.";
                 displayAIResponse(errorMessage);
+                await addMessageToChat('ai', errorMessage);
             }
         } catch (error) {
             console.error('Error in handleSend:', error);
@@ -1386,6 +1559,8 @@ CREATE TABLE order_items (
                 newChatBtn: document.getElementById('newChatBtn'),
                 logoutBtn: document.getElementById('logoutBtn'),
                 chatHistory: document.getElementById('chatHistory'),
+                userAvatar: document.getElementById('userAvatar'),
+                userName: document.getElementById('userName'),
                 examplePrompts: document.getElementById('examplePrompts'),
                 creditsDisplay: document.getElementById('creditsDisplay')
             };
@@ -1418,18 +1593,54 @@ CREATE TABLE order_items (
             elements.newChatBtn.addEventListener('click', createNewChat);
         }
 
+        // Auth
         if (elements.logoutBtn) {
             elements.logoutBtn.addEventListener('click', () => {
-                showNotification('Logged out successfully');
-                // In a real app, this would redirect to login page
+                auth.signOut().then(() => {
+                    window.location.href = 'index.html';
+                });
             });
         }
+    }
 
-        // Example prompt buttons
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('example-prompt-btn')) {
-                handleExamplePrompt(e.target.textContent);
-            }
+    // ==================== APP INITIALIZATION ====================
+    async function initializeApp() {
+        return new Promise((resolve, reject) => {
+            auth.onAuthStateChanged(async (user) => {
+                try {
+                    if (user) {
+                        state.currentUser = user;
+                        updateUserInfo(user);
+                        
+                        // Load user progress and chats
+                        await Promise.all([
+                            loadUserProgress(user.uid),
+                            loadChatsFromFirestore().then(success => {
+                                if (!success) loadChatsFromLocalStorage();
+                            })
+                        ]);
+                        
+                        // Load or create initial chat
+                        if (state.chats.length > 0) {
+                            state.currentChatId = state.chats[0].id;
+                            await loadChat(state.currentChatId);
+                        } else {
+                            await createNewChat();
+                        }
+                        
+                        state.isInitialized = true;
+                        console.log('App initialized successfully');
+                        resolve(user);
+                        
+                    } else {
+                        // Redirect to login page if not authenticated
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    console.error('Error in auth state change:', error);
+                    reject(error);
+                }
+            }, reject);
         });
     }
 
@@ -1448,8 +1659,8 @@ CREATE TABLE order_items (
             // Display example prompts
             displayExamplePrompts();
             
-            // Create initial chat
-            await createNewChat();
+            // Initialize app with authentication
+            await initializeApp();
             
             // Show success message
             showNotification('Hela Code loaded successfully!');
