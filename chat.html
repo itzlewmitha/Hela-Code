@@ -1394,112 +1394,75 @@ function copyToClipboardText(text) {
             scrollToBottom();
         }
 
-        // ==================== AI API ====================
-        const API_CONFIG = {
-            URL: 'https://endpoint.apilageai.lk/api/chat',
-            KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
-            MODEL: 'APILAGEAI-PRO'
-        };
-
-        async function callAI(userMessage) {
-            try {
-                // Mock responses for demo
-                const mockResponses = [
-                    `Here's a simple React navbar component:
-
-\`\`\`javascript
-import React, { useState } from 'react';
-import './Navbar.css';
-
-const Navbar = () => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-        <nav className="navbar">
-            <div className="nav-container">
-                <div className="nav-logo">
-                    My App
-                </div>
-                <div className={isOpen ? "nav-menu active" : "nav-menu"}>
-                    <div className="nav-item">
-                        <a href="/" className="nav-links">Home</a>
-                    </div>
-                    <div className="nav-item">
-                        <a href="/about" className="nav-links">About</a>
-                    </div>
-                    <div className="nav-item">
-                        <a href="/contact" className="nav-links">Contact</a>
-                    </div>
-                </div>
-                <div className="nav-icon" onClick={() => setIsOpen(!isOpen)}>
-                    <i className={isOpen ? "fas fa-times" : "fas fa-bars"}></i>
-                </div>
-            </div>
-        </nav>
-    );
+       // ==================== AI API ====================
+const API_CONFIG = {
+    URL: 'https://endpoint.apilageai.lk/api/chat',
+    KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
+    MODEL: 'APILAGEAI-FREE' // or 'Dineth Ayya Tmx'
 };
 
-export default Navbar;
-\`\`\``,
-                    `Here's a Python Flask API example:
+async function callAI(userMessage) {
+    try {
+        const response = await fetch(API_CONFIG.URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_CONFIG.KEY}`
+            },
+            body: JSON.stringify({
+                message: userMessage,
+                model: API_CONFIG.MODEL,
+                enableGoogleSearch: false // Set to true if you want web search
+            })
+        });
 
-\`\`\`python
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-
-db = SQLAlchemy(app)
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-
-@app.route('/api/users', methods=['GET'])
-def get_users():
-    users = User.query.all()
-    return jsonify([{'id': user.id, 'username': user.username} for user in users])
-
-if __name__ == '__main__':
-    db.create_all()
-    app.run(debug=True)
-\`\`\``,
-                    `Here's how to optimize your SQL queries:
-
-\`\`\`sql
--- Bad: Using SELECT *
-SELECT * FROM users WHERE age > 25;
-
--- Good: Select only needed columns
-SELECT id, name, email FROM users WHERE age > 25;
-
--- Bad: No index on age column
-SELECT * FROM users WHERE age = 30;
-
--- Good: Add index for frequently queried columns
-CREATE INDEX idx_users_age ON users(age);
-
--- Use EXPLAIN to analyze query performance
-EXPLAIN SELECT * FROM users WHERE age > 25;
-\`\`\``
-                ];
-                
-                // Return mock response for demo
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
-                        resolve(randomResponse);
-                    }, 1500);
-                });
-
-            } catch (error) {
-                console.error('AI API Error:', error);
-                throw error;
-            }
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
         }
 
+        const result = await response.json();
+        
+        // Log API usage for debugging
+        console.log('API Response:', {
+            success: result.success,
+            credits_used: result.credits_used,
+            credits_remaining: result.credits_remaining,
+            token_usage: result.token_usage,
+            response_time_ms: result.response_time_ms
+        });
+
+        if (result.success && result.response) {
+            return result.response;
+        } else {
+            throw new Error('Invalid API response format');
+        }
+
+    } catch (error) {
+        console.error('AI API Error:', error);
+        
+        // Fallback to mock responses if API fails
+        const mockResponses = [
+            `I'm having trouble connecting to the AI service right now. Here's a helpful coding example instead:
+
+\`\`\`javascript
+// Fallback response - API connection issue
+console.log("Trying to reconnect to AI service...");
+// Please try again in a moment
+\`\`\``,
+            `API connection issue detected. Meanwhile, here's a useful coding tip:
+
+\`\`\`python
+# Fallback response
+def handle_api_error():
+    print("AI service temporarily unavailable")
+    return "Please try your question again shortly"
+\`\`\``
+        ];
+        
+        // Return fallback response
+        return mockResponses[Math.floor(Math.random() * mockResponses.length)];
+    }
+}
         // ==================== USER MANAGEMENT ====================
         function updateUserInfo(user) {
             try {
