@@ -579,6 +579,10 @@
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
     // Firebase configuration
     const firebaseConfig = {
@@ -1230,209 +1234,44 @@
 
     // ==================== AI API ====================
     const API_CONFIG = {
-        URL: 'https://endpoint.apilageai.lk/api/chat',
-        KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
-        MODEL: 'APILAGEAI-PRO'
-    };
-
-    async function callAI(userMessage) {
-        try {
-            // Mock response for testing - replace with actual API call
-            const mockResponses = [
-                `Here's a simple React navbar component:
-
-\`\`\`javascript
-import React, { useState } from 'react';
-import './Navbar.css';
-
-const Navbar = () => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-        <nav className="navbar">
-            <div className="nav-container">
-                <div className="nav-logo">
-                    My App
-                </div>
-                <div className={isOpen ? "nav-menu active" : "nav-menu"}>
-                    <div className="nav-item">
-                        <a href="/" className="nav-links">Home</a>
-                    </div>
-                    <div className="nav-item">
-                        <a href="/about" className="nav-links">About</a>
-                    </div>
-                    <div className="nav-item">
-                        <a href="/contact" className="nav-links">Contact</a>
-                    </div>
-                </div>
-                <div className="nav-icon" onClick={() => setIsOpen(!isOpen)}>
-                    <i className={isOpen ? "fas fa-times" : "fas fa-bars"}></i>
-                </div>
-            </div>
-        </nav>
-    );
+  URL: 'https://endpoint.apilageai.lk/api/chat',
+  KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
+  MODEL: 'APILAGEAI-FREE'
 };
 
-export default Navbar;
-\`\`\`
+async function callAI(userMessage) {
+  try {
+    // --- REAL API CALL ---
+    const response = await fetch(API_CONFIG.URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_CONFIG.KEY}`
+      },
+      body: JSON.stringify({
+        message: userMessage,
+        enableGoogleSearch: false, // set to true if you want web search
+        model: API_CONFIG.MODEL
+      })
+    });
 
-And here's the CSS:
+    const data = await response.json();
 
-\`\`\`css
-.navbar {
-    background-color: #1f1f1f;
-    height: 80px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.2rem;
-    position: sticky;
-    top: 0;
-    z-index: 999;
-}
-
-.nav-container {
-    display: flex;
-    justify-content: space-between;
-    height: 80px;
-    width: 100%;
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 0 50px;
-}
-
-.nav-logo {
-    color: #8B5FBF;
-    justify-self: start;
-    cursor: pointer;
-    text-decoration: none;
-    font-size: 2rem;
-    display: flex;
-    align-items: center;
-    font-weight: bold;
-}
-
-.nav-menu {
-    display: flex;
-    align-items: center;
-    list-style: none;
-    text-align: center;
-}
-
-.nav-item {
-    height: 80px;
-}
-
-.nav-links {
-    color: #fff;
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    padding: 0.5rem 1rem;
-    height: 100%;
-}
-
-.nav-links:hover {
-    color: #8B5FBF;
-    transition: all 0.3s ease;
-}
-\`\`\``,
-                `Here's a Python Flask API example:
-
-\`\`\`python
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
-
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-app.config['JWT_SECRET_KEY'] = 'your-secret-key'
-
-db = SQLAlchemy(app)
-jwt = JWTManager(app)
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email
-        }
-
-@app.route('/api/register', methods=['POST'])
-def register():
-    data = request.get_json()
-    
-    if User.query.filter_by(username=data['username']).first():
-        return jsonify({'message': 'Username already exists'}), 400
-    
-    if User.query.filter_by(email=data['email']).first():
-        return jsonify({'message': 'Email already exists'}), 400
-    
-    user = User(username=data['username'], email=data['email'])
-    db.session.add(user)
-    db.session.commit()
-    
-    access_token = create_access_token(identity=user.id)
-    return jsonify({
-        'message': 'User created successfully',
-        'access_token': access_token,
-        'user': user.to_dict()
-    }), 201
-
-@app.route('/api/users', methods=['GET'])
-@jwt_required()
-def get_users():
-    users = User.query.all()
-    return jsonify([user.to_dict() for user in users])
-
-if __name__ == '__main__':
-    db.create_all()
-    app.run(debug=True)
-\`\`\``
-            ];
-            
-            // Return mock response for now - you can replace this with actual API call
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
-                    resolve(randomResponse);
-                }, 1500);
-            });
-
-            /* UNCOMMENT THIS FOR REAL API CALL:
-            const response = await fetch(API_CONFIG.URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${API_CONFIG.KEY}`
-                },
-                body: JSON.stringify({ 
-                    message: userMessage,
-                    model: API_CONFIG.MODEL,
-                    temperature: 0.7,
-                    max_tokens: 2000
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            return data.response;
-            */
-
-        } catch (error) {
-            console.error('AI API Error:', error);
-            throw error;
-        }
+    if (!response.ok || !data.success) {
+      console.error("API error:", data);
+      return "⚠️ Something went wrong with the AI response.";
     }
 
+    console.log("Credits used:", data.credits_used);
+    console.log("Token usage:", data.token_usage);
+
+    return data.response; // AI reply text
+
+  } catch (error) {
+    console.error("Fetch error:", error);
+    return "🚫 Couldn’t connect to the AI endpoint.";
+  }
+}
     // ==================== USER MANAGEMENT ====================
     function updateUserInfo(user) {
         try {
