@@ -636,1190 +636,189 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script type="module">
+// ==================== FIREBASE CONFIG ====================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+    getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, onSnapshot, query, orderBy 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
-            authDomain: "hela-code.firebaseapp.com",
-            projectId: "hela-code",
-            storageBucket: "hela-code.appspot.com",
-            messagingSenderId: "813299203715",
-            appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
-        };
-
-        // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
-        // ==================== GLOBAL STATE ====================
-        let state = {
-            currentChatId: null,
-            chats: [],
-            currentUser: null,
-            uploadedFiles: [],
-            isInitialized: false,
-            userProgress: {
-                achievements: [],
-                challenges: [],
-                credits: 100, // Start with 100 free credits
-                level: 1,
-                xp: 0,
-                lastActive: null,
-                stats: {
-                    messagesSent: 0,
-                    codeQuestions: 0,
-                    filesUploaded: 0,
-                    chatsCreated: 0,
-                    consecutiveDays: 0
-                }
-            }
-        };
-
-        // ==================== DOM ELEMENTS ====================
-        let elements = {};
-
-        // ==================== UTILITY FUNCTIONS ====================
-        function showNotification(message, type = 'success') {
-            const notif = document.createElement('div');
-            notif.className = `notification ${type}`;
-            notif.textContent = message;
-            document.body.appendChild(notif);
-            
-            setTimeout(() => {
-                if (notif.parentNode) {
-                    notif.parentNode.removeChild(notif);
-                }
-            }, 3000);
-        }
-
-        function escapeHTML(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function scrollToBottom() {
-            setTimeout(() => {
-                if (elements.chatMessages) {
-                    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-                }
-            }, 100);
-        }
-
-        function autoResizeTextarea() {
-            if (elements.chatInput) {
-                elements.chatInput.style.height = 'auto';
-                elements.chatInput.style.height = Math.min(elements.chatInput.scrollHeight, 120) + 'px';
-            }
-        }
-
-        function generateChatId() {
-            return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        }
-
-        // ==================== TYPING INDICATOR FUNCTIONS ====================
-        function removeTypingIndicator() {
-            const typing = document.getElementById('typing-indicator');
-            if (typing && typing.parentNode) {
-                typing.parentNode.removeChild(typing);
-            }
-        }
-
-        function showTypingIndicator() {
-            removeTypingIndicator();
-            
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'message ai';
-            typingDiv.id = 'typing-indicator';
-            
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = 'H';
-            typingDiv.appendChild(avatar);
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = 'message-content';
-            
-            const messageBubble = document.createElement('div');
-            messageBubble.className = 'message-bubble ai-bubble typing-indicator';
-            messageBubble.innerHTML = `
-                <div class="typing-dots">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                </div>
-                <span>Hela Code is thinking...</span>
-            `;
-            
-            messageContent.appendChild(messageBubble);
-            typingDiv.appendChild(messageContent);
-            
-            if (elements.chatMessages) {
-                elements.chatMessages.appendChild(typingDiv);
-                scrollToBottom();
-            }
-        }
-
-        // ==================== CODE BLOCK FUNCTIONS ====================
-        function copyToClipboard(button) {
-            const codeBlock = button.closest('.code-block');
-            const codeElement = codeBlock.querySelector('code');
-            const codeText = codeElement.textContent;
-            
-            navigator.clipboard.writeText(codeText).then(() => {
-                const originalText = button.textContent;
-                button.textContent = 'Copied!';
-                button.style.background = 'var(--success)';
-                
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.style.background = '';
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy code:', err);
-                button.textContent = 'Failed';
-                button.style.background = 'var(--error)';
-            });
-        }
-
-        function downloadCode(button) {
-            const codeBlock = button.closest('.code-block');
-            const codeElement = codeBlock.querySelector('code');
-            const language = codeBlock.querySelector('.code-header span').textContent;
-            const codeText = codeElement.textContent;
-            
-            const blob = new Blob([codeText], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `code.${getFileExtension(language)}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showNotification('Code downloaded successfully!', 'success');
-        }
-
-        function getFileExtension(language) {
-            const extensions = {
-                'javascript': 'js',
-                'python': 'py',
-                'html': 'html',
-                'css': 'css',
-                'java': 'java',
-                'php': 'php',
-                'sql': 'sql',
-                'json': 'json',
-                'bash': 'sh',
-                'text': 'txt'
-            };
-            return extensions[language.toLowerCase()] || 'txt';
-        }
-
-        function addCodeBlockListeners() {
-            document.querySelectorAll('.copy-code-btn').forEach(btn => {
-                btn.onclick = function() {
-                    copyToClipboard(this);
-                };
-            });
-            
-            document.querySelectorAll('.download-code-btn').forEach(btn => {
-                btn.onclick = function() {
-                    downloadCode(this);
-                };
-            });
-        }
-
-        // ==================== FIXED CODE DETECTION FUNCTION ====================
-        function formatAIResponse(content) {
-            if (!content) return '';
-            
-            // Split content by code blocks
-            const parts = content.split(/(```[\s\S]*?```)/g);
-            let formattedContent = '';
-            
-            parts.forEach(part => {
-                if (part.startsWith('```') && part.endsWith('```')) {
-                    // This is a code block
-                    const codeContent = part.slice(3, -3).trim();
-                    const firstNewline = codeContent.indexOf('\n');
-                    
-                    let language = 'text';
-                    let code = codeContent;
-                    
-                    if (firstNewline !== -1) {
-                        const potentialLang = codeContent.substring(0, firstNewline).trim();
-                        // Check if this looks like a language identifier
-                        if (/^[a-zA-Z0-9+#-]+$/.test(potentialLang)) {
-                            language = potentialLang;
-                            code = codeContent.substring(firstNewline + 1);
-                        }
-                    }
-                    
-                    formattedContent += `
-                        <div class="code-block">
-                            <div class="code-header">
-                                <span>${language}</span>
-                                <div class="code-actions">
-                                    <button class="copy-code-btn">Copy</button>
-                                    <button class="download-code-btn">Download</button>
-                                </div>
-                            </div>
-                            <pre><code class="language-${language}">${escapeHTML(code)}</code></pre>
-                        </div>
-                    `;
-                } else {
-                    // This is regular text
-                    formattedContent += part
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        .replace(/`([^`]+)`/g, '<code>$1</code>')
-                        .replace(/\n/g, '<br>');
-                }
-            });
-            
-            return formattedContent;
-        }
-
-        // ==================== EXAMPLE PROMPTS - REDUCED TO 3 ====================
-        const EXAMPLE_PROMPTS = [
-            {
-                title: "Web Development",
-                prompts: [
-                    "How to create a responsive navbar with React?",
-                    "Explain CSS Grid with a practical example",
-                    "Build a simple CRUD app with Node.js and MongoDB"
-                ]
-            },
-            {
-                title: "Mobile Development", 
-                prompts: [
-                    "Create a Flutter app with bottom navigation",
-                    "How to handle API calls in React Native?",
-                    "Build a Sri Lankan restaurant finder app UI"
-                ]
-            },
-            {
-                title: "Backend & Databases",
-                prompts: [
-                    "Design a database schema for an e-commerce site",
-                    "How to implement JWT authentication in Express.js?",
-                    "Optimize MySQL queries for better performance"
-                ]
-            }
-        ];
-
-        function handleExamplePrompt(prompt) {
-            if (elements.chatInput) {
-                elements.chatInput.value = prompt;
-                elements.chatInput.focus();
-                autoResizeTextarea();
-                showNotification('Prompt added to chat! Click send when ready.', 'success');
-            }
-        }
-
-        function displayExamplePrompts() {
-            const examplesContainer = elements.examplePrompts;
-            if (!examplesContainer) return;
-            
-            examplesContainer.innerHTML = '';
-            
-            EXAMPLE_PROMPTS.forEach(category => {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'example-category';
-                
-                const categoryTitle = document.createElement('h4');
-                categoryTitle.textContent = category.title;
-                categoryTitle.className = 'category-title';
-                categoryDiv.appendChild(categoryTitle);
-                
-                const promptsContainer = document.createElement('div');
-                promptsContainer.className = 'prompts-container';
-                
-                category.prompts.forEach(prompt => {
-                    const promptBtn = document.createElement('button');
-                    promptBtn.className = 'example-prompt-btn';
-                    promptBtn.textContent = prompt;
-                    promptBtn.onclick = () => handleExamplePrompt(prompt);
-                    promptsContainer.appendChild(promptBtn);
-                });
-                
-                categoryDiv.appendChild(promptsContainer);
-                examplesContainer.appendChild(categoryDiv);
-            });
-        }
-
-        // ==================== CREDIT SYSTEM ====================
-        const CREDIT_COSTS = {
-            CHAT_MESSAGE: 1,
-            NEW_CHAT: 5,
-            CODE_GENERATION: 2
-        };
-
-        async function useCredits(cost, action) {
-            if (!state.currentUser) return true; // Allow for demo
-            
-            if (state.userProgress.credits >= cost) {
-                state.userProgress.credits -= cost;
-                
-                // Update UI
-                updateProgressUI();
-                
-                // Save to Firebase
-                await saveUserProgress();
-                
-                // Log the transaction
-                await db.collection('creditTransactions').add({
-                    userId: state.currentUser.uid,
-                    action: action,
-                    cost: cost,
-                    remaining: state.userProgress.credits,
-                    timestamp: new Date()
-                });
-                
-                return true;
-            } else {
-                showNotification(`Not enough credits! You need ${cost} credits for this action.`, 'error');
-                return false;
-            }
-        }
-
-        // ==================== FIREBASE OPERATIONS ====================
-        async function saveChatToFirestore(chat) {
-            try {
-                if (!state.currentUser) return false;
-                
-                await db.collection('users')
-                    .doc(state.currentUser.uid)
-                    .collection('chats')
-                    .doc(chat.id)
-                    .set({
-                        title: chat.title,
-                        messages: chat.messages,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                return true;
-            } catch (error) {
-                console.error('Firestore save error:', error);
-                saveChatsToLocalStorage();
-                return false;
-            }
-        }
-
-        async function deleteChatFromFirestore(chatId) {
-            try {
-                if (!state.currentUser) return false;
-                
-                await db.collection('users')
-                    .doc(state.currentUser.uid)
-                    .collection('chats')
-                    .doc(chatId)
-                    .delete();
-                return true;
-            } catch (error) {
-                console.error('Firestore delete error:', error);
-                return false;
-            }
-        }
-
-        async function loadChatsFromFirestore() {
-            try {
-                if (!state.currentUser) return false;
-                
-                const snapshot = await db.collection('users')
-                    .doc(state.currentUser.uid)
-                    .collection('chats')
-                    .orderBy('updatedAt', 'desc')
-                    .get();
-
-                if (snapshot.empty) {
-                    state.chats = [];
-                    return true;
-                }
-
-                state.chats = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                        id: doc.id,
-                        title: data.title || 'New Chat',
-                        messages: data.messages || [],
-                        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-                        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
-                    };
-                });
-                
-                console.log(`Loaded ${state.chats.length} chats from Firestore`);
-                return true;
-            } catch (error) {
-                console.error('Firestore load error:', error);
-                return false;
-            }
-        }
-
-        async function saveUserProgress() {
-            try {
-                if (!state.currentUser) return;
-                
-                await db.collection('users').doc(state.currentUser.uid).set({
-                    progress: state.userProgress,
-                    lastActive: new Date()
-                }, { merge: true });
-            } catch (error) {
-                console.error('Error saving user progress:', error);
-            }
-        }
-
-        // ==================== LOCAL STORAGE ====================
-        function saveChatsToLocalStorage() {
-            try {
-                if (!state.currentUser) return;
-                localStorage.setItem(`helaChats_${state.currentUser.uid}`, JSON.stringify(state.chats));
-            } catch (error) {
-                console.error('Local storage save error:', error);
-            }
-        }
-
-        function loadChatsFromLocalStorage() {
-            try {
-                if (!state.currentUser) return false;
-                const saved = localStorage.getItem(`helaChats_${state.currentUser.uid}`);
-                if (saved) {
-                    state.chats = JSON.parse(saved);
-                    console.log(`Loaded ${state.chats.length} chats from local storage`);
-                    return true;
-                }
-                return false;
-            } catch (error) {
-                console.error('Local storage load error:', error);
-                return false;
-            }
-        }
-
-        // ==================== CHAT MANAGEMENT ====================
-        async function createNewChat() {
-            try {
-                // Check if user has enough credits
-                if (!await useCredits(CREDIT_COSTS.NEW_CHAT, 'new_chat')) {
-                    return null;
-                }
-
-                const newChat = {
-                    id: generateChatId(),
-                    title: 'New Chat',
-                    messages: [],
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                };
-                
-                state.chats.unshift(newChat);
-                state.currentChatId = newChat.id;
-                
-                // Save to Firestore
-                await saveChatToFirestore(newChat);
-                saveChatsToLocalStorage();
-                
-                // Update UI
-                if (elements.chatMessages) {
-                    elements.chatMessages.innerHTML = '';
-                }
-                if (elements.welcomeScreen) {
-                    elements.welcomeScreen.style.display = 'flex';
-                }
-                
-                updateChatHistorySidebar();
-                
-                console.log('Created new chat:', newChat.id);
-                return newChat.id;
-            } catch (error) {
-                console.error('Error creating new chat:', error);
-                showNotification('Error creating chat', 'error');
-                return null;
-            }
-        }
-
-function updateChatHistorySidebar() {
-    if (!elements.chatHistory) return;
-    
-    elements.chatHistory.innerHTML = '';
-    
-    if (state.chats.length === 0) {
-        elements.chatHistory.innerHTML = '<div class="no-chats">No conversations yet</div>';
-        return;
-    }
-    
-    state.chats.forEach(chat => {
-        const chatItem = document.createElement('div');
-        chatItem.className = `chat-item ${chat.id === state.currentChatId ? 'active' : ''}`;
-        chatItem.innerHTML = `
-            <span class="chat-item-icon">💬</span>
-            <span class="chat-item-title">${escapeHTML(chat.title)}</span>
-            <div class="chat-actions">
-                <button class="share-chat" onclick="shareChat('${chat.id}')" title="Share chat">
-                    <i class="fas fa-share"></i>
-                </button>
-                <button class="delete-chat" data-chatid="${chat.id}" title="Delete chat">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-        
-        chatItem.addEventListener('click', function(e) {
-            if (!e.target.closest('.chat-actions')) {
-                loadChat(chat.id);
-            }
-        });
-        
-        elements.chatHistory.appendChild(chatItem);
-    });
-}
-        async function loadChat(chatId) {
-    const chat = state.chats.find(c => c.id === chatId);
-    if (!chat) {
-        console.error('Chat not found:', chatId);
-        showNotification('Chat not found', 'error');
-        return false;
-    }
-    
-    state.currentChatId = chatId;
-    
-    // Update URL
-    updateURL(chatId);
-    
-    // Clear chat area
-    if (elements.chatMessages) {
-        elements.chatMessages.innerHTML = '';
-    }
-    
-    // Show/hide welcome screen based on messages
-    if (elements.welcomeScreen) {
-        if (chat.messages && chat.messages.length > 0) {
-            elements.welcomeScreen.style.display = 'none';
-        } else {
-            elements.welcomeScreen.style.display = 'flex';
-        }
-    }
-    
-    // Rebuild messages
-    if (chat.messages && chat.messages.length > 0) {
-        chat.messages.forEach(msg => {
-            if (msg.type === 'user') {
-                addMessageToUI('user', msg.content);
-            } else {
-                displayAIResponse(msg.content);
-            }
-        });
-    }
-    
-    updateChatHistorySidebar();
-    scrollToBottom();
-    
-    console.log('Chat loaded successfully:', chatId);
-    return true;
-}
-        async function addMessageToChat(sender, content) {
-            try {
-                if (!state.currentChatId) return;
-                
-                const chat = state.chats.find(c => c.id === state.currentChatId);
-                if (!chat) return;
-                
-                chat.messages.push({
-                    type: sender,
-                    content: content,
-                    timestamp: new Date().toISOString()
-                });
-                
-                chat.updatedAt = new Date().toISOString();
-                
-                // Update chat title if it's the first user message
-                if (sender === 'user' && chat.messages.length === 1) {
-                    chat.title = content.length > 30 ? content.substring(0, 30) + '...' : content;
-                }
-                
-                await saveChatToFirestore(chat);
-                saveChatsToLocalStorage();
-                
-                updateChatHistorySidebar();
-            } catch (error) {
-                console.error('Error adding message to chat:', error);
-            }
-        }
-        // ==================== URL ROUTING ====================
-function getChatIdFromURL() {
-    try {
-        const hash = window.location.hash;
-        if (hash && hash.startsWith('#chat_')) {
-            const chatId = hash.substring(1); // Remove the #
-            return chatId;
-        }
-        return null;
-    } catch (error) {
-        console.error('Error getting chat ID from URL:', error);
-        return null;
-    }
-}
-
-function updateURL(chatId) {
-    try {
-        if (!chatId) return;
-        
-        // Use replaceState to avoid adding to browser history
-        const newURL = `${window.location.pathname}#${chatId}`;
-        window.history.replaceState(null, null, newURL);
-        
-        console.log('URL updated with chat ID:', chatId);
-    } catch (error) {
-        console.error('Error updating URL:', error);
-    }
-}
-
-function shareChat(chatId) {
-    try {
-        // Create shareable URL
-        const shareUrl = `${window.location.origin}${window.location.pathname}#${chatId}`;
-        
-        // Try to use Web Share API if available
-        if (navigator.share) {
-            navigator.share({
-                title: 'Hela Code Chat',
-                text: 'Check out this coding conversation!',
-                url: shareUrl
-            }).then(() => {
-                showNotification('Chat shared successfully!', 'success');
-            }).catch(err => {
-                // Fallback to clipboard
-                copyToClipboardText(shareUrl);
-            });
-        } else {
-            // Fallback to clipboard
-            copyToClipboardText(shareUrl);
-        }
-    } catch (error) {
-        console.error('Error sharing chat:', error);
-        showNotification('Error sharing chat', 'error');
-    }
-}
-
-function copyToClipboardText(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showNotification('Chat link copied to clipboard!', 'success');
-    }).catch(() => {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        showNotification('Chat link copied to clipboard!', 'success');
-    });
-}
-
-        // ==================== UI MESSAGE FUNCTIONS ====================
-        function addMessageToUI(sender, text) {
-            if (!elements.chatMessages) return;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = 'message-content';
-            
-            if (sender === 'ai') {
-                const avatar = document.createElement('div');
-                avatar.className = 'message-avatar';
-                avatar.textContent = 'H';
-                messageDiv.appendChild(avatar);
-            }
-            
-            const messageBubble = document.createElement('div');
-            messageBubble.className = `message-bubble ${sender === 'ai' ? 'ai-bubble' : ''}`;
-            messageBubble.textContent = text;
-            
-            messageContent.appendChild(messageBubble);
-            messageDiv.appendChild(messageContent);
-            
-            if (sender === 'user') {
-                const avatar = document.createElement('div');
-                avatar.className = 'message-avatar';
-                avatar.textContent = 'U';
-                avatar.style.background = '#666';
-                messageDiv.appendChild(avatar);
-            }
-            
-            elements.chatMessages.appendChild(messageDiv);
-            
-            scrollToBottom();
-        }
-
-        function displayAIResponse(content) {
-            if (!elements.chatMessages) return;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ai';
-            
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = 'H';
-            messageDiv.appendChild(avatar);
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = 'message-content';
-            
-            const messageBubble = document.createElement('div');
-            messageBubble.className = 'message-bubble ai-bubble';
-            
-            // Use the fixed code detection function
-            messageBubble.innerHTML = formatAIResponse(content);
-            
-            messageContent.appendChild(messageBubble);
-            messageDiv.appendChild(messageContent);
-            elements.chatMessages.appendChild(messageDiv);
-            
-            // Add event listeners to code block buttons
-            addCodeBlockListeners();
-            
-            scrollToBottom();
-        }
-
-       // ==================== AI API ====================
-const API_CONFIG = {
-    URL: 'https://endpoint.apilageai.lk/api/chat',
-    KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
-    MODEL: 'APILAGEAI-FREE' // or 'Dineth Ayya Tmx'
+// Your Firebase config
+const firebaseConfig = {
+    apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
+    authDomain: "hela-code.firebaseapp.com",
+    projectId: "hela-code",
+    storageBucket: "hela-code.appspot.com",
+    messagingSenderId: "813299203715",
+    appId: "1:813299203715:web:910e7227cdd4"
 };
 
-async function callAI(userMessage) {
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ==================== ELEMENTS ====================
+const chatMessages = document.getElementById("chatMessages");
+const chatInput = document.getElementById("chatInput");
+const sendBtn = document.getElementById("sendBtn");
+const newChatBtn = document.getElementById("newChatBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const userNameEl = document.getElementById("userName");
+const userAvatar = document.getElementById("userAvatar");
+
+// ==================== STATE ====================
+let currentUser = null;
+let currentChatId = null;
+
+// ==================== APP INIT ====================
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "index.html";
+        return;
+    }
+    currentUser = user;
+    await loadUserProfile(user.uid);
+    await loadChats();
+});
+
+// ==================== LOAD USER ====================
+async function loadUserProfile(uid) {
     try {
-        const response = await fetch(API_CONFIG.URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${API_CONFIG.KEY}`
-            },
-            body: JSON.stringify({
-                message: userMessage,
-                model: API_CONFIG.MODEL,
-                enableGoogleSearch: false // Set to true if you want web search
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        // Log API usage for debugging
-        console.log('API Response:', {
-            success: result.success,
-            credits_used: result.credits_used,
-            credits_remaining: result.credits_remaining,
-            token_usage: result.token_usage,
-            response_time_ms: result.response_time_ms
-        });
-
-        if (result.success && result.response) {
-            return result.response;
+        const userDoc = await getDoc(doc(db, "users", uid));
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            userNameEl.textContent = data.name || "User";
+            if (data.avatarUrl) userAvatar.src = data.avatarUrl;
         } else {
-            throw new Error('Invalid API response format');
+            userNameEl.textContent = currentUser.email || "User";
         }
-
-    } catch (error) {
-        console.error('AI API Error:', error);
-        
-        // Fallback to mock responses if API fails
-        const mockResponses = [
-            `I'm having trouble connecting to the AI service right now. Here's a helpful coding example instead:
-
-\`\`\`javascript
-// Fallback response - API connection issue
-console.log("Trying to reconnect to AI service...");
-// Please try again in a moment
-\`\`\``,
-            `API connection issue detected. Meanwhile, here's a useful coding tip:
-
-\`\`\`python
-# Fallback response
-def handle_api_error():
-    print("AI service temporarily unavailable")
-    return "Please try your question again shortly"
-\`\`\``
-        ];
-        
-        // Return fallback response
-        return mockResponses[Math.floor(Math.random() * mockResponses.length)];
+    } catch (err) {
+        console.error("Error loading user:", err);
     }
 }
-        // ==================== USER MANAGEMENT ====================
-        function updateUserInfo(user) {
-            try {
-                if (elements.userName) {
-                    elements.userName.textContent = user.displayName || user.email || 'User';
-                }
-                
-                if (elements.userAvatar) {
-                    const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-                    
-                    if (user.photoURL) {
-                        elements.userAvatar.innerHTML = '';
-                        elements.userAvatar.style.backgroundImage = `url(${user.photoURL})`;
-                        elements.userAvatar.style.backgroundSize = 'cover';
-                        elements.userAvatar.style.backgroundPosition = 'center';
-                    } else {
-                        elements.userAvatar.innerHTML = initial;
-                        elements.userAvatar.style.backgroundImage = 'none';
-                    }
-                }
-            } catch (error) {
-                console.error('Error updating user info:', error);
-            }
-        }
 
-        async function loadUserProgress(userId) {
-            try {
-                const userDoc = await db.collection('users').doc(userId).get();
-                
-                if (userDoc.exists && userDoc.data().progress) {
-                    state.userProgress = { ...state.userProgress, ...userDoc.data().progress };
-                }
-                
-                updateProgressUI();
-                
-            } catch (error) {
-                console.error('Error loading user progress:', error);
-            }
-        }
+// ==================== LOAD CHATS ====================
+async function loadChats() {
+    const q = query(collection(db, "users", currentUser.uid, "chats"), orderBy("createdAt", "desc"));
+    onSnapshot(q, (snapshot) => {
+        const chatList = document.getElementById("chatHistory");
+        chatList.innerHTML = "";
+        snapshot.forEach((docSnap) => {
+            const chat = docSnap.data();
+            const div = document.createElement("div");
+            div.className = "chat-item";
+            div.textContent = chat.title || "Untitled Chat";
+            div.onclick = () => loadChat(docSnap.id);
+            chatList.appendChild(div);
+        });
+    });
+}
 
-        function updateProgressUI() {
-            try {
-                if (elements.creditsDisplay) {
-                    elements.creditsDisplay.textContent = state.userProgress.credits;
-                }
-                
-                // Update user level
-                const userLevel = document.getElementById('userLevel');
-                if (userLevel) {
-                    userLevel.textContent = state.userProgress.level;
-                }
-                
-                // Update credit bar styling
-                if (elements.creditBar) {
-                    if (state.userProgress.credits < 10) {
-                        elements.creditBar.classList.add('low');
-                    } else {
-                        elements.creditBar.classList.remove('low');
-                    }
-                }
-                
-            } catch (error) {
-                console.error('Error updating progress UI:', error);
-            }
-        }
+// ==================== CREATE NEW CHAT ====================
+async function createNewChat() {
+    const chatRef = await addDoc(collection(db, "users", currentUser.uid, "chats"), {
+        title: "New Chat",
+        createdAt: new Date()
+    });
+    currentChatId = chatRef.id;
+    chatMessages.innerHTML = "";
+}
 
-        // ==================== MAIN CHAT HANDLER ====================
-        async function handleSend() {
-            try {
-                const text = elements.chatInput?.value.trim() || '';
-                
-                if (!text) {
-                    showNotification('Please enter a message', 'error');
-                    return;
-                }
-                
-                // Check credits
-                if (!await useCredits(CREDIT_COSTS.CHAT_MESSAGE, 'chat_message')) {
-                    return;
-                }
-                
-                // Disable send button during processing
-                if (elements.sendBtn) {
-                    elements.sendBtn.disabled = true;
-                    elements.sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                }
-                
-                if (elements.chatInput) {
-                    elements.chatInput.value = '';
-                    autoResizeTextarea();
-                }
-                
-                if (!state.currentChatId || state.chats.length === 0) {
-                    await createNewChat();
-                }
-                
-                if (elements.welcomeScreen) {
-                    elements.welcomeScreen.style.display = 'none';
-                }
+// ==================== LOAD CHAT ====================
+async function loadChat(chatId) {
+    currentChatId = chatId;
+    chatMessages.innerHTML = "";
 
-                addMessageToUI('user', text);
-                await addMessageToChat('user', text);
+    const msgRef = collection(db, "users", currentUser.uid, "chats", chatId, "messages");
+    const q = query(msgRef, orderBy("timestamp", "asc"));
 
-                showTypingIndicator();
-                
-                try {
-                    const reply = await callAI(text);
-                    removeTypingIndicator();
-                    displayAIResponse(reply);
-                    await addMessageToChat('ai', reply);
-                } catch (error) {
-                    removeTypingIndicator();
-                    console.error('AI API Error:', error);
-                    const errorMessage = "Sorry, I'm having trouble connecting right now. Please try again in a moment.";
-                    displayAIResponse(errorMessage);
-                    await addMessageToChat('ai', errorMessage);
-                }
-            } catch (error) {
-                console.error('Error in handleSend:', error);
-                showNotification('Error sending message', 'error');
-            } finally {
-                // Re-enable send button
-                if (elements.sendBtn) {
-                    elements.sendBtn.disabled = false;
-                    elements.sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-                }
-            }
-        }
+    onSnapshot(q, (snapshot) => {
+        chatMessages.innerHTML = "";
+        snapshot.forEach((docSnap) => {
+            const msg = docSnap.data();
+            addMessageToChat(msg.role, msg.text);
+        });
+    });
+}
 
-        // ==================== INITIALIZATION ====================
-        async function initializeElements() {
-            try {
-                elements = {
-                    chatMessages: document.getElementById('chatMessages'),
-                    chatInput: document.getElementById('chatInput'),
-                    sendBtn: document.getElementById('sendBtn'),
-                    welcomeScreen: document.getElementById('welcomeScreen'),
-                    newChatBtn: document.getElementById('newChatBtn'),
-                    logoutBtn: document.getElementById('logoutBtn'),
-                    chatHistory: document.getElementById('chatHistory'),
-                    userAvatar: document.getElementById('userAvatar'),
-                    userName: document.getElementById('userName'),
-                    examplePrompts: document.getElementById('examplePrompts'),
-                    creditsDisplay: document.getElementById('creditsDisplay'),
-                    creditBar: document.getElementById('creditBar')
-                };
-                
-                return true;
-            } catch (error) {
-                console.error('Failed to initialize DOM elements:', error);
-                return false;
-            }
-        }
-
-        function setupEventListeners() {
-            // Chat functionality
-            if (elements.sendBtn) {
-                elements.sendBtn.addEventListener('click', handleSend);
-            }
-
-            if (elements.chatInput) {
-                elements.chatInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                    }
-                });
-                
-                elements.chatInput.addEventListener('input', autoResizeTextarea);
-            }
-
-            if (elements.newChatBtn) {
-                elements.newChatBtn.addEventListener('click', createNewChat);
-            }
-            window.addEventListener('hashchange', () => {
-    try {
-        const chatId = getChatIdFromURL();
-        if (chatId && state.chats.some(chat => chat.id === chatId)) {
-            console.log('Loading chat from URL:', chatId);
-            loadChat(chatId);
-        } else if (chatId) {
-            console.log('Chat not found, creating new one:', chatId);
-            createNewChatWithId(chatId).then(newChatId => {
-                if (newChatId) {
-                    loadChat(newChatId);
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Error handling hash change:', error);
-        showNotification('Error loading chat from URL', 'error');
+// ==================== SEND MESSAGE ====================
+sendBtn.addEventListener("click", handleSend);
+chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
     }
 });
 
-            // Auth
-            if (elements.logoutBtn) {
-                elements.logoutBtn.addEventListener('click', () => {
-                    auth.signOut().then(() => {
-                        window.location.href = 'index.html';
-                    });
-                });
-            }
-        }
-        
-       // ==================== APP INITIALIZATION ====================
-async function initializeApp() {
-    return new Promise((resolve, reject) => {
-        auth.onAuthStateChanged(async (user) => {
-            try {
-                if (user) {
-                    state.currentUser = user;
-                    updateUserInfo(user);
-                    
-                    // Load user progress and chats
-                    await Promise.all([
-                        loadUserProgress(user.uid),
-                        loadChatsFromFirestore().then(success => {
-                            if (!success) loadChatsFromLocalStorage();
-                        })
-                    ]);
-                    
-                    // Handle URL routing
-                    const urlChatId = getChatIdFromURL();
-                    let chatToLoad = null;
-                    
-                    if (urlChatId) {
-                        const urlChat = state.chats.find(chat => chat.id === urlChatId);
-                        if (urlChat) {
-                            chatToLoad = urlChatId;
-                        } else {
-                            // Create new chat with the URL ID
-                            chatToLoad = await createNewChatWithId(urlChatId);
-                        }
-                    } else if (state.chats.length > 0) {
-                        chatToLoad = state.chats[0].id;
-                    } else {
-                        chatToLoad = await createNewChat();
-                    }
-                    
-                    if (chatToLoad) {
-                        await loadChat(chatToLoad);
-                    }
-                    
-                    state.isInitialized = true;
-                    console.log('App initialized successfully');
-                    resolve(user);
-                    
-                } else {
-                    // Redirect to login page if not authenticated
-                    window.location.href = 'index.html';
-                }
-            } catch (error) {
-                console.error('Error in auth state change:', error);
-                reject(error);
-            }
-        }, reject);
+async function handleSend() {
+    const text = chatInput.value.trim();
+    if (!text || !currentChatId) return;
+
+    addMessageToChat("user", text);
+    chatInput.value = "";
+
+    await addDoc(collection(db, "users", currentUser.uid, "chats", currentChatId, "messages"), {
+        role: "user",
+        text,
+        timestamp: new Date()
     });
+
+    const aiReply = await callAI(text);
+
+    await addDoc(collection(db, "users", currentUser.uid, "chats", currentChatId, "messages"), {
+        role: "ai",
+        text: aiReply,
+        timestamp: new Date()
+    });
+
+    addMessageToChat("ai", aiReply);
 }
 
-// Helper function to create chat with specific ID
-async function createNewChatWithId(chatId) {
-    try {
-        const newChat = {
-            id: chatId,
-            title: 'New Chat',
-            messages: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        
-        state.chats.unshift(newChat);
-        state.currentChatId = chatId;
-        
-        // Save to Firestore
-        await saveChatToFirestore(newChat);
-        saveChatsToLocalStorage();
-        
-        // Update UI
-        if (elements.chatMessages) {
-            elements.chatMessages.innerHTML = '';
-        }
-        if (elements.welcomeScreen) {
-            elements.welcomeScreen.style.display = 'flex';
-        }
-        
-        updateChatHistorySidebar();
-        
-        console.log('Created new chat with ID:', chatId);
-        return chatId;
-    } catch (error) {
-        console.error('Error creating new chat with ID:', error);
-        return await createNewChat(); // Fallback to random ID
+// ==================== RENDER MESSAGE ====================
+function addMessageToChat(role, text) {
+    const div = document.createElement("div");
+    div.className = `message ${role}`;
+    div.innerHTML = `<p>${text}</p>`;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// ==================== LOGOUT ====================
+logoutBtn.addEventListener("click", async () => {
+    await signOut(auth);
+    window.location.href = "index.html";
+});
+
+// ==================== AI CALL ====================
+async function callAI(userMessage) {
+  try {
+    const response = await fetch("https://endpoint.apilageai.lk/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP"
+      },
+      body: JSON.stringify({
+        message: userMessage,
+        enableGoogleSearch: false,
+        model: "APILAGEAI-PRO"
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      console.error("API error:", data);
+      return "⚠️ Something went wrong with the AI response.";
     }
+
+    return data.response;
+  } catch (error) {
+    console.error("Fetch error:", error);
+    return "🚫 Couldn’t connect to the AI endpoint.";
+  }
 }
-        async function deleteChat(chatId, event) {
-    if (event) event.stopPropagation();
-    
-    if (!confirm('Are you sure you want to delete this chat?')) {
-        return;
-    }
-    
-    state.chats = state.chats.filter(chat => chat.id !== chatId);
-    
-    await deleteChatFromFirestore(chatId);
-    saveChatsToLocalStorage();
-    
-    if (state.currentChatId === chatId) {
-        if (state.chats.length > 0) {
-            state.currentChatId = state.chats[0].id;
-            await loadChat(state.currentChatId);
-        } else {
-            await createNewChat();
-        }
-    }
-    
-    updateChatHistorySidebar();
-    showNotification('Chat deleted');
-}
-
-// ==================== GLOBAL FUNCTIONS ====================
-window.handleSend = handleSend;
-window.handleExamplePrompt = handleExamplePrompt;
-window.deleteChat = deleteChat;
-window.shareChat = shareChat;
-window.copyToClipboard = copyToClipboard;
-window.downloadCode = downloadCode;
-
-// ==================== APPLICATION STARTUP ====================
-async function startApplication() {
-    try {
-        const initialized = await initializeElements();
-        if (!initialized) throw new Error('DOM initialization failed');
-
-        setupEventListeners();
-        console.log('App initialized successfully');
-
-        // Load chat if there's one in URL, otherwise start a new chat
-        const chatId = getChatIdFromURL();
-        if (chatId && state.chats.some(chat => chat.id === chatId)) {
-            loadChat(chatId);
-        } else {
-            createNewChat();
-        }
-
-        showNotification('Welcome back!', 'success');
-    } catch (error) {
-        console.error('Error starting application:', error);
-        showNotification('Failed to start application', 'error');
-    }
-}
-
-// ==================== DOM READY CHECK ====================
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startApplication);
-} else {
-    startApplication();
-}
-    </script>
+</script>
 </body>
 </html>
