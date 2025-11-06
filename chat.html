@@ -1675,23 +1675,24 @@ EXPLAIN SELECT * FROM users WHERE age > 25;
                 elements.newChatBtn.addEventListener('click', createNewChat);
             }
             window.addEventListener('hashchange', () => {
-        try {
-            const chatId = getChatIdFromURL();
-            if (chatId && state.chats.some(chat => chat.id === chatId)) {
-                console.log('Loading chat from URL:', chatId);
-                loadChat(chatId);
-            } else if (chatId) {
-                console.log('Chat not found, creating new one:', chatId);
-                createNewChatWithId(chatId).then(newChatId => {
-                    if (newChatId) {
-                        loadChat(newChatId);
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('Error handling hash change:', error);
-            showNotification('Error loading chat from URL', 'error');
+    try {
+        const chatId = getChatIdFromURL();
+        if (chatId && state.chats.some(chat => chat.id === chatId)) {
+            console.log('Loading chat from URL:', chatId);
+            loadChat(chatId);
+        } else if (chatId) {
+            console.log('Chat not found, creating new one:', chatId);
+            createNewChatWithId(chatId).then(newChatId => {
+                if (newChatId) {
+                    loadChat(newChatId);
+                }
+            });
         }
+    } catch (error) {
+        console.error('Error handling hash change:', error);
+        showNotification('Error loading chat from URL', 'error');
+    }
+});
 
             // Auth
             if (elements.logoutBtn) {
