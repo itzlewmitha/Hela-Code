@@ -911,19 +911,25 @@
             {
                 title: "Web Development",
                 prompts: [
-                    "Explain CSS Grid with a practical example"
+                    "How to create a responsive navbar with React?",
+                    "Explain CSS Grid with a practical example",
+                    "Build a simple CRUD app with Node.js and MongoDB"
                 ]
             },
             {
                 title: "Mobile Development", 
                 prompts: [
+                    "Create a Flutter app with bottom navigation",
+                    "How to handle API calls in React Native?",
                     "Build a Sri Lankan restaurant finder app UI"
                 ]
             },
             {
                 title: "Backend & Databases",
                 prompts: [
-                    "Design a database schema for an e-commerce site"
+                    "Design a database schema for an e-commerce site",
+                    "How to implement JWT authentication in Express.js?",
+                    "Optimize MySQL queries for better performance"
                 ]
             }
         ];
@@ -1352,44 +1358,111 @@
         }
 
         // ==================== AI API ====================
-const API_CONFIG = {
-  URL: 'https://endpoint.apilageai.lk/api/chat',
-  KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
-  MODEL: 'APILAGEAI-FREE'
+        const API_CONFIG = {
+            URL: 'https://endpoint.apilageai.lk/api/chat',
+            KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
+            MODEL: 'APILAGEAI-PRO'
+        };
+
+        async function callAI(userMessage) {
+            try {
+                // Mock responses for demo
+                const mockResponses = [
+                    `Here's a simple React navbar component:
+
+\`\`\`javascript
+import React, { useState } from 'react';
+import './Navbar.css';
+
+const Navbar = () => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+        <nav className="navbar">
+            <div className="nav-container">
+                <div className="nav-logo">
+                    My App
+                </div>
+                <div className={isOpen ? "nav-menu active" : "nav-menu"}>
+                    <div className="nav-item">
+                        <a href="/" className="nav-links">Home</a>
+                    </div>
+                    <div className="nav-item">
+                        <a href="/about" className="nav-links">About</a>
+                    </div>
+                    <div className="nav-item">
+                        <a href="/contact" className="nav-links">Contact</a>
+                    </div>
+                </div>
+                <div className="nav-icon" onClick={() => setIsOpen(!isOpen)}>
+                    <i className={isOpen ? "fas fa-times" : "fas fa-bars"}></i>
+                </div>
+            </div>
+        </nav>
+    );
 };
 
-async function callAI(userMessage) {
-  try {
-    // --- REAL API CALL ---
-    const response = await fetch(API_CONFIG.URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.KEY}`
-      },
-      body: JSON.stringify({
-        message: userMessage,
-        enableGoogleSearch: false, // set to true if you want web search
-        model: API_CONFIG.MODEL
-      })
-    });
+export default Navbar;
+\`\`\``,
+                    `Here's a Python Flask API example:
 
-    const data = await response.json();
+\`\`\`python
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
 
-    if (!response.ok || !data.success) {
-      console.error("API error:", data);
-      return "⚠️ Something went wrong with the AI response.";
-    }
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 
-    console.log("Credits used:", data.credits_used);
-    console.log("Token usage:", data.token_usage);
+db = SQLAlchemy(app)
 
-    return data.response; // AI reply text
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
 
-  } catch (error) {
-    console.error("Fetch error:", error);
-    return "🚫 Couldn’t connect to the AI endpoint.";
-  }
+@app.route('/api/users', methods=['GET'])
+def get_users():
+    users = User.query.all()
+    return jsonify([{'id': user.id, 'username': user.username} for user in users])
+
+if __name__ == '__main__':
+    db.create_all()
+    app.run(debug=True)
+\`\`\``,
+                    `Here's how to optimize your SQL queries:
+
+\`\`\`sql
+-- Bad: Using SELECT *
+SELECT * FROM users WHERE age > 25;
+
+-- Good: Select only needed columns
+SELECT id, name, email FROM users WHERE age > 25;
+
+-- Bad: No index on age column
+SELECT * FROM users WHERE age = 30;
+
+-- Good: Add index for frequently queried columns
+CREATE INDEX idx_users_age ON users(age);
+
+-- Use EXPLAIN to analyze query performance
+EXPLAIN SELECT * FROM users WHERE age > 25;
+\`\`\``
+                ];
+                
+                // Return mock response for demo
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+                        resolve(randomResponse);
+                    }, 1500);
+                });
+
+            } catch (error) {
+                console.error('AI API Error:', error);
+                throw error;
+            }
+        }
+
         // ==================== USER MANAGEMENT ====================
         function updateUserInfo(user) {
             try {
