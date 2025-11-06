@@ -1826,6 +1826,30 @@ async function createNewChatWithId(chatId) {
         window.copyToClipboard = copyToClipboard;
         window.downloadCode = downloadCode;
 
+        // ==================== APP STARTUP ====================
+async function startApplication() {
+  try {
+    // 1️⃣ Initialize all your DOM references
+    const initialized = await initializeElements();
+    if (!initialized) throw new Error("DOM initialization failed.");
+
+    // 2️⃣ Set up all your event listeners
+    setupEventListeners();
+
+    // 3️⃣ Optionally load or create the first chat session
+    if (typeof createNewChat === "function") {
+      createNewChat();
+    }
+
+    // 4️⃣ You can also show any welcome or user info here
+    console.log("✅ Chat app started successfully.");
+  } catch (error) {
+    console.error("❌ App startup error:", error);
+    if (typeof showNotification === "function") {
+      showNotification("Failed to start chat.", "error");
+    }
+  }
+}
         // Start the application when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', startApplication);
