@@ -189,6 +189,7 @@
             display: flex;
             flex-direction: column;
             margin-top: 20px;
+            overflow: hidden;
         }
         
         /* Chat Messages */
@@ -199,6 +200,7 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
+            max-height: calc(100vh - 300px);
         }
         
         .message {
@@ -346,21 +348,12 @@
             margin: 0 auto;
         }
         
-        .example-category {
-            margin-bottom: 30px;
-        }
-        
-        .category-title {
-            color: var(--primary);
-            font-size: 1.1rem;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-        
         .prompts-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            display: flex;
+            flex-direction: column;
             gap: 10px;
+            max-width: 500px;
+            margin: 0 auto;
         }
         
         .example-prompt-btn {
@@ -555,6 +548,151 @@
             margin-top: auto;
         }
 
+        /* Payment Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .credit-packages {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .credit-package {
+            background: rgba(139, 95, 191, 0.1);
+            border: 1px solid rgba(139, 95, 191, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .credit-package:hover, .credit-package.selected {
+            background: rgba(139, 95, 191, 0.2);
+            border-color: var(--primary);
+        }
+        
+        .package-credits {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .package-price {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        
+        .payment-btn {
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            margin-top: 20px;
+            transition: var(--transition);
+        }
+        
+        .payment-btn:hover {
+            background: var(--primary-dark);
+        }
+        
+        .payment-btn:disabled {
+            background: var(--text-light);
+            cursor: not-allowed;
+        }
+        
+        /* Settings Menu */
+        .settings-menu {
+            position: relative;
+        }
+        
+        .settings-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 10px 0;
+            min-width: 180px;
+            box-shadow: var(--shadow);
+            z-index: 100;
+            display: none;
+        }
+        
+        .settings-menu.open .settings-dropdown {
+            display: block;
+        }
+        
+        .settings-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            color: var(--text);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .settings-item:hover {
+            background: rgba(139, 95, 191, 0.1);
+        }
+        
+        .settings-item.delete {
+            color: var(--error);
+        }
+        
+        .settings-item.delete:hover {
+            background: rgba(244, 67, 54, 0.1);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .main-layout {
@@ -587,6 +725,10 @@
             .user-section {
                 justify-content: center;
             }
+            
+            .chat-messages {
+                max-height: calc(100vh - 350px);
+            }
         }
     </style>
 </head>
@@ -611,15 +753,25 @@
             </div>
             <div class="credit-bar" id="creditBar">
                 <i class="fas fa-gem"></i>
-                <span>Credits: <span id="creditsDisplay">100</span></span>
+                <span>Credits: <span id="creditsDisplay">50</span></span>
             </div>
             <div class="nav-buttons">
                 <button class="nav-btn" id="challengesBtn" title="Challenges">
                     <i class="fas fa-tasks"></i>
                 </button>
-                <button class="nav-btn" id="achievementsBtn" title="Achievements">
-                    <i class="fas fa-trophy"></i>
+                <button class="nav-btn" id="buyCreditsBtn" title="Buy Credits">
+                    <i class="fas fa-shopping-cart"></i>
                 </button>
+                <div class="settings-menu" id="settingsMenu">
+                    <button class="nav-btn" id="settingsBtn" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="settings-dropdown">
+                        <button class="settings-item" id="deleteAccountBtn">
+                            <i class="fas fa-trash"></i> Delete Account
+                        </button>
+                    </div>
+                </div>
                 <button class="nav-btn" id="logoutBtn" title="Logout">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
@@ -647,7 +799,17 @@
                     <h1 class="welcome-title">Welcome to Hela Code</h1>
                     <p class="welcome-subtitle">Sri Lanka's #1 AI Coding Assistant</p>
                     <div class="example-prompts" id="examplePrompts">
-                        <!-- Example prompts will be loaded here -->
+                        <div class="prompts-container">
+                            <button class="example-prompt-btn" data-prompt="How to create a responsive navbar with React?">
+                                How to create a responsive navbar with React?
+                            </button>
+                            <button class="example-prompt-btn" data-prompt="Explain CSS Grid with a practical example">
+                                Explain CSS Grid with a practical example
+                            </button>
+                            <button class="example-prompt-btn" data-prompt="Build a simple CRUD app with Node.js and MongoDB">
+                                Build a simple CRUD app with Node.js and MongoDB
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -678,6 +840,38 @@
     <footer class="footer">
         <p>හො.ම.ත.ග.යු අපිට වරදින්න පුලුවන් !</p>
     </footer>
+
+    <!-- Payment Modal -->
+    <div class="modal-overlay" id="paymentModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Buy Credits</h2>
+                <button class="close-btn" id="closePaymentModal">&times;</button>
+            </div>
+            <p>Choose a credit package to continue using Hela Code</p>
+            <div class="credit-packages">
+                <div class="credit-package" data-credits="100" data-price="2.99">
+                    <div class="package-credits">100 Credits</div>
+                    <div class="package-price">$2.99</div>
+                </div>
+                <div class="credit-package" data-credits="250" data-price="5.99">
+                    <div class="package-credits">250 Credits</div>
+                    <div class="package-price">$5.99</div>
+                </div>
+                <div class="credit-package" data-credits="500" data-price="9.99">
+                    <div class="package-credits">500 Credits</div>
+                    <div class="package-price">$9.99</div>
+                </div>
+                <div class="credit-package" data-credits="1000" data-price="15.99">
+                    <div class="package-credits">1000 Credits</div>
+                    <div class="package-price">$15.99</div>
+                </div>
+            </div>
+            <button class="payment-btn" id="googlePayBtn" disabled>
+                Pay with Google Pay
+            </button>
+        </div>
+    </div>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -711,12 +905,12 @@
             uploadedFiles: [],
             isInitialized: false,
             userProgress: {
-                achievements: [],
                 challenges: [],
-                credits: 100,
+                credits: 50, // Start with 50 free credits
                 level: 1,
                 xp: 0,
                 lastActive: null,
+                monthlyCreditsClaimed: false,
                 stats: {
                     messagesSent: 0,
                     codeQuestions: 0,
@@ -920,74 +1114,6 @@
             return formattedContent;
         }
 
-        // ==================== EXAMPLE PROMPTS ====================
-        const EXAMPLE_PROMPTS = [
-            {
-                title: "Web Development",
-                prompts: [
-                    "How to create a responsive navbar with React?",
-                    "Explain CSS Grid with a practical example",
-                    "Build a simple CRUD app with Node.js and MongoDB"
-                ]
-            },
-            {
-                title: "Mobile Development", 
-                prompts: [
-                    "Create a Flutter app with bottom navigation",
-                    "How to handle API calls in React Native?",
-                    "Build a Sri Lankan restaurant finder app UI"
-                ]
-            },
-            {
-                title: "Backend & Databases",
-                prompts: [
-                    "Design a database schema for an e-commerce site",
-                    "How to implement JWT authentication in Express.js?",
-                    "Optimize MySQL queries for better performance"
-                ]
-            }
-        ];
-
-        function handleExamplePrompt(prompt) {
-            if (elements.chatInput) {
-                elements.chatInput.value = prompt;
-                elements.chatInput.focus();
-                autoResizeTextarea();
-                showNotification('Prompt added to chat! Click send when ready.', 'success');
-            }
-        }
-
-        function displayExamplePrompts() {
-            const examplesContainer = elements.examplePrompts;
-            if (!examplesContainer) return;
-            
-            examplesContainer.innerHTML = '';
-            
-            EXAMPLE_PROMPTS.forEach(category => {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'example-category';
-                
-                const categoryTitle = document.createElement('h4');
-                categoryTitle.textContent = category.title;
-                categoryTitle.className = 'category-title';
-                categoryDiv.appendChild(categoryTitle);
-                
-                const promptsContainer = document.createElement('div');
-                promptsContainer.className = 'prompts-container';
-                
-                category.prompts.forEach(prompt => {
-                    const promptBtn = document.createElement('button');
-                    promptBtn.className = 'example-prompt-btn';
-                    promptBtn.textContent = prompt;
-                    promptBtn.onclick = () => handleExamplePrompt(prompt);
-                    promptsContainer.appendChild(promptBtn);
-                });
-                
-                categoryDiv.appendChild(promptsContainer);
-                examplesContainer.appendChild(categoryDiv);
-            });
-        }
-
         // ==================== CREDIT SYSTEM ====================
         const CREDIT_COSTS = {
             CHAT_MESSAGE: 1,
@@ -1014,7 +1140,109 @@
                 return true;
             } else {
                 showNotification(`Not enough credits! You need ${cost} credits for this action.`, 'error');
+                showPaymentModal();
                 return false;
+            }
+        }
+
+        // ==================== PAYMENT SYSTEM ====================
+        function showPaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+
+        function hidePaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function setupPaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            const closeBtn = document.getElementById('closePaymentModal');
+            const packages = document.querySelectorAll('.credit-package');
+            const googlePayBtn = document.getElementById('googlePayBtn');
+            
+            if (closeBtn) {
+                closeBtn.addEventListener('click', hidePaymentModal);
+            }
+            
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        hidePaymentModal();
+                    }
+                });
+            }
+            
+            let selectedPackage = null;
+            
+            packages.forEach(pkg => {
+                pkg.addEventListener('click', () => {
+                    packages.forEach(p => p.classList.remove('selected'));
+                    pkg.classList.add('selected');
+                    selectedPackage = {
+                        credits: parseInt(pkg.dataset.credits),
+                        price: parseFloat(pkg.dataset.price)
+                    };
+                    googlePayBtn.disabled = false;
+                });
+            });
+            
+            if (googlePayBtn) {
+                googlePayBtn.addEventListener('click', () => {
+                    if (selectedPackage) {
+                        processGooglePay(selectedPackage);
+                    }
+                });
+            }
+        }
+
+        async function processGooglePay(package) {
+            try {
+                // Show loading state
+                const googlePayBtn = document.getElementById('googlePayBtn');
+                if (googlePayBtn) {
+                    googlePayBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                    googlePayBtn.disabled = true;
+                }
+                
+                // Simulate payment processing
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Add credits to user account
+                state.userProgress.credits += package.credits;
+                updateProgressUI();
+                await saveUserProgress();
+                
+                // Record transaction
+                await db.collection('purchases').add({
+                    userId: state.currentUser.uid,
+                    credits: package.credits,
+                    price: package.price,
+                    timestamp: new Date()
+                });
+                
+                showNotification(`Success! ${package.credits} credits added to your account.`, 'success');
+                hidePaymentModal();
+                
+                // Reset button
+                if (googlePayBtn) {
+                    googlePayBtn.innerHTML = 'Pay with Google Pay';
+                    googlePayBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                showNotification('Payment failed. Please try again.', 'error');
+                
+                const googlePayBtn = document.getElementById('googlePayBtn');
+                if (googlePayBtn) {
+                    googlePayBtn.innerHTML = 'Pay with Google Pay';
+                    googlePayBtn.disabled = false;
+                }
             }
         }
 
@@ -1448,9 +1676,30 @@
                 if (userDoc.exists && userDoc.data().progress) {
                     state.userProgress = { ...state.userProgress, ...userDoc.data().progress };
                 }
+                
+                // Check if monthly credits need to be reset
+                await checkMonthlyCredits(userId);
+                
                 updateProgressUI();
             } catch (error) {
                 console.error('Error loading user progress:', error);
+            }
+        }
+
+        async function checkMonthlyCredits(userId) {
+            try {
+                const now = new Date();
+                const lastActive = state.userProgress.lastActive ? new Date(state.userProgress.lastActive) : null;
+                
+                // If last active was more than a month ago, reset monthly credits
+                if (!lastActive || (now.getMonth() !== lastActive.getMonth() || now.getFullYear() !== lastActive.getFullYear())) {
+                    state.userProgress.credits = 50; // Reset to 50 free credits
+                    state.userProgress.monthlyCreditsClaimed = false;
+                    await saveUserProgress();
+                    showNotification('Your monthly 50 free credits have been added!', 'success');
+                }
+            } catch (error) {
+                console.error('Error checking monthly credits:', error);
             }
         }
 
@@ -1468,6 +1717,41 @@
                 }
             } catch (error) {
                 console.error('Error updating progress UI:', error);
+            }
+        }
+
+        // ==================== ACCOUNT DELETION ====================
+        async function deleteUserAccount() {
+            if (!confirm('Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.')) {
+                return;
+            }
+            
+            try {
+                if (!state.currentUser) return;
+                
+                // Delete all user chats from Firestore
+                const chatsSnapshot = await db.collection('users')
+                    .doc(state.currentUser.uid)
+                    .collection('chats')
+                    .get();
+                
+                const deletePromises = chatsSnapshot.docs.map(doc => doc.ref.delete());
+                await Promise.all(deletePromises);
+                
+                // Delete user progress
+                await db.collection('users').doc(state.currentUser.uid).delete();
+                
+                // Delete user authentication
+                await state.currentUser.delete();
+                
+                showNotification('Account deleted successfully', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                showNotification('Error deleting account. Please try again.', 'error');
             }
         }
 
@@ -1540,7 +1824,11 @@
                     userName: document.getElementById('userName'),
                     examplePrompts: document.getElementById('examplePrompts'),
                     creditsDisplay: document.getElementById('creditsDisplay'),
-                    creditBar: document.getElementById('creditBar')
+                    creditBar: document.getElementById('creditBar'),
+                    buyCreditsBtn: document.getElementById('buyCreditsBtn'),
+                    settingsMenu: document.getElementById('settingsMenu'),
+                    settingsBtn: document.getElementById('settingsBtn'),
+                    deleteAccountBtn: document.getElementById('deleteAccountBtn')
                 };
                 return true;
             } catch (error) {
@@ -1564,6 +1852,33 @@
 
             if (elements.newChatBtn) elements.newChatBtn.addEventListener('click', createNewChat);
 
+            if (elements.buyCreditsBtn) {
+                elements.buyCreditsBtn.addEventListener('click', showPaymentModal);
+            }
+
+            if (elements.settingsBtn) {
+                elements.settingsBtn.addEventListener('click', () => {
+                    elements.settingsMenu.classList.toggle('open');
+                });
+            }
+
+            if (elements.deleteAccountBtn) {
+                elements.deleteAccountBtn.addEventListener('click', deleteUserAccount);
+            }
+
+            // Example prompt buttons
+            document.querySelectorAll('.example-prompt-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const prompt = btn.getAttribute('data-prompt');
+                    if (elements.chatInput) {
+                        elements.chatInput.value = prompt;
+                        elements.chatInput.focus();
+                        autoResizeTextarea();
+                        showNotification('Prompt added to chat! Click send when ready.', 'success');
+                    }
+                });
+            });
+
             window.addEventListener('hashchange', () => {
                 const chatId = getChatIdFromURL();
                 if (chatId && state.chats.some(chat => chat.id === chatId)) {
@@ -1576,6 +1891,13 @@
                     auth.signOut().then(() => window.location.href = 'index.html');
                 });
             }
+
+            // Close settings dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.settings-menu')) {
+                    elements.settingsMenu.classList.remove('open');
+                }
+            });
 
             // Event delegation for dynamic buttons
             document.addEventListener('click', function(e) {
@@ -1639,10 +1961,10 @@
                 if (!elementsReady) throw new Error('Failed to initialize DOM elements');
                 
                 setupEventListeners();
-                displayExamplePrompts();
+                setupPaymentModal();
                 await initializeApp();
                 
-                showNotification('Hela Code loaded successfully! You have 100 free credits to start.');
+                showNotification('Hela Code loaded successfully! You have 50 free credits to start.');
             } catch (error) {
                 console.error('Failed to start application:', error);
                 showNotification('Failed to load app. Please refresh the page.', 'error');
@@ -1651,7 +1973,6 @@
 
         // ==================== GLOBAL FUNCTIONS ====================
         window.handleSend = handleSend;
-        window.handleExamplePrompt = handleExamplePrompt;
         window.deleteChat = deleteChat;
         window.shareChat = shareChat;
         window.copyToClipboard = copyToClipboard;
@@ -1663,7 +1984,6 @@
         } else {
             startApplication();
         }
-        //created by chenumi bandaranayaka & lewmitha kithuldeniya
     </script>
 </body>
 </html>
