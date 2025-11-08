@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hela Code — Playground</title>
+    <title>Hela Code — AI Coding Assistant</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -47,7 +47,7 @@
             flex: 1;
         }
         
-        /* Header */
+        /* Header - Cleaned Up */
         header {
             padding: 15px 0;
             display: flex;
@@ -93,7 +93,6 @@
             background: var(--card-bg);
             padding: 8px 16px;
             border-radius: 20px;
-            margin-right: 15px;
         }
 
         .user-avatar {
@@ -647,6 +646,56 @@
             cursor: not-allowed;
         }
         
+        /* Challenges Modal */
+        .challenges-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        
+        .challenge-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .challenge-info {
+            flex: 1;
+        }
+        
+        .challenge-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .challenge-description {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+        
+        .challenge-reward {
+            font-size: 0.8rem;
+            color: var(--primary);
+        }
+        
+        .challenge-status {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: rgba(76, 175, 80, 0.2);
+            color: var(--success);
+        }
+        
+        .challenge-status.pending {
+            background: rgba(255, 152, 0, 0.2);
+            color: var(--warning);
+        }
+        
         /* Settings Menu */
         .settings-menu {
             position: relative;
@@ -733,7 +782,7 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
+    <!-- Header - Cleaned Up -->
     <header class="container">
         <div class="logo">
             <div class="logo-icon">
@@ -762,16 +811,6 @@
                 <button class="nav-btn" id="buyCreditsBtn" title="Buy Credits">
                     <i class="fas fa-shopping-cart"></i>
                 </button>
-                <div class="settings-menu" id="settingsMenu">
-                    <button class="nav-btn" id="settingsBtn" title="Settings">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                    <div class="settings-dropdown">
-                        <button class="settings-item" id="deleteAccountBtn">
-                            <i class="fas fa-trash"></i> Delete Account
-                        </button>
-                    </div>
-                </div>
                 <button class="nav-btn" id="logoutBtn" title="Logout">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
@@ -873,6 +912,20 @@
         </div>
     </div>
 
+    <!-- Challenges Modal -->
+    <div class="modal-overlay" id="challengesModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Coding Challenges</h2>
+                <button class="close-btn" id="closeChallengesModal">&times;</button>
+            </div>
+            <p>Complete challenges to earn credits and level up!</p>
+            <div class="challenges-container" id="challengesContainer">
+                <!-- Challenges will be loaded here -->
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -904,9 +957,10 @@
             currentUser: null,
             uploadedFiles: [],
             isInitialized: false,
+            firestoreEnabled: true,
             userProgress: {
                 challenges: [],
-                credits: 50, // Start with 50 free credits
+                credits: 50,
                 level: 1,
                 xp: 0,
                 lastActive: null,
@@ -920,6 +974,48 @@
                 }
             }
         };
+
+        // ==================== CHALLENGES DATA ====================
+        const CHALLENGES = [
+            {
+                id: 'first_chat',
+                title: 'First Conversation',
+                description: 'Send your first message to Hela Code',
+                reward: 10,
+                completed: false,
+                type: 'one-time'
+            },
+            {
+                id: 'code_question',
+                title: 'Code Master',
+                description: 'Ask 5 coding-related questions',
+                reward: 25,
+                completed: false,
+                type: 'one-time',
+                target: 5,
+                progress: 0
+            },
+            {
+                id: 'daily_user',
+                title: 'Daily Coder',
+                description: 'Use Hela Code for 3 consecutive days',
+                reward: 50,
+                completed: false,
+                type: 'one-time',
+                target: 3,
+                progress: 0
+            },
+            {
+                id: 'chat_creator',
+                title: 'Chat Creator',
+                description: 'Create 3 different chat sessions',
+                reward: 30,
+                completed: false,
+                type: 'one-time',
+                target: 3,
+                progress: 0
+            }
+        ];
 
         // ==================== DOM ELEMENTS ====================
         let elements = {};
@@ -1127,15 +1223,19 @@
             if (state.userProgress.credits >= cost) {
                 state.userProgress.credits -= cost;
                 updateProgressUI();
-                await saveUserProgress();
                 
-                await db.collection('creditTransactions').add({
-                    userId: state.currentUser.uid,
-                    action: action,
-                    cost: cost,
-                    remaining: state.userProgress.credits,
-                    timestamp: new Date()
-                });
+                // Update stats
+                if (action === 'chat_message') {
+                    state.userProgress.stats.messagesSent++;
+                    checkChallenges();
+                }
+                
+                // Save to Firestore if enabled
+                if (state.firestoreEnabled) {
+                    await saveUserProgress();
+                } else {
+                    saveUserProgressToLocalStorage();
+                }
                 
                 return true;
             } else {
@@ -1143,6 +1243,78 @@
                 showPaymentModal();
                 return false;
             }
+        }
+
+        // ==================== CHALLENGES SYSTEM ====================
+        function checkChallenges() {
+            let earnedCredits = 0;
+            
+            // First message challenge
+            if (state.userProgress.stats.messagesSent === 1 && !state.userProgress.challenges.includes('first_chat')) {
+                state.userProgress.challenges.push('first_chat');
+                state.userProgress.credits += 10;
+                earnedCredits += 10;
+                showNotification('Challenge completed: First Conversation! +10 credits', 'success');
+            }
+            
+            // Code questions challenge
+            const codeChallenge = CHALLENGES.find(c => c.id === 'code_question');
+            if (codeChallenge && !state.userProgress.challenges.includes('code_question')) {
+                const progress = state.userProgress.stats.messagesSent;
+                if (progress >= 5) {
+                    state.userProgress.challenges.push('code_question');
+                    state.userProgress.credits += 25;
+                    earnedCredits += 25;
+                    showNotification('Challenge completed: Code Master! +25 credits', 'success');
+                }
+            }
+            
+            // Chat creator challenge
+            const chatChallenge = CHALLENGES.find(c => c.id === 'chat_creator');
+            if (chatChallenge && !state.userProgress.challenges.includes('chat_creator')) {
+                const progress = state.userProgress.stats.chatsCreated;
+                if (progress >= 3) {
+                    state.userProgress.challenges.push('chat_creator');
+                    state.userProgress.credits += 30;
+                    earnedCredits += 30;
+                    showNotification('Challenge completed: Chat Creator! +30 credits', 'success');
+                }
+            }
+            
+            if (earnedCredits > 0) {
+                updateProgressUI();
+                if (state.firestoreEnabled) {
+                    saveUserProgress();
+                } else {
+                    saveUserProgressToLocalStorage();
+                }
+            }
+        }
+
+        function displayChallenges() {
+            const container = document.getElementById('challengesContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            CHALLENGES.forEach(challenge => {
+                const completed = state.userProgress.challenges.includes(challenge.id);
+                const challengeEl = document.createElement('div');
+                challengeEl.className = 'challenge-item';
+                
+                challengeEl.innerHTML = `
+                    <div class="challenge-info">
+                        <div class="challenge-title">${challenge.title}</div>
+                        <div class="challenge-description">${challenge.description}</div>
+                        <div class="challenge-reward">Reward: ${challenge.reward} credits</div>
+                    </div>
+                    <div class="challenge-status ${completed ? 'completed' : 'pending'}">
+                        ${completed ? 'Completed' : 'In Progress'}
+                    </div>
+                `;
+                
+                container.appendChild(challengeEl);
+            });
         }
 
         // ==================== PAYMENT SYSTEM ====================
@@ -1155,6 +1327,21 @@
 
         function hidePaymentModal() {
             const modal = document.getElementById('paymentModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function showChallengesModal() {
+            displayChallenges();
+            const modal = document.getElementById('challengesModal');
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+
+        function hideChallengesModal() {
+            const modal = document.getElementById('challengesModal');
             if (modal) {
                 modal.style.display = 'none';
             }
@@ -1201,6 +1388,23 @@
             }
         }
 
+        function setupChallengesModal() {
+            const modal = document.getElementById('challengesModal');
+            const closeBtn = document.getElementById('closeChallengesModal');
+            
+            if (closeBtn) {
+                closeBtn.addEventListener('click', hideChallengesModal);
+            }
+            
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        hideChallengesModal();
+                    }
+                });
+            }
+        }
+
         async function processGooglePay(package) {
             try {
                 // Show loading state
@@ -1216,15 +1420,21 @@
                 // Add credits to user account
                 state.userProgress.credits += package.credits;
                 updateProgressUI();
-                await saveUserProgress();
                 
-                // Record transaction
-                await db.collection('purchases').add({
-                    userId: state.currentUser.uid,
-                    credits: package.credits,
-                    price: package.price,
-                    timestamp: new Date()
-                });
+                // Save to appropriate storage
+                if (state.firestoreEnabled) {
+                    await saveUserProgress();
+                    
+                    // Record transaction
+                    await db.collection('purchases').add({
+                        userId: state.currentUser.uid,
+                        credits: package.credits,
+                        price: package.price,
+                        timestamp: new Date()
+                    });
+                } else {
+                    saveUserProgressToLocalStorage();
+                }
                 
                 showNotification(`Success! ${package.credits} credits added to your account.`, 'success');
                 hidePaymentModal();
@@ -1249,7 +1459,7 @@
         // ==================== FIREBASE OPERATIONS ====================
         async function saveChatToFirestore(chat) {
             try {
-                if (!state.currentUser) return false;
+                if (!state.currentUser || !state.firestoreEnabled) return false;
                 
                 await db.collection('users')
                     .doc(state.currentUser.uid)
@@ -1264,6 +1474,10 @@
                 return true;
             } catch (error) {
                 console.error('Firestore save error:', error);
+                if (error.code === 'permission-denied') {
+                    state.firestoreEnabled = false;
+                    showNotification('Firestore permissions issue. Using local storage only.', 'error');
+                }
                 saveChatsToLocalStorage();
                 return false;
             }
@@ -1271,7 +1485,7 @@
 
         async function deleteChatFromFirestore(chatId) {
             try {
-                if (!state.currentUser) return false;
+                if (!state.currentUser || !state.firestoreEnabled) return false;
                 await db.collection('users')
                     .doc(state.currentUser.uid)
                     .collection('chats')
@@ -1280,13 +1494,16 @@
                 return true;
             } catch (error) {
                 console.error('Firestore delete error:', error);
+                if (error.code === 'permission-denied') {
+                    state.firestoreEnabled = false;
+                }
                 return false;
             }
         }
 
         async function loadChatsFromFirestore() {
             try {
-                if (!state.currentUser) return false;
+                if (!state.currentUser || !state.firestoreEnabled) return false;
                 
                 const snapshot = await db.collection('users')
                     .doc(state.currentUser.uid)
@@ -1313,19 +1530,52 @@
                 return true;
             } catch (error) {
                 console.error('Firestore load error:', error);
+                if (error.code === 'permission-denied') {
+                    state.firestoreEnabled = false;
+                    showNotification('Firestore permissions issue. Using local storage.', 'error');
+                }
                 return false;
             }
         }
 
         async function saveUserProgress() {
             try {
-                if (!state.currentUser) return;
+                if (!state.currentUser || !state.firestoreEnabled) return;
                 await db.collection('users').doc(state.currentUser.uid).set({
                     progress: state.userProgress,
                     lastActive: new Date()
                 }, { merge: true });
             } catch (error) {
                 console.error('Error saving user progress:', error);
+                if (error.code === 'permission-denied') {
+                    state.firestoreEnabled = false;
+                }
+                // Fallback to localStorage
+                saveUserProgressToLocalStorage();
+            }
+        }
+
+        function saveUserProgressToLocalStorage() {
+            try {
+                if (!state.currentUser) return;
+                localStorage.setItem(`helaProgress_${state.currentUser.uid}`, JSON.stringify(state.userProgress));
+            } catch (error) {
+                console.error('Local storage save error:', error);
+            }
+        }
+
+        function loadUserProgressFromLocalStorage() {
+            try {
+                if (!state.currentUser) return false;
+                const saved = localStorage.getItem(`helaProgress_${state.currentUser.uid}`);
+                if (saved) {
+                    state.userProgress = JSON.parse(saved);
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Local storage load error:', error);
+                return false;
             }
         }
 
@@ -1371,6 +1621,10 @@
                 state.chats.unshift(newChat);
                 state.currentChatId = newChat.id;
                 
+                // Update stats
+                state.userProgress.stats.chatsCreated++;
+                
+                // Try to save to Firestore, fallback to localStorage
                 await saveChatToFirestore(newChat);
                 saveChatsToLocalStorage();
                 
@@ -1379,6 +1633,9 @@
                 
                 updateChatHistorySidebar();
                 updateURL(newChat.id);
+                
+                // Check challenges
+                checkChallenges();
                 
                 return newChat.id;
             } catch (error) {
@@ -1672,9 +1929,13 @@
 
         async function loadUserProgress(userId) {
             try {
-                const userDoc = await db.collection('users').doc(userId).get();
-                if (userDoc.exists && userDoc.data().progress) {
-                    state.userProgress = { ...state.userProgress, ...userDoc.data().progress };
+                if (state.firestoreEnabled) {
+                    const userDoc = await db.collection('users').doc(userId).get();
+                    if (userDoc.exists && userDoc.data().progress) {
+                        state.userProgress = { ...state.userProgress, ...userDoc.data().progress };
+                    }
+                } else {
+                    loadUserProgressFromLocalStorage();
                 }
                 
                 // Check if monthly credits need to be reset
@@ -1683,6 +1944,9 @@
                 updateProgressUI();
             } catch (error) {
                 console.error('Error loading user progress:', error);
+                // Fallback to localStorage
+                loadUserProgressFromLocalStorage();
+                updateProgressUI();
             }
         }
 
@@ -1695,7 +1959,11 @@
                 if (!lastActive || (now.getMonth() !== lastActive.getMonth() || now.getFullYear() !== lastActive.getFullYear())) {
                     state.userProgress.credits = 50; // Reset to 50 free credits
                     state.userProgress.monthlyCreditsClaimed = false;
-                    await saveUserProgress();
+                    if (state.firestoreEnabled) {
+                        await saveUserProgress();
+                    } else {
+                        saveUserProgressToLocalStorage();
+                    }
                     showNotification('Your monthly 50 free credits have been added!', 'success');
                 }
             } catch (error) {
@@ -1730,16 +1998,22 @@
                 if (!state.currentUser) return;
                 
                 // Delete all user chats from Firestore
-                const chatsSnapshot = await db.collection('users')
-                    .doc(state.currentUser.uid)
-                    .collection('chats')
-                    .get();
+                if (state.firestoreEnabled) {
+                    const chatsSnapshot = await db.collection('users')
+                        .doc(state.currentUser.uid)
+                        .collection('chats')
+                        .get();
+                    
+                    const deletePromises = chatsSnapshot.docs.map(doc => doc.ref.delete());
+                    await Promise.all(deletePromises);
+                    
+                    // Delete user progress
+                    await db.collection('users').doc(state.currentUser.uid).delete();
+                }
                 
-                const deletePromises = chatsSnapshot.docs.map(doc => doc.ref.delete());
-                await Promise.all(deletePromises);
-                
-                // Delete user progress
-                await db.collection('users').doc(state.currentUser.uid).delete();
+                // Delete local storage data
+                localStorage.removeItem(`helaChats_${state.currentUser.uid}`);
+                localStorage.removeItem(`helaProgress_${state.currentUser.uid}`);
                 
                 // Delete user authentication
                 await state.currentUser.delete();
@@ -1828,9 +2102,7 @@
                     creditsDisplay: document.getElementById('creditsDisplay'),
                     creditBar: document.getElementById('creditBar'),
                     buyCreditsBtn: document.getElementById('buyCreditsBtn'),
-                    settingsMenu: document.getElementById('settingsMenu'),
-                    settingsBtn: document.getElementById('settingsBtn'),
-                    deleteAccountBtn: document.getElementById('deleteAccountBtn')
+                    challengesBtn: document.getElementById('challengesBtn')
                 };
                 return true;
             } catch (error) {
@@ -1858,14 +2130,8 @@
                 elements.buyCreditsBtn.addEventListener('click', showPaymentModal);
             }
 
-            if (elements.settingsBtn) {
-                elements.settingsBtn.addEventListener('click', () => {
-                    elements.settingsMenu.classList.toggle('open');
-                });
-            }
-
-            if (elements.deleteAccountBtn) {
-                elements.deleteAccountBtn.addEventListener('click', deleteUserAccount);
+            if (elements.challengesBtn) {
+                elements.challengesBtn.addEventListener('click', showChallengesModal);
             }
 
             // Example prompt buttons
@@ -1893,13 +2159,6 @@
                     auth.signOut().then(() => window.location.href = 'index.html');
                 });
             }
-
-            // Close settings dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.settings-menu')) {
-                    elements.settingsMenu.classList.remove('open');
-                }
-            });
 
             // Event delegation for dynamic buttons
             document.addEventListener('click', function(e) {
@@ -1964,6 +2223,7 @@
                 
                 setupEventListeners();
                 setupPaymentModal();
+                setupChallengesModal();
                 await initializeApp();
                 
                 showNotification('Hela Code loaded successfully! You have 50 free credits to start.');
