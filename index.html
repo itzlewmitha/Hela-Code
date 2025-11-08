@@ -3,32 +3,1280 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Server Down</title>
+  <title>Hela Code — Sri Lankan AI Coding Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
-    body {
-      background-color: #5b2cff; /* deep purple */
-      color: white;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --primary: #8B5FBF;
+      --primary-light: #9D76C1;
+      --primary-dark: #6D3F9F;
+      --text: #FFFFFF;
+      --text-light: #B0B0B0;
+      --background: #121212;
+      --card-bg: #1E1E1E;
+      --card-hover: #252525;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      --transition: all 0.3s ease;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    
+    /* Header */
+    header {
+      padding: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--primary);
+    }
+    
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    
+    .credit-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card-bg);
+      padding: 8px 16px;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      font-weight: 500;
+    }
+    
+    .credit-bar.low {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: var(--shadow); }
+      50% { box-shadow: 0 0 0 3px rgba(139, 95, 191, 0.4); }
+      100% { box-shadow: var(--shadow); }
+    }
+    
+    /* Auth Modal */
+    .auth-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+    
+    .auth-modal.active {
+      display: flex;
+    }
+    
+    .auth-container {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    
+    .auth-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+    
+    .auth-title {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: var(--primary);
       text-align: center;
     }
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
+    
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
     }
-    p {
+    
+    .auth-input {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 14px 16px;
+      color: var(--text);
+      font-size: 1rem;
+      transition: var(--transition);
+      font-family: inherit;
+    }
+    
+    .auth-input:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 10px rgba(139, 95, 191, 0.4);
+    }
+    
+    .auth-input::placeholder {
+      color: var(--text-light);
+    }
+    
+    .auth-btn {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+      font-size: 1rem;
+    }
+    
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(139, 95, 191, 0.4);
+    }
+    
+    .google-btn {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .google-btn:hover {
+      background: var(--card-hover);
+    }
+    
+    .auth-switch {
+      text-align: center;
+      margin-top: 20px;
+      color: var(--text-light);
+      font-size: 0.9rem;
+    }
+    
+    .auth-link {
+      color: var(--primary);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    
+    .auth-link:hover {
+      text-decoration: underline;
+    }
+    
+    .error-message {
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid #ff6b6b;
+      border-radius: 8px;
+      padding: 12px;
+      color: #ff6b6b;
+      font-size: 0.9rem;
+      display: none;
+      text-align: left;
+      line-height: 1.4;
+    }
+    
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 80px 0 60px;
+    }
+    
+    .logo-animated {
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--primary);
+      position: relative;
+      display: inline-block;
+    }
+    
+    .logo-animated::after {
+      content: '';
+      position: absolute;
+      right: -15px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 50px;
+      background-color: var(--primary);
+      animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    
+    .tagline {
+      font-size: 1.4rem;
+      color: var(--text-light);
+      margin-bottom: 40px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .cta-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-bottom: 80px;
+    }
+    
+    .btn {
+      padding: 14px 32px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      box-shadow: 0 4px 15px rgba(139, 95, 191, 0.3);
+    }
+    
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+    
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(139, 95, 191, 0.4);
+    }
+    
+    .btn-primary:hover::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.5);
+      opacity: 0;
+      border-radius: 100%;
+      transform: scale(1, 1) translate(-50%);
+      transform-origin: 50% 50%;
+    }
+    
+    .btn-primary:hover::after {
+      animation: ripple 1s ease-out;
+    }
+    
+    @keyframes ripple {
+      0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(20, 20);
+        opacity: 0;
+      }
+    }
+    
+    /* Info Tiles */
+    .info-section {
+      padding: 60px 0 100px;
+    }
+    
+    .info-tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+    }
+    
+    .tile {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+      cursor: pointer;
+      text-align: center;
+    }
+    
+    .tile:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      background: var(--card-hover);
+    }
+    
+    .tile-icon {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      color: var(--primary);
+    }
+    
+    .tile-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: var(--text);
+    }
+    
+    .tile-description {
+      color: var(--text-light);
+      font-size: 1rem;
+    }
+    
+    /* Footer */
+    footer {
+      background: var(--card-bg);
+      padding: 30px 0;
+      border-top: 1px solid rgba(139, 95, 191, 0.2);
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+    }
+    
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .footer-links {
+      display: flex;
+      gap: 25px;
+    }
+    
+    .footer-link {
+      color: var(--text-light);
+      text-decoration: none;
+      transition: var(--transition);
+      font-size: 0.9rem;
+    }
+    
+    .footer-link:hover {
+      color: var(--primary);
+    }
+    
+    .version {
+      color: var(--text-light);
+      font-size: 0.9rem;
+    }
+    
+    /* Background Animation */
+    .background-animation {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .floating-element {
+      position: absolute;
+      opacity: 0.03;
+      font-size: 24px;
+      color: var(--primary);
+      animation: float 15s infinite linear;
+    }
+    
+    @keyframes float {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.03;
+      }
+      90% {
+        opacity: 0.03;
+      }
+      100% {
+        transform: translateY(-100px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+    
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+    
+    .modal.active {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
       font-size: 1.2rem;
-      opacity: 0.9;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+    
+    .modal-title {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: var(--primary);
+    }
+    
+    .modal-text {
+      color: var(--text-light);
+      line-height: 1.6;
+    }
+    
+    .policy-section {
+      margin-bottom: 25px;
+    }
+    
+    .policy-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .policy-content {
+      padding-left: 10px;
+      border-left: 2px solid var(--primary-light);
+      margin-left: 5px;
+    }
+    
+    .policy-list {
+      list-style-type: none;
+      margin: 10px 0;
+    }
+    
+    .policy-list li {
+      margin-bottom: 8px;
+      padding-left: 20px;
+      position: relative;
+    }
+    
+    .policy-list li:before {
+      content: "•";
+      color: var(--primary);
+      position: absolute;
+      left: 0;
+    }
+    
+    .warning-text {
+      color: #ff6b6b;
+      font-weight: 500;
+    }
+    
+    .success-text {
+      color: #4CAF50;
+      font-weight: 500;
+    }
+    
+    .contact-info {
+      background: rgba(139, 95, 191, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .logo-animated {
+        font-size: 2.5rem;
+      }
+      
+      .tagline {
+        font-size: 1.2rem;
+      }
+      
+      .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .btn {
+        width: 200px;
+      }
+      
+      .footer-content {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+      }
+      
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .hero {
+        padding: 60px 0 40px;
+      }
+      
+      .modal-content {
+        max-height: 85vh;
+        padding: 20px;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Server Temporarily Down</h1>
-  <p>Our team is meeting and fixing things up. Please check back soon.</p>
+  <!-- Background Animation -->
+  <div class="background-animation" id="backgroundAnimation"></div>
+  
+  <!-- Auth Modal -->
+  <div class="auth-modal" id="authModal">
+    <div class="auth-container">
+      <button class="auth-close" id="authClose">&times;</button>
+      <h2 class="auth-title" id="authTitle">Sign In</h2>
+      
+      <div class="error-message" id="authError"></div>
+      
+      <div class="auth-form">
+        <input type="text" id="nameField" placeholder="Full Name" class="auth-input" style="display:none;">
+        <input type="email" id="authEmail" placeholder="Email Address" class="auth-input">
+        <input type="password" id="authPassword" placeholder="Password" class="auth-input">
+        <button class="auth-btn" id="authBtn">Sign In</button>
+        <button class="auth-btn google-btn" id="googleBtn">
+          <i class="fab fa-google"></i> Continue with Google
+        </button>
+      </div>
+      
+      <div class="auth-switch">
+        <span id="authSwitchText">Don't have an account?</span>
+        <a class="auth-link" id="authSwitchLink">Create one</a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Header -->
+  <header class="container">
+    <div class="logo">
+      <div class="logo-icon">
+        <i class="fas fa-code"></i>
+      </div>
+      <span>Hela Code</span>
+    </div>
+    <div class="credit-bar" id="creditBar">
+      <i class="fas fa-gem"></i>
+      <span>Credits: <span id="creditCount">250</span></span>
+    </div>
+  </header>
+  
+  <!-- Hero Section -->
+  <section class="hero container">
+    <h1 class="logo-animated" id="animatedLogo">Hela Code</h1>
+    <p class="tagline">Sri Lanka's #1 AI Coding Assistant — Where your ideas talk back.</p>
+    <div class="cta-buttons">
+      <button class="btn btn-primary" id="launchBtn">Launch Assistant</button>
+      <button class="btn btn-secondary" id="reloadBtn">Reload Credits</button>
+    </div>
+  </section>
+  
+  <!-- Info Tiles -->
+  <section class="info-section container">
+    <div class="info-tiles">
+      <div class="tile" data-modal="what-is-hela">
+        <div class="tile-icon">💬</div>
+        <h3 class="tile-title">What is Hela Code?</h3>
+        <p class="tile-description">Your AI partner for code, logic, and learning.</p>
+      </div>
+      <div class="tile" data-modal="how-credits-work">
+        <div class="tile-icon">⚡</div>
+        <h3 class="tile-title">How Credits Work</h3>
+        <p class="tile-description">Each message uses small credit units. Reload anytime.</p>
+      </div>
+      <div class="tile" data-modal="privacy-safety">
+        <div class="tile-icon">🔒</div>
+        <h3 class="tile-title">Privacy & Safety</h3>
+        <p class="tile-description">Your code stays yours. We never store personal data.</p>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-content">
+      <div class="footer-links">
+        <a href="#" class="footer-link" data-modal="privacy-policy">Privacy Policy</a>
+        <a href="#" class="footer-link" data-modal="terms-conditions">Terms & Conditions</a>
+        <a href="#" class="footer-link" data-modal="contact-support">Contact / Support</a>
+      </div>
+      <div class="version">v1.4 – Beta</div>
+    </div>
+  </footer>
+  
+  <!-- Modals -->
+  <div class="modal" id="what-is-hela-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">What is Hela Code?</h3>
+      <p class="modal-text">Hela Code is Sri Lanka's premier AI coding assistant designed to help developers of all skill levels. Whether you're debugging, learning new concepts, or building complex applications, Hela Code provides intelligent suggestions and explanations to accelerate your coding journey.</p>
+    </div>
+  </div>
+  
+  <div class="modal" id="how-credits-work-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">How Credits Work</h3>
+      <p class="modal-text">Credits are used to interact with Hela Code's AI assistant. Each message you send consumes a small number of credits based on complexity. You can reload credits anytime through secure payment options. Unused credits never expire.</p>
+    </div>
+  </div>
+  
+  <div class="modal" id="privacy-safety-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">Privacy & Safety</h3>
+      <p class="modal-text">We take your privacy seriously. Your code and conversations are encrypted and never stored on our servers after your session ends. We don't share your data with third parties. Your intellectual property remains yours alone.</p>
+    </div>
+  </div>
+  
+  <div class="modal" id="privacy-policy-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">🔐 Privacy Policy</h3>
+      <div class="modal-text">
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-info-circle"></i>
+            <span>1. Information We Collect</span>
+          </div>
+          <div class="policy-content">
+            <p>We collect only minimal technical data needed to keep the app running:</p>
+            <ul class="policy-list">
+              <li>Anonymous usage stats (page loads, clicks)</li>
+              <li>Optional account info (email / username / credit balance)</li>
+              <li>Payment details handled only by your chosen provider (PayPal / Stripe / PayHere etc.)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-ban"></i>
+            <span>2. What We Don't Collect</span>
+          </div>
+          <div class="policy-content">
+            <p class="warning-text">We respect your privacy completely:</p>
+            <ul class="policy-list">
+              <li>We don't read, store, or log your chat messages</li>
+              <li>We don't track your personal files, camera, or microphone</li>
+              <li>We don't sell or share data to advertisers</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-cogs"></i>
+            <span>3. Data Processing</span>
+          </div>
+          <div class="policy-content">
+            <p>When you send a message, it's sent securely to Apilage AI's servers for processing.</p>
+            <p class="success-text">Responses come back to Hela Code — that's it.</p>
+            <p>All communication uses <strong>HTTPS encryption</strong> 🔒</p>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-credit-card"></i>
+            <span>4. Payments & Credits</span>
+          </div>
+          <div class="policy-content">
+            <p>Payments and reloads are processed by trusted third-party gateways.</p>
+            <p class="warning-text">Hela Code never stores your card or wallet details.</p>
+            <p>Credit top-ups are linked to your user account only.</p>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-clock"></i>
+            <span>5. Data Retention</span>
+          </div>
+          <div class="policy-content">
+            <p>Minimal logs (error reports or analytics) are kept for system security and are automatically deleted after <strong>30 days</strong>.</p>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-shield-alt"></i>
+            <span>6. Security</span>
+          </div>
+          <div class="policy-content">
+            <p>We use modern encryption, authentication tokens, and firewall protection.</p>
+            <p class="warning-text">Still, no system is 100% secure — so avoid sharing sensitive or personal code.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal" id="terms-conditions-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">📜 Terms & Conditions</h3>
+      <div class="modal-text">
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-check-circle"></i>
+            <span>1. Acceptance of Terms</span>
+          </div>
+          <div class="policy-content">
+            <p>By using Hela Code, you agree to these terms. If you disagree, please stop using the service.</p>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-balance-scale"></i>
+            <span>2. Fair Use</span>
+          </div>
+          <div class="policy-content">
+            <p>Use Hela Code ethically:</p>
+            <ul class="policy-list">
+              <li>Don't upload illegal, harmful, or plagiarized material</li>
+              <li>Don't exploit the AI for harassment or misinformation</li>
+              <li class="success-text">Keep it positive, creative, and educational 🌱</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-gem"></i>
+            <span>3. Credits & Reload System</span>
+          </div>
+          <div class="policy-content">
+            <p>Credits represent usage points inside the Hela Code platform.</p>
+            <p class="warning-text">Once purchased or used, credits are non-refundable 💎</p>
+            <p>Low balance may restrict AI access until you reload.</p>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-copyright"></i>
+            <span>4. Intellectual Property</span>
+          </div>
+          <div class="policy-content">
+            <ul class="policy-list">
+              <li>Hela Code's interface, design, and assets belong to <strong>PIX Studios Holdings PVT LTD</strong></li>
+              <li>AI responses belong to the respective model provider (Apilage AI)</li>
+              <li class="success-text">You're free to use generated code or text at your own discretion</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>5. Disclaimer</span>
+          </div>
+          <div class="policy-content">
+            <p>Hela Code is built for learning and fun only.</p>
+            <p class="warning-text">We make no guarantees of accuracy, reliability, or completeness.</p>
+            <p>Use at your own risk — especially for production or commercial projects ⚠️</p>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-gavel"></i>
+            <span>6. Limitation of Liability</span>
+          </div>
+          <div class="policy-content">
+            <p>PIX Studios Holdings PVT LTD and its developers are not responsible for:</p>
+            <ul class="policy-list">
+              <li>Any data loss, bugs, or downtime</li>
+              <li>Damages from using, misusing, or depending on AI output</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-sync-alt"></i>
+            <span>7. Updates to Policy</span>
+          </div>
+          <div class="policy-content">
+            <p>We may update these terms as the project grows.</p>
+            <p class="success-text">The latest version will always be available here 📅</p>
+          </div>
+        </div>
+
+        <div class="contact-info">
+          <div class="policy-title">
+            <i class="fas fa-comments"></i>
+            <span>Contact Us</span>
+          </div>
+          <div class="policy-content">
+            <p>Questions or feedback?</p>
+            <ul class="policy-list">
+              <li>📧 Email: support@hela-code.lk</li>
+              <li>🌐 Website: https://hela-code.lk</li>
+            </ul>
+            <p class="success-text">In short: We don't peek at your chats 👀 | We use Apilage AI to power the brains ⚙️ | We built this for creativity, curiosity, and a bit of fun 🎨</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal" id="contact-support-modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 class="modal-title">Contact / Support</h3>
+      <div class="modal-text">
+        <p>Need help? Our support team is available to assist you with any questions or issues.</p>
+        
+        <div class="contact-info">
+          <div class="policy-title">
+            <i class="fas fa-envelope"></i>
+            <span>Email Support</span>
+          </div>
+          <div class="policy-content">
+            <p>Contact us via email at: <strong>support@helacode.com</strong></p>
+            <p>We typically respond within <strong>24 hours</strong>.</p>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-globe"></i>
+            <span>Help Center</span>
+          </div>
+          <div class="policy-content">
+            <p>Visit our help center for FAQs and documentation:</p>
+            <p><strong>https://hela-code.lk/support</strong></p>
+          </div>
+        </div>
+
+        <div class="policy-section">
+          <div class="policy-title">
+            <i class="fas fa-clock"></i>
+            <span>Response Times</span>
+          </div>
+          <div class="policy-content">
+            <ul class="policy-list">
+              <li>General Inquiries: <strong>24 hours</strong></li>
+              <li>Technical Issues: <strong>12 hours</strong></li>
+              <li>Billing Questions: <strong>6 hours</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAkZ1COLT59ukLGzpv5lW3UZ8vQ9tEN1gw",
+      authDomain: "hela-code.firebaseapp.com",
+      projectId: "hela-code",
+      storageBucket: "hela-code.appspot.com",
+      messagingSenderId: "813299203715",
+      appId: "1:813299203715:web:910e7227cdd4a09ad1a5b6"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Global State
+    let state = {
+      currentUser: null,
+      isSignUp: false
+    };
+
+    // DOM Elements
+    const elements = {
+      authModal: document.getElementById('authModal'),
+      authClose: document.getElementById('authClose'),
+      authTitle: document.getElementById('authTitle'),
+      authError: document.getElementById('authError'),
+      nameField: document.getElementById('nameField'),
+      authEmail: document.getElementById('authEmail'),
+      authPassword: document.getElementById('authPassword'),
+      authBtn: document.getElementById('authBtn'),
+      googleBtn: document.getElementById('googleBtn'),
+      authSwitchText: document.getElementById('authSwitchText'),
+      authSwitchLink: document.getElementById('authSwitchLink'),
+      launchBtn: document.getElementById('launchBtn'),
+      reloadBtn: document.getElementById('reloadBtn'),
+      creditBar: document.getElementById('creditBar'),
+      creditCount: document.getElementById('creditCount'),
+      animatedLogo: document.getElementById('animatedLogo')
+    };
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Animate logo typing effect
+      const logoElement = document.getElementById('animatedLogo');
+      const logoText = logoElement.textContent;
+      logoElement.textContent = '';
+      
+      let i = 0;
+      function typeLogo() {
+        if (i < logoText.length) {
+          logoElement.textContent += logoText.charAt(i);
+          i++;
+          setTimeout(typeLogo, 150);
+        }
+      }
+      
+      setTimeout(typeLogo, 500);
+      
+      // Create background animation
+      const backgroundAnimation = document.getElementById('backgroundAnimation');
+      const sinhalaChars = 'අආඇඈඉඊඋඌඍඎඏඐඑඒඓඔඕඖකඛගඝඞඟචඡජඣඤඥඦටඨඩඪණඬතථදධනඳපඵබභමඹයරලවශෂසහළෆ';
+      
+      for (let i = 0; i < 20; i++) {
+        const element = document.createElement('div');
+        element.className = 'floating-element';
+        element.textContent = sinhalaChars[Math.floor(Math.random() * sinhalaChars.length)];
+        element.style.left = Math.random() * 100 + 'vw';
+        element.style.animationDelay = Math.random() * 15 + 's';
+        element.style.fontSize = (Math.random() * 20 + 16) + 'px';
+        backgroundAnimation.appendChild(element);
+      }
+      
+      // Update credit display
+      function updateCreditDisplay() {
+        const creditCount = document.getElementById('creditCount');
+        const creditBar = document.getElementById('creditBar');
+        const credits = parseInt(creditCount.textContent);
+        
+        if (credits < 100) {
+          creditBar.classList.add('low');
+        } else {
+          creditBar.classList.remove('low');
+        }
+      }
+      
+      // Modal functionality - FIXED: Added proper event listeners for all modals
+      const modals = document.querySelectorAll('.modal');
+      const modalTriggers = document.querySelectorAll('[data-modal]');
+      const closeButtons = document.querySelectorAll('.modal-close');
+      
+      // Fix for privacy button and all modal triggers
+      modalTriggers.forEach(trigger => {
+        trigger.addEventListener('click', function(e) {
+          e.preventDefault();
+          const modalId = this.getAttribute('data-modal') + '-modal';
+          const modal = document.getElementById(modalId);
+          if (modal) {
+            modal.classList.add('active');
+          }
+        });
+      });
+      
+      closeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const modal = this.closest('.modal');
+          if (modal) {
+            modal.classList.remove('active');
+          }
+        });
+      });
+      
+      // Close modal when clicking outside content
+      modals.forEach(modal => {
+        modal.addEventListener('click', function(e) {
+          if (e.target === this) {
+            this.classList.remove('active');
+          }
+        });
+      });
+      
+      // Auth functionality
+      elements.authSwitchLink.addEventListener('click', toggleAuthMode);
+      elements.authClose.addEventListener('click', closeAuthModal);
+      elements.authBtn.addEventListener('click', handleAuth);
+      elements.googleBtn.addEventListener('click', handleGoogleAuth);
+      
+      // Button functionality
+      elements.launchBtn.addEventListener('click', function() {
+        if (state.currentUser) {
+          // Redirect to access.html if logged in
+          window.location.href = 'access.html';
+        } else {
+          // Show auth modal if not logged in
+          openAuthModal();
+        }
+      });
+      
+      elements.reloadBtn.addEventListener('click', function() {
+        const creditCount = document.getElementById('creditCount');
+        let credits = parseInt(creditCount.textContent);
+        credits += 100;
+        creditCount.textContent = credits;
+        updateCreditDisplay();
+        
+        // In a real implementation, this would open a payment interface
+        alert('Redirecting to credit purchase...');
+      });
+      
+      // Initialize credit display
+      updateCreditDisplay();
+      
+      // Check if user is already logged in
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          state.currentUser = user;
+          console.log('User logged in:', user.email);
+          
+          // Check if user has existing chats
+          checkUserChats(user.uid);
+        } else {
+          state.currentUser = null;
+        }
+      });
+    });
+
+    // Auth Functions
+    function toggleAuthMode() {
+      state.isSignUp = !state.isSignUp;
+      elements.authTitle.textContent = state.isSignUp ? 'Create Account' : 'Sign In';
+      elements.authBtn.textContent = state.isSignUp ? 'Sign Up' : 'Sign In';
+      elements.authSwitchText.textContent = state.isSignUp ? 'Already have an account?' : 'Don\'t have an account?';
+      elements.authSwitchLink.textContent = state.isSignUp ? 'Sign In' : 'Create one';
+      elements.nameField.style.display = state.isSignUp ? 'block' : 'none';
+      hideAuthError();
+    }
+
+    function openAuthModal() {
+      elements.authModal.classList.add('active');
+    }
+
+    function closeAuthModal() {
+      elements.authModal.classList.remove('active');
+      hideAuthError();
+    }
+
+    function showAuthError(message) {
+      elements.authError.textContent = message;
+      elements.authError.style.display = 'block';
+    }
+
+    function hideAuthError() {
+      elements.authError.style.display = 'none';
+    }
+
+    async function handleAuth() {
+      const email = elements.authEmail.value.trim();
+      const password = elements.authPassword.value;
+      const name = elements.nameField.value.trim();
+
+      if (!email || !password) {
+        showAuthError('Please fill in all fields');
+        return;
+      }
+
+      if (state.isSignUp && !name) {
+        showAuthError('Please enter your full name');
+        return;
+      }
+
+      if (state.isSignUp && password.length < 6) {
+        showAuthError('Password must be at least 6 characters');
+        return;
+      }
+
+      elements.authBtn.disabled = true;
+      elements.authBtn.textContent = 'Processing...';
+
+      try {
+        if (state.isSignUp) {
+          // Create new account
+          const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+          
+          // Update profile with display name
+          await userCredential.user.updateProfile({
+            displayName: name
+          });
+          
+          // Create user document in Firestore
+          await db.collection('users').doc(userCredential.user.uid).set({
+            name: name,
+            email: email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            credits: 100 // Initial credits
+          });
+          
+          handleAuthSuccess(userCredential.user);
+        } else {
+          // Sign in
+          const userCredential = await auth.signInWithEmailAndPassword(email, password);
+          handleAuthSuccess(userCredential.user);
+        }
+      } catch (error) {
+        showAuthError(error.message.replace('Firebase:', '').trim());
+        elements.authBtn.disabled = false;
+        elements.authBtn.textContent = state.isSignUp ? 'Sign Up' : 'Sign In';
+      }
+    }
+
+    async function handleGoogleAuth() {
+      elements.googleBtn.disabled = true;
+      elements.googleBtn.innerHTML = '<i class="fab fa-google"></i> Connecting...';
+
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const userCredential = await auth.signInWithPopup(provider);
+        
+        // Check if this is a new user
+        if (userCredential.additionalUserInfo.isNewUser) {
+          // Create user document in Firestore for new Google users
+          await db.collection('users').doc(userCredential.user.uid).set({
+            name: userCredential.user.displayName,
+            email: userCredential.user.email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            credits: 100 // Initial credits
+          });
+        }
+        
+        handleAuthSuccess(userCredential.user);
+      } catch (error) {
+        showAuthError(error.message.replace('Firebase:', '').trim());
+        elements.googleBtn.disabled = false;
+        elements.googleBtn.innerHTML = '<i class="fab fa-google"></i> Continue with Google';
+      }
+    }
+
+    function handleAuthSuccess(user) {
+      console.log('Auth success:', user.email);
+      closeAuthModal();
+      state.currentUser = user;
+      
+      // Update credits from Firestore
+      updateCreditsFromFirestore(user.uid);
+    }
+
+    async function updateCreditsFromFirestore(uid) {
+      try {
+        const userDoc = await db.collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          if (userData.credits !== undefined) {
+            elements.creditCount.textContent = userData.credits;
+            updateCreditDisplay();
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user credits:', error);
+      }
+    }
+
+    async function checkUserChats(uid) {
+      try {
+        const chatsSnapshot = await db.collection('users')
+          .doc(uid)
+          .collection('chats')
+          .orderBy('updatedAt', 'desc')
+          .limit(1)
+          .get();
+
+        // If user has existing chats, redirect to chat.html
+        if (!chatsSnapshot.empty) {
+          console.log('User has existing chats, redirecting to chat.html');
+          window.location.href = 'https://helacode.vercel.app/chat.html';
+        }
+      } catch (error) {
+        console.error('Error checking user chats:', error);
+      }
+    }
+  </script>
 </body>
 </html>
+
