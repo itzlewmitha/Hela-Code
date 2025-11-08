@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hela Code — AI Coding Assistant</title>
+    <title>Hela Code — Playground</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -1764,6 +1764,12 @@
                     return;
                 }
                 
+                // Check if we have a current chat, if not create one
+                if (!state.currentChatId || state.chats.length === 0) {
+                    const newChatId = await createNewChat();
+                    if (!newChatId) return; // Failed to create chat
+                }
+                
                 if (!await useCredits(CREDIT_COSTS.CHAT_MESSAGE, 'chat_message')) return;
                 
                 if (elements.sendBtn) {
@@ -1774,10 +1780,6 @@
                 if (elements.chatInput) {
                     elements.chatInput.value = '';
                     autoResizeTextarea();
-                }
-                
-                if (!state.currentChatId || state.chats.length === 0) {
-                    await createNewChat();
                 }
                 
                 if (elements.welcomeScreen) elements.welcomeScreen.style.display = 'none';
