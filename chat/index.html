@@ -2020,7 +2020,7 @@
                 
                 showNotification('Account deleted successfully', 'success');
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = 'https://helacode.vercel.app/index.html';
                 }, 2000);
                 
             } catch (error) {
@@ -2156,7 +2156,7 @@
 
             if (elements.logoutBtn) {
                 elements.logoutBtn.addEventListener('click', () => {
-                    auth.signOut().then(() => window.location.href = 'index.html');
+                    auth.signOut().then(() => window.location.href = 'https://helacode.vercel.app/index.html');
                 });
             }
 
@@ -2206,7 +2206,7 @@
                             state.isInitialized = true;
                             resolve(user);
                         } else {
-                            window.location.href = 'index.html';
+                            window.location.href = 'https://helacode.vercel.app/index.html';
                         }
                     } catch (error) {
                         reject(error);
@@ -2249,3 +2249,4 @@
     </script>
 </body>
 </html>
+
