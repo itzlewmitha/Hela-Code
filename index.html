@@ -746,7 +746,70 @@
       border-radius: 8px;
       margin-top: 20px;
     }
-    
+    /* Navigation Links */
+.nav-links {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+}
+
+.nav-link {
+  color: var(--text-light);
+  text-decoration: none;
+  transition: var(--transition);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.nav-link:hover, .nav-link.active {
+  color: var(--primary);
+}
+
+/* Mobile menu button (for responsive design) */
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+/* Responsive styles for navigation */
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 80px;
+    left: 0;
+    width: 100%;
+    background: var(--card-bg);
+    flex-direction: column;
+    padding: 20px;
+    gap: 15px;
+    box-shadow: var(--shadow);
+    z-index: 99;
+  }
+  
+  .nav-links.active {
+    display: flex;
+  }
+  
+  .mobile-menu-btn {
+    display: block;
+  }
+  
+  .nav-link {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    text-align: center;
+  }
+  
+  .nav-link:last-child {
+    border-bottom: none;
+  }
+}
     /* Responsive */
     @media (max-width: 768px) {
       .logo-animated {
@@ -845,19 +908,29 @@
   </div>
   
   <!-- Header -->
-  <header class="container">
-    <div class="logo">
-      <div class="logo-icon">
-        <i class="fas fa-code"></i>
-      </div>
-      <span>Hela Code</span>
+<header class="container">
+  <div class="logo">
+    <div class="logo-icon">
+      <i class="fas fa-code"></i>
     </div>
-    <div class="status-indicator">
-      <div class="status-dot"></div>
-      <span>Hela Code Is Online</span>
-    </div>
-  </header>
+    <span>Hela Code</span>
+  </div>
   
+  <!-- Navigation Links -->
+  <div class="nav-links">
+    <button class="mobile-menu-btn" id="mobileMenuBtn">
+  <i class="fas fa-bars"></i>
+</button>
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="/chat.html" class="nav-link">Chat</a>
+    <a href="/help" class="nav-link">Help Center</a>
+  </div>
+  
+  <div class="status-indicator">
+    <div class="status-dot"></div>
+    <span>Hela Code Is Online</span>
+  </div>
+</header>
   <!-- Hero Section -->
   <section class="hero container">
     <h1 class="logo-animated" id="animatedLogo">Hela Code</h1>
@@ -1525,7 +1598,36 @@
         console.error('Error checking user chats:', error);
       }
     }
+    // Mobile menu functionality
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const navLinks = document.querySelector('.nav-links');
+
+if (mobileMenuBtn && navLinks) {
+  mobileMenuBtn.addEventListener('click', function() {
+    navLinks.classList.toggle('active');
+    
+    // Change icon based on menu state
+    const icon = this.querySelector('i');
+    if (navLinks.classList.contains('active')) {
+      icon.classList.remove('fa-bars');
+      icon.classList.add('fa-times');
+    } else {
+      icon.classList.remove('fa-times');
+      icon.classList.add('fa-bars');
+    }
+  });
+  
+  // Close mobile menu when clicking on a link
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', function() {
+      navLinks.classList.remove('active');
+      mobileMenuBtn.querySelector('i').classList.remove('fa-times');
+      mobileMenuBtn.querySelector('i').classList.add('fa-bars');
+    });
+  });
+}
   </script>
 </body>
 </html>
+
 
