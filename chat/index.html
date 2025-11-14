@@ -1872,7 +1872,7 @@
 const API_CONFIG = {
     URL: 'https://endpoint.apilageai.lk/api/chat',
     KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
-    MODEL: 'SUPER'
+    MODEL: 'FREE'
 };
 
 async function callAI(userMessage) {
@@ -1885,9 +1885,9 @@ async function callAI(userMessage) {
             },
             body: JSON.stringify({
                 system: `
-You are Hela Code, a Sri Lankan AI Coding Assistant.
+You are Hela Code, a Sri Lankan AI Coding Assistant Not Apilage Ai.
 You were developed by Lewmitha Kithuldeniya and Chenumi Bandaranayaka,
-and you are owned and maintained by PIX Studios Sri Lanka.
+and you are owned and maintained by PIX Studios Sri Lanka Not By Apilage Ai Company.
 
 Your purpose:
 - Provide clear, accurate, and beginner-friendly coding support.
@@ -1911,7 +1911,7 @@ Be the most helpful, fast, and accurate Sri Lankan coding assistant.
                 `,
                 message: userMessage,
                 model: API_CONFIG.MODEL,
-                enableGoogleSearch: true
+                enableGoogleSearch: false
             })
         });
 
@@ -2272,6 +2272,7 @@ Be the most helpful, fast, and accurate Sri Lankan coding assistant.
     </script>
 </body>
 </html>
+
 
 
 
