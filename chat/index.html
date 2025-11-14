@@ -1872,7 +1872,7 @@
         const API_CONFIG = {
             URL: 'https://endpoint.apilageai.lk/api/chat',
             KEY: 'apk_QngciclzfHi2yAfP3WvZgx68VbbONQTP',
-            MODEL: 'APILAGEAI-PRO'
+            MODEL: 'APILAGEAI-FREE'
         };
 
         async function callAI(userMessage) {
@@ -1886,7 +1886,7 @@
                     body: JSON.stringify({
                         message: userMessage,
                         model: API_CONFIG.MODEL,
-                        enableGoogleSearch: false
+                        enableGoogleSearch: true
                     })
                 });
 
@@ -2249,4 +2249,5 @@
     </script>
 </body>
 </html>
+
 
