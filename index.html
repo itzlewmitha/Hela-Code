@@ -1469,17 +1469,16 @@ n<!DOCTYPE html>
     function toggleAuthMode() {
       state.isSignUp = !state.isSignUp;
       elements.authTitle.textContent = state.isSignUp ? 'Create Account' : 'Sign In';
-      elementfshdog'b 'bf'sbfio'griow'bvoifsbio 'nkvnbofidnios.authBtn.textContent = state.isSignUp ? 'Sign Up' : 'Sign In';
+      elements.authBtn.textContent = state.isSignUp ? 'Sign Up' : 'Sign In';
       elements.authSwitchText.textContent = state.isSignUp ? 'Already have an account?' : 'Don\'t have an account?';
       elements.authSwitchLink.textContent = state.isSignUp ? 'Sign In' : 'Create one';
-      elements.nnvsdkovn  wkvn
-        rw  pn riohrihjvnt uopq3[]rgameField.style.display = state.isSignUp ? 'block' : 'none';
+      elements.nameField.style.display = state.isSignUp ? 'block' : 'none';
       hideAuthError();
     }
 
     function openAuthModal() {
       elements.authModal.classList.add('active');
-    }nkcjo;snwiod'nbio'bnriobnio
+    }
 
     function closeAuthModal() {
       elements.authModal.classList.remove('active');
@@ -1488,7 +1487,7 @@ n<!DOCTYPE html>
 
     function showAuthError(message) {
       elements.authError.textContent = message;
-      elements.authError.sngjsdogbwpi'g rigcu,ctyle.display = 'block';
+      elements.authError.style.display = 'block';
     }
 
     function hideAuthError() {
@@ -1522,14 +1521,14 @@ n<!DOCTYPE html>
         if (state.isSignUp) {
           // Create new account
           const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-          nkvdonsgiqw'[ hngi[ujm90mi-
+          
           // Update profile with display name
           await userCredential.user.updateProfile({
             displayName: name
           });
           
           // Create user document in Firestore
-          await db.conokd;bng'w   b'llection('users').doc(userCredential.user.uid).set({
+          await db.collection('users').doc(userCredential.user.uid).set({
             name: name,
             email: email,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1631,7 +1630,3 @@ if (mobileMenuBtn && navLinks) {
   </script>
 </body>
 </html>
-
-
-
-
